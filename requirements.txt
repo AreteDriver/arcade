@@ -1,1 +1,2 @@
-pygame>=2.5.0
+# Pinned versions for reproducible builds
+pygame==2.5.2
