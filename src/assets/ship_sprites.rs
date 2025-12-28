@@ -140,14 +140,17 @@ fn start_loading_sprites(
 }
 
 /// Load an image file (JPEG or PNG) and convert to Bevy Image
-/// Note: EVE Image Server returns JPEG despite the endpoint suggesting PNG
+/// Note: EVE Image Server returns JPEG with black backgrounds - we remove the background
 fn load_image_file(path: &PathBuf) -> Result<Image, String> {
     let bytes = fs::read(path).map_err(|e| e.to_string())?;
 
     // Use image crate to auto-detect format and decode
-    let img = image::load_from_memory(&bytes)
+    let mut img = image::load_from_memory(&bytes)
         .map_err(|e| e.to_string())?
         .into_rgba8();
+
+    // Remove black background and smooth edges
+    remove_black_background(&mut img);
 
     let (width, height) = img.dimensions();
     let data = img.into_raw();
@@ -163,6 +166,35 @@ fn load_image_file(path: &PathBuf) -> Result<Image, String> {
         bevy::render::render_resource::TextureFormat::Rgba8UnormSrgb,
         RenderAssetUsages::RENDER_WORLD,
     ))
+}
+
+/// Remove black background from ship sprites and smooth edges
+fn remove_black_background(img: &mut image::RgbaImage) {
+    let (width, height) = img.dimensions();
+
+    // First pass: identify background pixels and make them transparent
+    // EVE ship renders have a dark/black background
+    for y in 0..height {
+        for x in 0..width {
+            let pixel = img.get_pixel(x, y);
+            let r = pixel[0] as f32;
+            let g = pixel[1] as f32;
+            let b = pixel[2] as f32;
+
+            // Calculate brightness (luminance)
+            let brightness = 0.299 * r + 0.587 * g + 0.114 * b;
+
+            // If pixel is very dark, make it transparent
+            // Use a threshold that catches the black background but keeps ship details
+            if brightness < 15.0 {
+                img.put_pixel(x, y, image::Rgba([0, 0, 0, 0]));
+            } else if brightness < 40.0 {
+                // Semi-transparent for edge smoothing
+                let alpha = ((brightness - 15.0) / 25.0 * 255.0) as u8;
+                img.put_pixel(x, y, image::Rgba([pixel[0], pixel[1], pixel[2], alpha]));
+            }
+        }
+    }
 }
 
 /// Download sprites in background (blocking for now, should be async)

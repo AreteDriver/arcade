@@ -48,13 +48,40 @@ pub struct JoystickState {
     pub dpad_x: i8,
     /// D-pad Y (-1, 0, 1)
     pub dpad_y: i8,
-    /// Buttons (indexed by button number)
+    /// Previous D-pad state for edge detection
+    pub prev_dpad_x: i8,
+    pub prev_dpad_y: i8,
+    /// Buttons (indexed by button number) - current frame
     pub buttons: [bool; 16],
+    /// Buttons from previous frame (for just_pressed detection)
+    pub prev_buttons: [bool; 16],
     /// Whether joystick is connected
     pub connected: bool,
 }
 
 impl JoystickState {
+    /// Check if a button was just pressed this frame (edge detection)
+    fn just_pressed(&self, button: usize) -> bool {
+        button < 16 && self.buttons[button] && !self.prev_buttons[button]
+    }
+
+    /// Check if dpad just moved in a direction (edge detection)
+    pub fn dpad_just_up(&self) -> bool {
+        self.dpad_y < 0 && self.prev_dpad_y >= 0
+    }
+
+    pub fn dpad_just_down(&self) -> bool {
+        self.dpad_y > 0 && self.prev_dpad_y <= 0
+    }
+
+    pub fn dpad_just_left(&self) -> bool {
+        self.dpad_x < 0 && self.prev_dpad_x >= 0
+    }
+
+    pub fn dpad_just_right(&self) -> bool {
+        self.dpad_x > 0 && self.prev_dpad_x <= 0
+    }
+
     /// Get movement vector from left stick with deadzone
     pub fn movement(&self) -> Vec2 {
         let mut x = self.left_x;
@@ -77,44 +104,44 @@ impl JoystickState {
         self.right_trigger > 0.1
     }
 
-    /// Check if context action pressed (A button)
+    /// Check if context action pressed (A button) - held state for gameplay
     pub fn context_action(&self) -> bool {
         self.buttons[0]
     }
 
-    /// Check if emergency burn pressed (B button)
+    /// Check if emergency burn pressed (B button) - held state for gameplay
     pub fn emergency_burn(&self) -> bool {
         self.buttons[1]
     }
 
-    /// Check if formation switch pressed (Y button)
+    /// Check if formation switch just pressed (Y button) - edge triggered
     pub fn formation_switch(&self) -> bool {
-        self.buttons[3]
+        self.just_pressed(3)
     }
 
-    /// Check if confirm button pressed (A/Cross) - for menus
+    /// Check if confirm button just pressed (A/Cross) - for menus (edge triggered)
     pub fn confirm(&self) -> bool {
-        self.buttons[0]
+        self.just_pressed(0)
     }
 
-    /// Check if back button pressed (B/Circle) - for menus
+    /// Check if back button just pressed (B/Circle) - for menus (edge triggered)
     pub fn back(&self) -> bool {
-        self.buttons[1]
+        self.just_pressed(1)
     }
 
-    /// Check if start/menu button pressed
+    /// Check if start/menu button just pressed (edge triggered)
     pub fn start(&self) -> bool {
-        self.buttons[7] || self.buttons[9] // Start or Menu
+        self.just_pressed(7) || self.just_pressed(9) // Start or Menu
     }
 
-    /// Check if left bumper pressed (LB - thrust)
+    /// Check if left bumper pressed (LB - thrust) - held state
     pub fn left_bumper(&self) -> bool {
         self.buttons[4]
     }
 
-    /// Check if right bumper pressed (RB - barrel roll)
+    /// Check if right bumper just pressed (RB - barrel roll) - edge triggered
     pub fn right_bumper(&self) -> bool {
-        self.buttons[5]
+        self.just_pressed(5)
     }
 }
 
@@ -164,6 +191,11 @@ fn poll_joystick(
     mut handle: ResMut<JoystickHandle>,
     mut state: ResMut<JoystickState>,
 ) {
+    // Save previous state for edge detection
+    state.prev_buttons = state.buttons;
+    state.prev_dpad_x = state.dpad_x;
+    state.prev_dpad_y = state.dpad_y;
+
     let Some(ref mut file) = handle.file else {
         return;
     };
@@ -185,6 +217,9 @@ fn poll_joystick(
                         let pressed = event.value != 0;
                         let button = event.number as usize;
                         if button < 16 {
+                            if pressed {
+                                info!("Joystick button {} pressed", button);
+                            }
                             state.buttons[button] = pressed;
                         }
                     }

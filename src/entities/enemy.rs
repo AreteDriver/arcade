@@ -511,27 +511,7 @@ pub fn spawn_enemy(
         ..default()
     };
 
-    // Try 3D model first, then sprite, then color fallback
-    if let Some(cache) = model_cache {
-        if let Some(scene_handle) = cache.get(type_id) {
-            let model_rot = ShipModelRotation::new_enemy();
-            let scale = get_model_scale(type_id) * 48.0; // Scale to match sprite size
-
-            return commands.spawn((
-                Enemy,
-                stats,
-                weapon,
-                ai,
-                model_rot.clone(),
-                SceneRoot(scene_handle),
-                Transform::from_xyz(position.x, position.y, 0.0)
-                    .with_scale(Vec3::splat(scale))
-                    .with_rotation(model_rot.base_rotation),
-            )).id();
-        }
-    }
-
-    // Fallback to sprite
+    // Use sprites (2D camera compatible)
     if let Some(texture) = sprite {
         commands.spawn((
             Enemy,

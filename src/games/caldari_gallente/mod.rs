@@ -91,6 +91,7 @@ const COLOR_GALLENTE_SECONDARY: Color = Color::srgb(0.35, 0.79, 0.35);
 const COLOR_GALLENTE_ACCENT: Color = Color::srgb(0.54, 0.92, 0.54);
 
 fn spawn_faction_select(mut commands: Commands) {
+    info!("Spawning faction select screen!");
     commands.init_resource::<FactionSelectState>();
 
     // Root container - split screen

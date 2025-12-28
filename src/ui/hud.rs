@@ -18,7 +18,6 @@ impl Plugin for HudPlugin {
                 Update,
                 (
                     update_score_display,
-                    update_health_bars,
                     update_berserk_meter,
                     update_combo_display,
                     update_heat_display,
@@ -51,21 +50,6 @@ pub struct ComboText;
 #[derive(Component)]
 pub struct GradeText;
 
-/// Shield bar
-#[derive(Component)]
-pub struct ShieldBar;
-
-/// Armor bar
-#[derive(Component)]
-pub struct ArmorBar;
-
-/// Hull bar
-#[derive(Component)]
-pub struct HullBar;
-
-/// Capacitor bar
-#[derive(Component)]
-pub struct CapacitorBar;
 
 /// Berserk meter bar
 #[derive(Component)]
@@ -319,97 +303,81 @@ fn spawn_hud(mut commands: Commands) {
                     });
                 });
 
-            // === MIDDLE: Powerup indicators ===
+            // === POWERUP INDICATORS (positioned next to capacitor wheel at bottom center-right) ===
             parent
                 .spawn((
                     PowerupIndicator,
                     Node {
-                        width: Val::Percent(100.0),
-                        height: Val::Px(30.0),
-                        flex_direction: FlexDirection::Row,
-                        justify_content: JustifyContent::Center,
-                        column_gap: Val::Px(10.0),
+                        position_type: PositionType::Absolute,
+                        bottom: Val::Px(50.0),  // Align with capacitor wheel height
+                        left: Val::Percent(50.0),  // Start at center
+                        margin: UiRect::left(Val::Px(100.0)),  // Offset to right of capacitor wheel
+                        flex_direction: FlexDirection::Column,
+                        row_gap: Val::Px(4.0),
+                        align_items: AlignItems::FlexStart,
                         ..default()
                     },
                 ))
                 .with_children(|indicators| {
-                    // Overdrive indicator
+                    // Overdrive indicator (cyan)
                     indicators.spawn((
                         OverdriveIndicator,
                         Text::new(""),
                         TextFont {
-                            font_size: 18.0,
+                            font_size: 14.0,
                             ..default()
                         },
                         TextColor(Color::srgb(0.3, 0.9, 1.0)),
                     ));
-                    // Damage boost indicator
+                    // Damage boost indicator (red)
                     indicators.spawn((
                         DamageBoostIndicator,
                         Text::new(""),
                         TextFont {
-                            font_size: 18.0,
+                            font_size: 14.0,
                             ..default()
                         },
                         TextColor(Color::srgb(1.0, 0.3, 0.3)),
                     ));
-                    // Invuln indicator
+                    // Invuln indicator (white/gold)
                     indicators.spawn((
                         InvulnIndicator,
                         Text::new(""),
                         TextFont {
-                            font_size: 18.0,
+                            font_size: 14.0,
                             ..default()
                         },
-                        TextColor(Color::srgb(1.0, 1.0, 1.0)),
+                        TextColor(Color::srgb(1.0, 0.9, 0.5)),
                     ));
                 });
 
-            // === BOTTOM BAR: Health and meters ===
+            // === BOTTOM BAR: Meters only (health is shown in capacitor wheel) ===
             parent
                 .spawn(Node {
                     width: Val::Percent(100.0),
-                    height: Val::Px(130.0),
+                    height: Val::Px(80.0),
                     flex_direction: FlexDirection::Row,
                     justify_content: JustifyContent::SpaceBetween,
                     padding: UiRect::all(Val::Px(10.0)),
                     ..default()
                 })
                 .with_children(|bottom| {
-                    // Left side: Health bars (EVE-style vertical arrangement)
+                    // Left side: Status meters (Heat, Berserk)
                     bottom
                         .spawn(Node {
                             flex_direction: FlexDirection::Column,
                             row_gap: Val::Px(3.0),
+                            align_items: AlignItems::FlexStart,
                             ..default()
                         })
                         .with_children(|left| {
-                            // Shield bar (blue)
-                            spawn_health_bar(left, ShieldBar, COLOR_SHIELD, "SHIELD");
-                            // Armor bar (orange/gold)
-                            spawn_health_bar(left, ArmorBar, COLOR_ARMOR, "ARMOR");
-                            // Hull bar (gray)
-                            spawn_health_bar(left, HullBar, COLOR_HULL, "HULL");
-                            // Capacitor bar (yellow)
-                            spawn_health_bar(left, CapacitorBar, COLOR_CAPACITOR, "CAP");
-                        });
-
-                    // Center: Status meters (Heat, Berserk)
-                    bottom
-                        .spawn(Node {
-                            flex_direction: FlexDirection::Column,
-                            row_gap: Val::Px(3.0),
-                            align_items: AlignItems::Center,
-                            ..default()
-                        })
-                        .with_children(|center| {
                             // Heat meter (orange/red)
-                            spawn_health_bar(center, HeatBar, Color::srgb(1.0, 0.5, 0.0), "HEAT");
+                            spawn_health_bar(left, HeatBar, Color::srgb(1.0, 0.5, 0.0), "HEAT");
                             // Berserk meter (purple)
-                            spawn_health_bar(center, BerserkBar, Color::srgb(0.8, 0.2, 0.8), "BERSERK");
+                            spawn_health_bar(left, BerserkBar, Color::srgb(0.8, 0.2, 0.8), "BERSERK");
                         });
 
-                    // Right side: Wingman gauge (Rifter only)
+                    // Center: Spacer to push wingman gauge right
                     bottom
                         .spawn((
                             WingmanGauge,
@@ -627,31 +595,6 @@ fn update_combo_display(
         let grade = score.get_grade();
         **text = grade.as_str().to_string();
         text_color.0 = grade.color();
-    }
-}
-
-fn update_health_bars(
-    player_query: Query<&ShipStats, With<Player>>,
-    mut shield_query: Query<&mut Node, (With<ShieldBar>, Without<ArmorBar>, Without<HullBar>, Without<CapacitorBar>)>,
-    mut armor_query: Query<&mut Node, (With<ArmorBar>, Without<ShieldBar>, Without<HullBar>, Without<CapacitorBar>)>,
-    mut hull_query: Query<&mut Node, (With<HullBar>, Without<ShieldBar>, Without<ArmorBar>, Without<CapacitorBar>)>,
-    mut cap_query: Query<&mut Node, (With<CapacitorBar>, Without<ShieldBar>, Without<ArmorBar>, Without<HullBar>)>,
-) {
-    let Ok(stats) = player_query.get_single() else {
-        return;
-    };
-
-    for mut node in shield_query.iter_mut() {
-        node.width = Val::Percent((stats.shield / stats.max_shield * 100.0).max(0.0));
-    }
-    for mut node in armor_query.iter_mut() {
-        node.width = Val::Percent((stats.armor / stats.max_armor * 100.0).max(0.0));
-    }
-    for mut node in hull_query.iter_mut() {
-        node.width = Val::Percent((stats.hull / stats.max_hull * 100.0).max(0.0));
-    }
-    for mut node in cap_query.iter_mut() {
-        node.width = Val::Percent((stats.capacitor / stats.max_capacitor * 100.0).max(0.0));
     }
 }
 

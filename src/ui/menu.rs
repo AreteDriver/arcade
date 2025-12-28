@@ -351,6 +351,7 @@ fn main_menu_input(
             }
             1 => {
                 // Caldari vs Gallente - go to faction select
+                info!("Selected CALDARI VS GALLENTE - transitioning to FactionSelect");
                 active_module.set_module("caldari_gallente");
                 next_state.set(GameState::FactionSelect);
             }
@@ -1677,7 +1678,7 @@ fn update_menu_selection<T: Component>(
 fn get_nav_input(keyboard: &ButtonInput<KeyCode>, joystick: &JoystickState) -> i32 {
     let mut nav = 0;
 
-    // Keyboard
+    // Keyboard (edge triggered)
     if keyboard.just_pressed(KeyCode::ArrowUp) || keyboard.just_pressed(KeyCode::KeyW) {
         nav = -1;
     }
@@ -1685,11 +1686,19 @@ fn get_nav_input(keyboard: &ButtonInput<KeyCode>, joystick: &JoystickState) -> i
         nav = 1;
     }
 
-    // Joystick (with threshold)
-    if joystick.left_y < -0.5 || joystick.dpad_y < 0 {
+    // Joystick dpad (edge triggered for snappy menu feel)
+    if joystick.dpad_just_up() {
         nav = -1;
     }
-    if joystick.left_y > 0.5 || joystick.dpad_y > 0 {
+    if joystick.dpad_just_down() {
+        nav = 1;
+    }
+
+    // Analog stick (with threshold) - held state is fine since there's cooldown
+    if joystick.left_y < -0.5 {
+        nav = -1;
+    }
+    if joystick.left_y > 0.5 {
         nav = 1;
     }
 

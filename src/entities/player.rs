@@ -4,7 +4,6 @@
 
 use bevy::prelude::*;
 use crate::core::*;
-use crate::assets::{ShipModelCache, ShipModelRotation, get_model_scale};
 use crate::systems::ManeuverState;
 
 /// Marker component for the player entity
@@ -267,7 +266,6 @@ impl Plugin for PlayerPlugin {
                 Update,
                 (
                     player_movement,
-                    update_player_ship_rotation,
                     player_shooting,
                     update_player_stats,
                 ).run_if(in_state(GameState::Playing)),
@@ -281,7 +279,6 @@ fn spawn_player(
     mut commands: Commands,
     selected_ship: Res<SelectedShip>,
     sprite_cache: Res<crate::assets::ShipSpriteCache>,
-    model_cache: Res<ShipModelCache>,
 ) {
     let ship = selected_ship.ship;
     let type_id = ship.type_id();
@@ -302,28 +299,8 @@ fn spawn_player(
 
     let base_color = COLOR_MINMATAR;
 
-    // Try 3D model first, then sprite, then color fallback
-    if let Some(scene_handle) = model_cache.get(type_id) {
-        info!("Using 3D model for player ship type {}", type_id);
-
-        let model_rot = ShipModelRotation::new_player();
-        let scale = get_model_scale(type_id) * 64.0; // Scale to match sprite size
-
-        commands.spawn((
-            Player,
-            stats,
-            movement,
-            Weapon::default(),
-            Hitbox::default(),
-            super::collectible::PowerupEffects::default(),
-            ManeuverState::default(),
-            model_rot.clone(),
-            SceneRoot(scene_handle),
-            Transform::from_xyz(0.0, -250.0, 0.0)
-                .with_scale(Vec3::splat(scale))
-                .with_rotation(model_rot.base_rotation),
-        ));
-    } else if let Some(texture) = sprite_cache.get(type_id) {
+    // Use sprites (2D camera compatible)
+    if let Some(texture) = sprite_cache.get(type_id) {
         info!("Using EVE sprite for player ship type {}", type_id);
         commands.spawn((
             Player,
@@ -531,27 +508,6 @@ fn update_player_stats(
     };
 
     stats.update(time.delta_secs());
-}
-
-/// Update 3D ship rotation based on velocity (banking/tilting)
-fn update_player_ship_rotation(
-    time: Res<Time>,
-    mut query: Query<(&Movement, &mut Transform, &ShipModelRotation), With<Player>>,
-) {
-    let dt = time.delta_secs();
-
-    for (movement, mut transform, model_rot) in query.iter_mut() {
-        let target_rotation = model_rot.calculate_rotation(
-            movement.velocity,
-            movement.max_speed,
-        );
-
-        // Smoothly interpolate to target rotation
-        transform.rotation = transform.rotation.slerp(
-            target_rotation,
-            (model_rot.smoothing * dt).min(1.0),
-        );
-    }
 }
 
 /// Despawn player when leaving gameplay

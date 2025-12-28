@@ -79,39 +79,8 @@ fn main() {
 
 /// Initial game setup
 fn setup(mut commands: Commands) {
-    // Spawn 3D camera with orthographic projection for top-down view
-    // Camera looks down at XY plane from above (positive Z)
-    commands.spawn((
-        Camera3d::default(),
-        Projection::Orthographic(OrthographicProjection {
-            // Match the 2D game's coordinate scale
-            scaling_mode: bevy::render::camera::ScalingMode::FixedVertical {
-                viewport_height: core::SCREEN_HEIGHT,
-            },
-            near: 0.1,
-            far: 1000.0,
-            ..OrthographicProjection::default_3d()
-        }),
-        Transform::from_xyz(0.0, 0.0, 500.0)
-            .looking_at(Vec3::ZERO, Vec3::Y),
-    ));
+    // Use 2D camera - sprites work reliably with this
+    commands.spawn(Camera2d);
 
-    // Directional light (main illumination from above-right)
-    commands.spawn((
-        DirectionalLight {
-            illuminance: 15000.0,
-            shadows_enabled: false,
-            ..default()
-        },
-        Transform::from_xyz(200.0, 400.0, 500.0)
-            .looking_at(Vec3::ZERO, Vec3::Y),
-    ));
-
-    // Ambient light for base visibility (prevents pure black shadows)
-    commands.insert_resource(AmbientLight {
-        color: Color::srgb(0.3, 0.35, 0.4),
-        brightness: 300.0,
-    });
-
-    info!("EVE Rebellion initialized with 3D rendering!");
+    info!("EVE Rebellion initialized!");
 }
