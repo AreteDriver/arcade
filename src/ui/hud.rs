@@ -621,12 +621,13 @@ fn update_berserk_meter(
 ) {
     for (mut node, mut bg) in query.iter_mut() {
         if berserk.is_active {
-            // Pulsing effect when active
+            // Pulsing effect when active - show remaining time
             let pulse = (berserk.timer * 10.0).sin().abs();
-            node.width = Val::Percent(berserk.timer / berserk.duration * 100.0);
+            node.width = Val::Percent(berserk.progress() * 100.0);
             bg.0 = Color::srgb(0.8 + pulse * 0.2, 0.2, 0.8 + pulse * 0.2);
         } else {
-            node.width = Val::Percent(berserk.meter);
+            // Show proximity kills progress toward berserk
+            node.width = Val::Percent(berserk.progress() * 100.0);
             bg.0 = Color::srgb(0.8, 0.2, 0.8);
         }
     }

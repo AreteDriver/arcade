@@ -5,6 +5,7 @@
 use bevy::prelude::*;
 use crate::core::*;
 use crate::assets::{ShipModelCache, ShipModelRotation, get_model_scale};
+use crate::systems::ManeuverState;
 
 /// Marker component for the player entity
 #[derive(Component, Debug)]
@@ -315,6 +316,7 @@ fn spawn_player(
             Weapon::default(),
             Hitbox::default(),
             super::collectible::PowerupEffects::default(),
+            ManeuverState::default(),
             model_rot.clone(),
             SceneRoot(scene_handle),
             Transform::from_xyz(0.0, -250.0, 0.0)
@@ -330,6 +332,7 @@ fn spawn_player(
             Weapon::default(),
             Hitbox::default(),
             super::collectible::PowerupEffects::default(),
+            ManeuverState::default(),
             Sprite {
                 image: texture,
                 custom_size: Some(Vec2::new(64.0, 64.0)),
@@ -347,6 +350,7 @@ fn spawn_player(
             Weapon::default(),
             Hitbox::default(),
             super::collectible::PowerupEffects::default(),
+            ManeuverState::default(),
             Sprite {
                 color: base_color,
                 custom_size: Some(Vec2::new(48.0, 64.0)),

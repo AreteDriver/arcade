@@ -314,8 +314,8 @@ fn spawn_difficulty_menu(mut commands: Commands, mut selection: ResMut<MenuSelec
                 ..default()
             });
 
-            // Difficulty options
-            for (i, diff) in [Difficulty::Easy, Difficulty::Normal, Difficulty::Hard, Difficulty::Brutal].iter().enumerate() {
+            // Difficulty options - EVE-themed
+            for (i, diff) in Difficulty::all().iter().enumerate() {
                 spawn_difficulty_item(parent, *diff, i);
             }
 
@@ -340,18 +340,20 @@ fn spawn_difficulty_item(parent: &mut ChildBuilder, diff: Difficulty, index: usi
         .spawn((
             MenuItem { index },
             Node {
-                width: Val::Px(400.0),
-                height: Val::Px(70.0),
+                width: Val::Px(450.0),
+                height: Val::Px(85.0),
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 flex_direction: FlexDirection::Column,
                 border: UiRect::all(Val::Px(2.0)),
+                row_gap: Val::Px(3.0),
                 ..default()
             },
             BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.9)),
             BorderColor(Color::srgb(0.3, 0.3, 0.3)),
         ))
         .with_children(|btn| {
+            // Difficulty name
             btn.spawn((
                 Text::new(diff.name()),
                 TextFont {
@@ -360,13 +362,23 @@ fn spawn_difficulty_item(parent: &mut ChildBuilder, diff: Difficulty, index: usi
                 },
                 TextColor(diff.color()),
             ));
+            // Tagline
             btn.spawn((
-                Text::new(diff.description()),
+                Text::new(format!("\"{}\"", diff.tagline())),
                 TextFont {
                     font_size: 14.0,
                     ..default()
                 },
-                TextColor(Color::srgb(0.6, 0.6, 0.6)),
+                TextColor(Color::srgb(0.7, 0.7, 0.7)),
+            ));
+            // Description
+            btn.spawn((
+                Text::new(diff.description()),
+                TextFont {
+                    font_size: 12.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.5, 0.5, 0.5)),
             ));
         });
 }
@@ -389,13 +401,8 @@ fn difficulty_menu_input(
     }
 
     if is_confirm(&keyboard, &joystick) {
-        *difficulty = match selection.index {
-            0 => Difficulty::Easy,
-            1 => Difficulty::Normal,
-            2 => Difficulty::Hard,
-            3 => Difficulty::Brutal,
-            _ => Difficulty::Normal,
-        };
+        *difficulty = Difficulty::all()[selection.index.min(3)];
+        info!("Selected difficulty: {} - {}", difficulty.name(), difficulty.tagline());
         next_state.set(GameState::ShipSelect);
     }
 
@@ -412,9 +419,10 @@ fn spawn_ship_menu(
     mut commands: Commands,
     mut selection: ResMut<MenuSelection>,
     difficulty: Res<Difficulty>,
+    unlocks: Res<ShipUnlocks>,
 ) {
     selection.index = 0;
-    selection.total = MinmatarShip::all().len();
+    selection.total = MinmatarShip::all_including_unlocks().len();
 
     commands
         .spawn((
@@ -425,10 +433,10 @@ fn spawn_ship_menu(
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 flex_direction: FlexDirection::Column,
-                row_gap: Val::Px(15.0),
+                row_gap: Val::Px(12.0),
                 ..default()
             },
-            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.4)), // Semi-transparent to show background
+            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.4)),
         ))
         .with_children(|parent| {
             parent.spawn((
@@ -441,26 +449,27 @@ fn spawn_ship_menu(
             ));
 
             parent.spawn((
-                Text::new(format!("Difficulty: {}", difficulty.name())),
+                Text::new(format!("Difficulty: {} - \"{}\"", difficulty.name(), difficulty.tagline())),
                 TextFont {
-                    font_size: 18.0,
+                    font_size: 16.0,
                     ..default()
                 },
                 TextColor(difficulty.color()),
             ));
 
             parent.spawn(Node {
-                height: Val::Px(20.0),
+                height: Val::Px(15.0),
                 ..default()
             });
 
-            // Ship options
-            for (i, ship) in MinmatarShip::all().iter().enumerate() {
-                spawn_ship_item(parent, *ship, i);
+            // Ship options - show all including unlockables
+            for (i, ship) in MinmatarShip::all_including_unlocks().iter().enumerate() {
+                let is_unlocked = unlocks.is_unlocked(*ship);
+                spawn_ship_item(parent, *ship, i, is_unlocked);
             }
 
             parent.spawn(Node {
-                height: Val::Px(20.0),
+                height: Val::Px(15.0),
                 ..default()
             });
 
@@ -475,7 +484,17 @@ fn spawn_ship_menu(
         });
 }
 
-fn spawn_ship_item(parent: &mut ChildBuilder, ship: MinmatarShip, index: usize) {
+fn spawn_ship_item(parent: &mut ChildBuilder, ship: MinmatarShip, index: usize, is_unlocked: bool) {
+    // Colors depend on unlock state
+    let name_color = if is_unlocked { COLOR_MINMATAR } else { Color::srgb(0.4, 0.4, 0.4) };
+    let desc_color = if is_unlocked { Color::srgb(0.5, 0.5, 0.5) } else { Color::srgb(0.3, 0.3, 0.3) };
+    let special_color = if is_unlocked { Color::srgb(0.4, 0.7, 0.9) } else { Color::srgb(0.3, 0.3, 0.3) };
+    let bg_color = if is_unlocked {
+        Color::srgba(0.1, 0.1, 0.1, 0.9)
+    } else {
+        Color::srgba(0.05, 0.05, 0.05, 0.9)
+    };
+
     parent
         .spawn((
             MenuItem { index },
@@ -489,7 +508,7 @@ fn spawn_ship_item(parent: &mut ChildBuilder, ship: MinmatarShip, index: usize) 
                 border: UiRect::all(Val::Px(2.0)),
                 ..default()
             },
-            BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.9)),
+            BackgroundColor(bg_color),
             BorderColor(Color::srgb(0.3, 0.3, 0.3)),
         ))
         .with_children(|btn| {
@@ -499,45 +518,73 @@ fn spawn_ship_item(parent: &mut ChildBuilder, ship: MinmatarShip, index: usize) 
                 align_items: AlignItems::FlexStart,
                 ..default()
             }).with_children(|left| {
+                // Ship name with class
+                let name_text = if ship.requires_unlock() {
+                    format!("{} [{}]", ship.name(), ship.ship_class())
+                } else {
+                    ship.name().to_string()
+                };
                 left.spawn((
-                    Text::new(ship.name()),
+                    Text::new(name_text),
                     TextFont {
-                        font_size: 24.0,
+                        font_size: 22.0,
                         ..default()
                     },
-                    TextColor(COLOR_MINMATAR),
+                    TextColor(name_color),
                 ));
-                left.spawn((
-                    Text::new(ship.description()),
-                    TextFont {
-                        font_size: 12.0,
-                        ..default()
-                    },
-                    TextColor(Color::srgb(0.5, 0.5, 0.5)),
-                ));
-                left.spawn((
-                    Text::new(ship.special()),
-                    TextFont {
-                        font_size: 11.0,
-                        ..default()
-                    },
-                    TextColor(Color::srgb(0.4, 0.7, 0.9)),
-                ));
+
+                // Description or lock message
+                if is_unlocked {
+                    left.spawn((
+                        Text::new(ship.description()),
+                        TextFont {
+                            font_size: 11.0,
+                            ..default()
+                        },
+                        TextColor(desc_color),
+                    ));
+                    left.spawn((
+                        Text::new(ship.special()),
+                        TextFont {
+                            font_size: 10.0,
+                            ..default()
+                        },
+                        TextColor(special_color),
+                    ));
+                } else {
+                    left.spawn((
+                        Text::new(format!("LOCKED - Complete Act {} to unlock", ship.unlock_act())),
+                        TextFont {
+                            font_size: 11.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgb(0.6, 0.3, 0.3)),
+                    ));
+                    left.spawn((
+                        Text::new(ship.description()),
+                        TextFont {
+                            font_size: 10.0,
+                            ..default()
+                        },
+                        TextColor(desc_color),
+                    ));
+                }
             });
 
-            // Right side - stats
+            // Right side - stats (dimmed if locked)
             btn.spawn(Node {
                 flex_direction: FlexDirection::Column,
                 align_items: AlignItems::FlexEnd,
                 ..default()
             }).with_children(|right| {
+                let stat_alpha = if is_unlocked { 1.0 } else { 0.4 };
                 right.spawn((
                     Text::new(format!("SPD: {:.0}%", ship.speed_mult() * 100.0)),
                     TextFont {
                         font_size: 11.0,
                         ..default()
                     },
-                    TextColor(Color::srgb(0.3, 0.8, 0.3)),
+                    TextColor(Color::srgba(0.3, 0.8, 0.3, stat_alpha)),
                 ));
                 right.spawn((
                     Text::new(format!("DMG: {:.0}%", ship.damage_mult() * 100.0)),
@@ -545,7 +592,7 @@ fn spawn_ship_item(parent: &mut ChildBuilder, ship: MinmatarShip, index: usize) 
                         font_size: 11.0,
                         ..default()
                     },
-                    TextColor(Color::srgb(0.9, 0.3, 0.3)),
+                    TextColor(Color::srgba(0.9, 0.3, 0.3, stat_alpha)),
                 ));
                 right.spawn((
                     Text::new(format!("HP: {:.0}%", ship.health_mult() * 100.0)),
@@ -553,7 +600,7 @@ fn spawn_ship_item(parent: &mut ChildBuilder, ship: MinmatarShip, index: usize) 
                         font_size: 11.0,
                         ..default()
                     },
-                    TextColor(Color::srgb(0.3, 0.6, 0.9)),
+                    TextColor(Color::srgba(0.3, 0.6, 0.9, stat_alpha)),
                 ));
             });
         });
@@ -564,6 +611,7 @@ fn ship_menu_input(
     joystick: Res<JoystickState>,
     mut selection: ResMut<MenuSelection>,
     mut selected_ship: ResMut<SelectedShip>,
+    unlocks: Res<ShipUnlocks>,
     time: Res<Time>,
     mut next_state: ResMut<NextState<GameState>>,
 ) {
@@ -577,9 +625,17 @@ fn ship_menu_input(
     }
 
     if is_confirm(&keyboard, &joystick) {
-        selected_ship.ship = MinmatarShip::all()[selection.index];
-        info!("Selected ship: {:?}", selected_ship.ship);
-        next_state.set(GameState::Playing);
+        let all_ships = MinmatarShip::all_including_unlocks();
+        if selection.index < all_ships.len() {
+            let ship = all_ships[selection.index];
+            if unlocks.is_unlocked(ship) {
+                selected_ship.ship = ship;
+                info!("Selected ship: {} ({})", ship.name(), ship.ship_class());
+                next_state.set(GameState::Playing);
+            } else {
+                info!("Ship {} is locked - complete Act {} to unlock", ship.name(), ship.unlock_act());
+            }
+        }
     }
 
     if keyboard.just_pressed(KeyCode::Escape) || joystick.back() {

@@ -106,6 +106,16 @@ impl JoystickState {
     pub fn start(&self) -> bool {
         self.buttons[7] || self.buttons[9] // Start or Menu
     }
+
+    /// Check if left bumper pressed (LB - thrust)
+    pub fn left_bumper(&self) -> bool {
+        self.buttons[4]
+    }
+
+    /// Check if right bumper pressed (RB - barrel roll)
+    pub fn right_bumper(&self) -> bool {
+        self.buttons[5]
+    }
 }
 
 /// Joystick file handle resource

@@ -4,7 +4,6 @@
 
 use bevy::prelude::*;
 use crate::core::*;
-use crate::systems::JoystickState;
 
 /// Scoring plugin
 pub struct ScoringPlugin;
@@ -16,7 +15,6 @@ impl Plugin for ScoringPlugin {
             (
                 update_score_system,
                 update_berserk_system,
-                check_berserk_activation,
             ).run_if(in_state(GameState::Playing)),
         );
     }
@@ -46,29 +44,5 @@ fn update_berserk_system(
     }
 }
 
-/// Track previous button state for edge detection
-#[derive(Resource, Default)]
-struct BerserkButtonState {
-    was_pressed: bool,
-}
-
-/// Check for berserk activation (player presses activate button)
-fn check_berserk_activation(
-    keyboard: Res<ButtonInput<KeyCode>>,
-    joystick: Res<JoystickState>,
-    mut berserk: ResMut<BerserkSystem>,
-    mut activate_events: EventWriter<BerserkActivatedEvent>,
-    mut button_state: Local<BerserkButtonState>,
-) {
-    // Activate with E key or controller Y button (formation switch in Python game)
-    let y_pressed = joystick.formation_switch();
-    let y_just_pressed = y_pressed && !button_state.was_pressed;
-    button_state.was_pressed = y_pressed;
-
-    if keyboard.just_pressed(KeyCode::KeyE) || y_just_pressed {
-        if berserk.activate() {
-            activate_events.send(BerserkActivatedEvent);
-            info!("BERSERK MODE ACTIVATED!");
-        }
-    }
-}
+// Berserk now auto-activates on 5 proximity kills (within 80 units)
+// See collision.rs: player_projectile_enemy_collision

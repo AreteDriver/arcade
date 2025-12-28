@@ -14,7 +14,7 @@ mod assets;
 
 use core::{
     GameState, GameEventsPlugin, ScoreSystem, BerserkSystem, GameProgress,
-    InputConfig, AudioSettings, Difficulty, SelectedShip, CurrentStage,
+    InputConfig, AudioSettings, Difficulty, SelectedShip, CurrentStage, ShipUnlocks,
 };
 use entities::EntitiesPlugin;
 use systems::SystemsPlugin;
@@ -47,6 +47,7 @@ fn main() {
         .init_resource::<Difficulty>()
         .init_resource::<SelectedShip>()
         .init_resource::<CurrentStage>()
+        .init_resource::<ShipUnlocks>()
 
         // Game plugins
         .add_plugins((

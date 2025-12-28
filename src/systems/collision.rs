@@ -26,6 +26,7 @@ fn player_projectile_enemy_collision(
     mut commands: Commands,
     projectile_query: Query<(Entity, &Transform, &ProjectileDamage), With<PlayerProjectile>>,
     mut enemy_query: Query<(Entity, &Transform, &mut EnemyStats), With<Enemy>>,
+    player_query: Query<&Transform, With<Player>>,
     mut score: ResMut<ScoreSystem>,
     mut berserk: ResMut<BerserkSystem>,
     mut destroy_events: EventWriter<EnemyDestroyedEvent>,
@@ -33,6 +34,12 @@ fn player_projectile_enemy_collision(
     mut screen_shake: ResMut<super::effects::ScreenShake>,
     icon_cache: Res<crate::assets::PowerupIconCache>,
 ) {
+    // Get player position for proximity check
+    let player_pos = player_query
+        .get_single()
+        .map(|t| t.translation.truncate())
+        .unwrap_or(Vec2::ZERO);
+
     for (proj_entity, proj_transform, proj_damage) in projectile_query.iter() {
         let proj_pos = proj_transform.translation.truncate();
 
@@ -50,9 +57,18 @@ fn player_projectile_enemy_collision(
 
                 // Check if enemy destroyed
                 if enemy_stats.health <= 0.0 {
-                    // Update score
-                    score.on_kill(enemy_stats.score_value);
-                    berserk.on_kill();
+                    // Calculate distance from player to enemy for berserk
+                    let player_distance = (player_pos - enemy_pos).length();
+
+                    // Update score (with berserk multiplier)
+                    let base_score = enemy_stats.score_value;
+                    let final_score = (base_score as f32 * berserk.score_mult()) as u64;
+                    score.on_kill(final_score);
+
+                    // Check for berserk activation
+                    if berserk.on_kill_at_distance(player_distance) {
+                        info!("BERSERK MODE ACTIVATED! {} proximity kills!", berserk.kills_to_activate);
+                    }
 
                     // Send events
                     destroy_events.send(EnemyDestroyedEvent {
@@ -99,13 +115,13 @@ fn player_projectile_enemy_collision(
 fn enemy_projectile_player_collision(
     mut commands: Commands,
     projectile_query: Query<(Entity, &Transform, &ProjectileDamage), With<EnemyProjectile>>,
-    mut player_query: Query<(&Transform, &mut ShipStats, &Hitbox, &PowerupEffects), With<Player>>,
+    mut player_query: Query<(&Transform, &mut ShipStats, &Hitbox, &PowerupEffects, &super::ManeuverState), With<Player>>,
     mut score: ResMut<ScoreSystem>,
     mut damage_events: EventWriter<PlayerDamagedEvent>,
     mut screen_shake: ResMut<super::effects::ScreenShake>,
     mut next_state: ResMut<NextState<GameState>>,
 ) {
-    let Ok((player_transform, mut player_stats, hitbox, powerups)) = player_query.get_single_mut() else {
+    let Ok((player_transform, mut player_stats, hitbox, powerups, maneuver)) = player_query.get_single_mut() else {
         return;
     };
 
@@ -119,8 +135,8 @@ fn enemy_projectile_player_collision(
             // Despawn projectile regardless
             commands.entity(proj_entity).despawn_recursive();
 
-            // Check invulnerability
-            if powerups.is_invulnerable() {
+            // Check invulnerability (powerups OR barrel roll i-frames)
+            if powerups.is_invulnerable() || maneuver.invincible {
                 continue;
             }
 

@@ -11,6 +11,7 @@ pub mod joystick;
 pub mod boss;
 pub mod dialogue;
 pub mod audio;
+pub mod maneuvers;
 
 pub use collision::*;
 pub use spawning::*;
@@ -21,6 +22,7 @@ pub use joystick::*;
 pub use boss::*;
 pub use dialogue::*;
 pub use audio::*;
+pub use maneuvers::*;
 
 use bevy::prelude::*;
 
@@ -39,6 +41,7 @@ impl Plugin for SystemsPlugin {
             BossPlugin,
             DialoguePlugin,
             AudioPlugin,
+            ManeuverPlugin,
         ));
     }
 }
