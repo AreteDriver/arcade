@@ -87,7 +87,10 @@ impl Plugin for MenuPlugin {
             .add_systems(OnEnter(GameState::Victory), spawn_victory_screen)
             .add_systems(
                 Update,
-                victory_input.run_if(in_state(GameState::Victory)),
+                (
+                    victory_input,
+                    update_victory_particles,
+                ).run_if(in_state(GameState::Victory)),
             )
             .add_systems(OnExit(GameState::Victory), despawn_menu::<VictoryRoot>)
 
@@ -1346,11 +1349,52 @@ fn stage_complete_input(
 // Victory Screen (Campaign Complete)
 // ============================================================================
 
+/// Marker for victory celebration particles
+#[derive(Component)]
+struct VictoryParticle {
+    velocity: Vec2,
+    lifetime: f32,
+    max_lifetime: f32,
+}
+
 fn spawn_victory_screen(
     mut commands: Commands,
     score: Res<ScoreSystem>,
-    campaign: Res<CampaignState>,
+    _campaign: Res<CampaignState>,
 ) {
+    // Spawn celebration particles
+    for _ in 0..60 {
+        let x = (fastrand::f32() - 0.5) * SCREEN_WIDTH;
+        let y = -SCREEN_HEIGHT / 2.0 - fastrand::f32() * 100.0;
+        let vx = (fastrand::f32() - 0.5) * 100.0;
+        let vy = 80.0 + fastrand::f32() * 120.0;
+        let size = 4.0 + fastrand::f32() * 8.0;
+        let lifetime = 3.0 + fastrand::f32() * 4.0;
+
+        // Gold/amber particles
+        let color = if fastrand::bool() {
+            Color::srgb(1.0, 0.85, 0.2) // Gold
+        } else {
+            Color::srgb(0.85, 0.4, 0.15) // Minmatar rust
+        };
+
+        commands.spawn((
+            VictoryRoot,
+            VictoryParticle {
+                velocity: Vec2::new(vx, vy),
+                lifetime,
+                max_lifetime: lifetime,
+            },
+            Sprite {
+                color,
+                custom_size: Some(Vec2::splat(size)),
+                ..default()
+            },
+            Transform::from_xyz(x, y, 50.0),
+        ));
+    }
+
+    // Main UI container
     commands
         .spawn((
             VictoryRoot,
@@ -1363,14 +1407,14 @@ fn spawn_victory_screen(
                 row_gap: Val::Px(15.0),
                 ..default()
             },
-            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.95)),
+            BackgroundColor(Color::srgba(0.0, 0.02, 0.05, 0.9)),
         ))
         .with_children(|parent| {
-            // Victory header
+            // Victory header with glow effect (simulated with multiple layers)
             parent.spawn((
                 Text::new("LIBERATION COMPLETE"),
                 TextFont {
-                    font_size: 64.0,
+                    font_size: 72.0,
                     ..default()
                 },
                 TextColor(Color::srgb(1.0, 0.85, 0.2)), // Gold
@@ -1379,58 +1423,19 @@ fn spawn_victory_screen(
             parent.spawn((
                 Text::new("The Amarr Empire Has Fallen"),
                 TextFont {
-                    font_size: 24.0,
+                    font_size: 28.0,
                     ..default()
                 },
                 TextColor(COLOR_MINMATAR),
             ));
 
-            parent.spawn(Node {
-                height: Val::Px(30.0),
-                ..default()
-            });
-
-            // Campaign stats
             parent.spawn((
-                Text::new(format!("Final Score: {}", score.score)),
+                Text::new("The Minmatar are FREE"),
                 TextFont {
-                    font_size: 32.0,
+                    font_size: 22.0,
                     ..default()
                 },
-                TextColor(Color::WHITE),
-            ));
-
-            parent.spawn((
-                Text::new(format!("Total Souls Liberated: {}", score.souls_liberated)),
-                TextFont {
-                    font_size: 24.0,
-                    ..default()
-                },
-                TextColor(Color::srgb(0.4, 0.8, 1.0)),
-            ));
-
-            parent.spawn((
-                Text::new(format!("Missions Completed: {}", CampaignState::total_missions())),
-                TextFont {
-                    font_size: 20.0,
-                    ..default()
-                },
-                TextColor(Color::srgb(0.3, 1.0, 0.3)),
-            ));
-
-            parent.spawn(Node {
-                height: Val::Px(30.0),
-                ..default()
-            });
-
-            // Minmatar catchphrase
-            parent.spawn((
-                Text::new("In Rust We Trust - For Freedom! For the Republic!"),
-                TextFont {
-                    font_size: 18.0,
-                    ..default()
-                },
-                TextColor(COLOR_MINMATAR),
+                TextColor(Color::srgb(0.6, 0.9, 1.0)),
             ));
 
             parent.spawn(Node {
@@ -1438,15 +1443,157 @@ fn spawn_victory_screen(
                 ..default()
             });
 
+            // Campaign stats in a styled box
+            parent
+                .spawn((
+                    Node {
+                        padding: UiRect::all(Val::Px(20.0)),
+                        flex_direction: FlexDirection::Column,
+                        align_items: AlignItems::Center,
+                        row_gap: Val::Px(10.0),
+                        border: UiRect::all(Val::Px(2.0)),
+                        ..default()
+                    },
+                    BorderColor(Color::srgb(0.8, 0.6, 0.2)),
+                    BackgroundColor(Color::srgba(0.1, 0.08, 0.02, 0.8)),
+                ))
+                .with_children(|stats| {
+                    stats.spawn((
+                        Text::new(format!("FINAL SCORE: {:>12}", format_score(score.score))),
+                        TextFont {
+                            font_size: 36.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgb(1.0, 0.9, 0.3)),
+                    ));
+
+                    stats.spawn((
+                        Text::new(format!("Souls Liberated: {}", score.souls_liberated)),
+                        TextFont {
+                            font_size: 26.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgb(0.4, 0.85, 1.0)),
+                    ));
+
+                    stats.spawn((
+                        Text::new(format!("Kill Multiplier: {:.1}x", score.multiplier)),
+                        TextFont {
+                            font_size: 22.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgb(1.0, 0.6, 0.3)),
+                    ));
+
+                    stats.spawn((
+                        Text::new(format!("Missions Completed: {}/13", CampaignState::total_missions())),
+                        TextFont {
+                            font_size: 20.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgb(0.5, 1.0, 0.5)),
+                    ));
+                });
+
+            parent.spawn(Node {
+                height: Val::Px(30.0),
+                ..default()
+            });
+
+            // Elder's final words
             parent.spawn((
-                Text::new("Press SPACE to return to menu"),
+                Text::new("\"Our ancestors smile upon us this day.\""),
+                TextFont {
+                    font_size: 20.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.7, 0.7, 0.8)),
+            ));
+
+            parent.spawn((
+                Text::new("— Elder Drupar Maak"),
                 TextFont {
                     font_size: 16.0,
                     ..default()
                 },
-                TextColor(Color::srgb(0.6, 0.6, 0.6)),
+                TextColor(Color::srgb(0.5, 0.5, 0.6)),
+            ));
+
+            parent.spawn(Node {
+                height: Val::Px(20.0),
+                ..default()
+            });
+
+            // Minmatar motto
+            parent.spawn((
+                Text::new("IN RUST WE TRUST"),
+                TextFont {
+                    font_size: 24.0,
+                    ..default()
+                },
+                TextColor(COLOR_MINMATAR),
+            ));
+
+            parent.spawn(Node {
+                height: Val::Px(30.0),
+                ..default()
+            });
+
+            parent.spawn((
+                Text::new("Press SPACE to return to menu"),
+                TextFont {
+                    font_size: 18.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.5, 0.5, 0.5)),
             ));
         });
+}
+
+/// Format score with commas
+fn format_score(score: u64) -> String {
+    let s = score.to_string();
+    let mut result = String::new();
+    for (i, c) in s.chars().rev().enumerate() {
+        if i > 0 && i % 3 == 0 {
+            result.insert(0, ',');
+        }
+        result.insert(0, c);
+    }
+    result
+}
+
+/// Update victory celebration particles
+fn update_victory_particles(
+    time: Res<Time>,
+    mut query: Query<(&mut Transform, &mut VictoryParticle, &mut Sprite)>,
+) {
+    let dt = time.delta_secs();
+
+    for (mut transform, mut particle, mut sprite) in query.iter_mut() {
+        // Move particle upward
+        transform.translation.x += particle.velocity.x * dt;
+        transform.translation.y += particle.velocity.y * dt;
+
+        // Add slight wave motion
+        transform.translation.x += (particle.lifetime * 3.0).sin() * 20.0 * dt;
+
+        // Slow down over time
+        particle.velocity.y *= 0.995;
+        particle.lifetime -= dt;
+
+        // Fade out
+        let alpha = (particle.lifetime / particle.max_lifetime).clamp(0.0, 1.0);
+        sprite.color = sprite.color.with_alpha(alpha);
+
+        // Reset if off screen or dead
+        if particle.lifetime <= 0.0 || transform.translation.y > SCREEN_HEIGHT / 2.0 + 50.0 {
+            transform.translation.x = (fastrand::f32() - 0.5) * SCREEN_WIDTH;
+            transform.translation.y = -SCREEN_HEIGHT / 2.0 - fastrand::f32() * 50.0;
+            particle.lifetime = particle.max_lifetime;
+            particle.velocity.y = 80.0 + fastrand::f32() * 120.0;
+        }
+    }
 }
 
 fn victory_input(

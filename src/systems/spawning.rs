@@ -107,6 +107,7 @@ fn wave_spawning(
     mut commands: Commands,
     time: Res<Time>,
     mut manager: ResMut<WaveManager>,
+    mut next_state: ResMut<NextState<GameState>>,
     _stage: Res<CurrentStage>,
     enemy_query: Query<Entity, With<crate::entities::Enemy>>,
     boss_query: Query<Entity, With<crate::entities::Boss>>,
@@ -151,7 +152,7 @@ fn wave_spawning(
             manager.current_stage += 1;
             if manager.current_stage > 13 {
                 info!("CAMPAIGN COMPLETE! The Elder Fleet has liberated the Minmatar people!");
-                // TODO: Transition to victory screen
+                next_state.set(GameState::Victory);
                 return;
             }
             manager.wave = 0;
