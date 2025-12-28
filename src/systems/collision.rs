@@ -95,6 +95,13 @@ fn player_projectile_enemy_collision(
                         screen_shake.trigger(3.0, 0.1); // Small shake for regular enemies
                     }
 
+                    // Spawn liberation pods
+                    spawn_liberation_pods(
+                        &mut commands,
+                        enemy_pos,
+                        enemy_stats.liberation_value,
+                    );
+
                     // 30% chance to drop powerup (100% for bosses)
                     let drop_chance = if enemy_stats.is_boss { 1.0 } else { 0.30 };
                     if fastrand::f32() < drop_chance {

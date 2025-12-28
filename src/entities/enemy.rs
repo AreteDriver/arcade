@@ -44,6 +44,8 @@ pub struct EnemyStats {
     pub score_value: u64,
     /// Is this a boss?
     pub is_boss: bool,
+    /// Number of souls liberated when destroyed
+    pub liberation_value: u32,
 }
 
 impl Default for EnemyStats {
@@ -56,6 +58,7 @@ impl Default for EnemyStats {
             speed: ENEMY_BASE_SPEED,
             score_value: POINTS_PER_KILL,
             is_boss: false,
+            liberation_value: 1, // Each enemy carries 1 enslaved soul
         }
     }
 }
@@ -412,6 +415,15 @@ pub fn spawn_enemy(
         pattern: FiringPattern::Single,
     };
 
+    // Liberation value based on ship class
+    let liberation = match type_id {
+        20185 => 5,     // Bestower (transport) - more slaves
+        2006 => 3,      // Apocalypse - capital crew
+        24690 => 2,     // Harbinger/Absolution - larger crew
+        24692 => 3,     // Abaddon - battleship
+        _ => 1,         // Regular frigates/cruisers
+    };
+
     let stats = EnemyStats {
         type_id,
         name: name.into(),
@@ -420,6 +432,7 @@ pub fn spawn_enemy(
         speed,
         score_value: score,
         is_boss: false,
+        liberation_value: liberation,
     };
 
     let ai = EnemyAI {

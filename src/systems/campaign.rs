@@ -348,7 +348,10 @@ fn check_boss_defeated(
 
             // Add score
             score.add_score(data.score_value);
-            score.souls_liberated += data.liberation_value;
+
+            // Spawn massive liberation pod burst for boss defeat
+            let pos = transform.translation.truncate();
+            crate::entities::spawn_liberation_pods(&mut commands, pos, data.liberation_value);
             campaign.mission_souls += data.liberation_value;
 
             // Mark boss defeated

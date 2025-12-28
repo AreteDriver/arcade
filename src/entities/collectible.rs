@@ -4,7 +4,7 @@
 
 use bevy::prelude::*;
 use crate::core::*;
-use crate::systems::ComboHeatSystem;
+use crate::systems::{ComboHeatSystem, DialogueEvent, check_liberation_milestone};
 
 /// Marker component for collectibles
 #[derive(Component, Debug)]
@@ -180,6 +180,7 @@ fn handle_pickup_effects(
     mut score: ResMut<ScoreSystem>,
     mut progress: ResMut<GameProgress>,
     mut heat_system: ResMut<ComboHeatSystem>,
+    mut dialogue_events: EventWriter<DialogueEvent>,
 ) {
     let Ok((mut stats, mut effects)) = player_query.get_single_mut() else {
         return;
@@ -188,9 +189,15 @@ fn handle_pickup_effects(
     for event in pickup_events.read() {
         match event.collectible_type {
             CollectibleType::LiberationPod => {
+                let old_count = score.souls_liberated;
                 score.souls_liberated += 1;
                 score.add_score(500);
-                info!("Soul liberated! Total: {}", score.souls_liberated);
+
+                // Check for liberation milestone
+                if let Some(milestone) = check_liberation_milestone(old_count, score.souls_liberated) {
+                    dialogue_events.send(DialogueEvent::liberation_milestone(milestone));
+                    info!("Liberation milestone reached: {} souls!", milestone);
+                }
             }
             CollectibleType::Credits => {
                 progress.credits += event.value as u64;
@@ -314,6 +321,54 @@ pub fn spawn_collectible(
         sprite,
         transform: Transform::from_xyz(position.x, position.y, LAYER_EFFECTS),
     });
+}
+
+/// Spawn liberation pods in a burst pattern
+pub fn spawn_liberation_pods(
+    commands: &mut Commands,
+    position: Vec2,
+    count: u32,
+) {
+    use std::f32::consts::TAU;
+
+    // Cap at reasonable maximum to avoid lag
+    let pod_count = count.min(20);
+
+    for i in 0..pod_count {
+        // Spread pods in a circle burst
+        let angle = (i as f32 / pod_count as f32) * TAU + fastrand::f32() * 0.3;
+        let speed = 40.0 + fastrand::f32() * 30.0;
+        let velocity = Vec2::new(angle.cos() * speed, angle.sin() * speed - 20.0);
+
+        // Offset spawn position slightly
+        let offset = Vec2::new(
+            (fastrand::f32() - 0.5) * 20.0,
+            (fastrand::f32() - 0.5) * 20.0,
+        );
+
+        commands.spawn(CollectibleBundle {
+            collectible: Collectible,
+            data: CollectibleData {
+                collectible_type: CollectibleType::LiberationPod,
+                value: 1,
+            },
+            physics: CollectiblePhysics {
+                velocity,
+                oscillation: fastrand::f32() * TAU,
+                lifetime: 12.0, // Pods last longer than powerups
+            },
+            sprite: Sprite {
+                color: Color::srgb(0.2, 0.9, 0.5), // Green glow
+                custom_size: Some(Vec2::splat(16.0)),
+                ..default()
+            },
+            transform: Transform::from_xyz(
+                position.x + offset.x,
+                position.y + offset.y,
+                LAYER_EFFECTS,
+            ),
+        });
+    }
 }
 
 /// Spawn random powerup with weighted chances
