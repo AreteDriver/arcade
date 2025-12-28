@@ -236,7 +236,7 @@ impl ScreenShake {
 fn update_screen_shake(
     time: Res<Time>,
     mut shake: ResMut<ScreenShake>,
-    mut camera_query: Query<&mut Transform, With<Camera2d>>,
+    mut camera_query: Query<&mut Transform, With<Camera3d>>,
     mut shake_events: EventReader<ScreenShakeEvent>,
 ) {
     // Process new shake events
