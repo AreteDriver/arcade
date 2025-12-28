@@ -51,6 +51,8 @@ pub struct JoystickState {
     /// Previous D-pad state for edge detection
     pub prev_dpad_x: i8,
     pub prev_dpad_y: i8,
+    /// Previous analog stick Y for edge detection
+    pub prev_left_y: f32,
     /// Buttons (indexed by button number) - current frame
     pub buttons: [bool; 16],
     /// Buttons from previous frame (for just_pressed detection)
@@ -80,6 +82,16 @@ impl JoystickState {
 
     pub fn dpad_just_right(&self) -> bool {
         self.dpad_x > 0 && self.prev_dpad_x <= 0
+    }
+
+    /// Check if left stick just moved up (edge detection)
+    pub fn stick_just_up(&self) -> bool {
+        self.left_y < -0.5 && self.prev_left_y >= -0.5
+    }
+
+    /// Check if left stick just moved down (edge detection)
+    pub fn stick_just_down(&self) -> bool {
+        self.left_y > 0.5 && self.prev_left_y <= 0.5
     }
 
     /// Get movement vector from left stick with deadzone
@@ -198,6 +210,7 @@ fn poll_joystick(mut handle: ResMut<JoystickHandle>, mut state: ResMut<JoystickS
     state.prev_buttons = state.buttons;
     state.prev_dpad_x = state.dpad_x;
     state.prev_dpad_y = state.dpad_y;
+    state.prev_left_y = state.left_y;
 
     let Some(ref mut file) = handle.file else {
         return;

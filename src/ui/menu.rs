@@ -1723,11 +1723,11 @@ fn get_nav_input(keyboard: &ButtonInput<KeyCode>, joystick: &JoystickState) -> i
         nav = 1;
     }
 
-    // Analog stick (with threshold) - held state is fine since there's cooldown
-    if joystick.left_y < -0.5 {
+    // Analog stick (edge triggered for menu navigation)
+    if joystick.stick_just_up() {
         nav = -1;
     }
-    if joystick.left_y > 0.5 {
+    if joystick.stick_just_down() {
         nav = 1;
     }
 
