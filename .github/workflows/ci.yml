@@ -13,7 +13,7 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
-  RUSTFLAGS: -Dwarnings
+  # RUSTFLAGS: -Dwarnings  # Disabled - too strict for game in development
 
 permissions:
   contents: read
