@@ -56,13 +56,16 @@ impl Plugin for MenuPlugin {
             )
             .add_systems(OnExit(GameState::Paused), despawn_menu::<PauseMenuRoot>)
 
-            // Game Over
-            .add_systems(OnEnter(GameState::GameOver), spawn_game_over)
+            // Game Over (Death Screen with corpse and debris)
+            .add_systems(OnEnter(GameState::GameOver), spawn_death_screen)
             .add_systems(
                 Update,
-                game_over_input.run_if(in_state(GameState::GameOver)),
+                (
+                    update_death_screen_animation,
+                    death_screen_input,
+                ).run_if(in_state(GameState::GameOver)),
             )
-            .add_systems(OnExit(GameState::GameOver), despawn_menu::<GameOverRoot>)
+            .add_systems(OnExit(GameState::GameOver), despawn_death_screen)
 
             // Boss Intro
             .add_systems(OnEnter(GameState::BossIntro), spawn_boss_intro)
@@ -136,6 +139,44 @@ struct StageCompleteRoot;
 
 #[derive(Component)]
 struct VictoryRoot;
+
+/// Death screen floating debris
+#[derive(Component)]
+struct DeathDebris {
+    velocity: Vec2,
+    spin: f32,
+}
+
+/// Death screen corpse
+#[derive(Component)]
+struct DeathCorpse {
+    velocity: Vec2,
+    spin: f32,
+}
+
+/// Death screen button
+#[derive(Component)]
+struct DeathButton {
+    action: DeathAction,
+}
+
+#[derive(Clone, Copy, PartialEq)]
+enum DeathAction {
+    Retry,
+    Exit,
+}
+
+/// Death screen selection state
+#[derive(Resource)]
+struct DeathSelection {
+    selected: DeathAction,
+}
+
+impl Default for DeathSelection {
+    fn default() -> Self {
+        Self { selected: DeathAction::Retry }
+    }
+}
 
 /// Menu item that can be selected
 #[derive(Component)]
@@ -744,10 +785,73 @@ fn pause_menu_input(
 }
 
 // ============================================================================
-// Game Over
+// Death Screen (EVE-style frozen corpse in wreckage)
 // ============================================================================
 
-fn spawn_game_over(mut commands: Commands, score: Res<ScoreSystem>) {
+/// EVE UI amber color
+const COLOR_EVE_AMBER: Color = Color::srgb(0.83, 0.66, 0.29);
+const COLOR_EVE_AMBER_BRIGHT: Color = Color::srgb(1.0, 0.8, 0.0);
+
+fn spawn_death_screen(
+    mut commands: Commands,
+    score: Res<ScoreSystem>,
+) {
+    // Initialize selection resource
+    commands.insert_resource(DeathSelection::default());
+
+    // Spawn debris field (background sprites)
+    let debris_colors = [
+        Color::srgb(0.31, 0.24, 0.20),  // Rusty brown
+        Color::srgb(0.24, 0.24, 0.25),  // Dark gray
+        Color::srgb(0.35, 0.27, 0.22),  // Warm rust
+        Color::srgb(0.20, 0.20, 0.22),  // Cold gray
+    ];
+
+    for i in 0..25 {
+        let x = (fastrand::f32() - 0.5) * SCREEN_WIDTH;
+        let y = (fastrand::f32() - 0.5) * SCREEN_HEIGHT;
+        let size = 4.0 + fastrand::f32() * 12.0;
+        let color = debris_colors[i % debris_colors.len()];
+
+        commands.spawn((
+            GameOverRoot,
+            DeathDebris {
+                velocity: Vec2::new(
+                    (fastrand::f32() - 0.5) * 8.0,
+                    (fastrand::f32() - 0.5) * 5.0,
+                ),
+                spin: (fastrand::f32() - 0.5) * 0.5,
+            },
+            Sprite {
+                color,
+                custom_size: Some(Vec2::new(size * 2.0, size)),
+                ..default()
+            },
+            Transform::from_xyz(x, y, 1.0)
+                .with_rotation(Quat::from_rotation_z(fastrand::f32() * std::f32::consts::TAU)),
+        ));
+    }
+
+    // Spawn frozen corpse (center of screen)
+    commands.spawn((
+        GameOverRoot,
+        DeathCorpse {
+            velocity: Vec2::new(
+                (fastrand::f32() - 0.5) * 3.0,
+                (fastrand::f32() - 0.5) * 2.0,
+            ),
+            spin: (fastrand::f32() - 0.5) * 0.2,
+        },
+        Sprite {
+            color: Color::srgb(0.27, 0.25, 0.24), // Frozen body color
+            custom_size: Some(Vec2::new(40.0, 20.0)),
+            ..default()
+        },
+        Transform::from_xyz(0.0, 50.0, 5.0)
+            .with_rotation(Quat::from_rotation_z(fastrand::f32() * 0.5)),
+    ));
+
+    // Spawn UI overlay
     commands
         .spawn((
             GameOverRoot,
@@ -757,57 +861,125 @@ fn spawn_game_over(mut commands: Commands, score: Res<ScoreSystem>) {
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 flex_direction: FlexDirection::Column,
-                row_gap: Val::Px(20.0),
+                row_gap: Val::Px(15.0),
                 ..default()
             },
-            BackgroundColor(Color::srgba(0.1, 0.0, 0.0, 0.9)),
+            BackgroundColor(Color::srgba(0.04, 0.04, 0.07, 0.85)),
         ))
         .with_children(|parent| {
+            // Title - "CLONE LOST"
             parent.spawn((
-                Text::new("GAME OVER"),
+                Text::new("CLONE LOST"),
                 TextFont {
-                    font_size: 72.0,
+                    font_size: 64.0,
                     ..default()
                 },
-                TextColor(Color::srgb(1.0, 0.2, 0.2)),
+                TextColor(COLOR_EVE_AMBER),
             ));
 
+            // Spacer
+            parent.spawn(Node { height: Val::Px(80.0), ..default() });
+
+            // Final score
             parent.spawn((
-                Text::new(format!("Final Score: {}", score.score)),
+                Text::new(format!("FINAL SCORE: {}", score.score)),
                 TextFont {
-                    font_size: 32.0,
+                    font_size: 36.0,
                     ..default()
                 },
-                TextColor(Color::WHITE),
+                TextColor(COLOR_EVE_AMBER),
             ));
 
-            parent.spawn((
-                Text::new(format!("Souls Liberated: {}", score.souls_liberated)),
-                TextFont {
-                    font_size: 20.0,
-                    ..default()
-                },
-                TextColor(Color::srgb(0.3, 0.9, 0.5)),
-            ));
+            // Souls liberated
+            if score.souls_liberated > 0 {
+                parent.spawn((
+                    Text::new(format!("Souls Liberated: {}", score.souls_liberated)),
+                    TextFont {
+                        font_size: 22.0,
+                        ..default()
+                    },
+                    TextColor(Color::srgb(0.59, 0.51, 0.35)),
+                ));
+            }
 
+            // Max chain if achieved
+            if score.chain > 1 {
+                parent.spawn((
+                    Text::new(format!("Max Chain: {}x", score.chain)),
+                    TextFont {
+                        font_size: 18.0,
+                        ..default()
+                    },
+                    TextColor(Color::srgb(0.59, 0.51, 0.35)),
+                ));
+            }
+
+            // Spacer
+            parent.spawn(Node { height: Val::Px(50.0), ..default() });
+
+            // Button row
             parent.spawn(Node {
-                height: Val::Px(30.0),
+                flex_direction: FlexDirection::Row,
+                column_gap: Val::Px(40.0),
                 ..default()
+            }).with_children(|row| {
+                // RETRY button
+                row.spawn((
+                    DeathButton { action: DeathAction::Retry },
+                    Node {
+                        width: Val::Px(150.0),
+                        height: Val::Px(50.0),
+                        justify_content: JustifyContent::Center,
+                        align_items: AlignItems::Center,
+                        border: UiRect::all(Val::Px(2.0)),
+                        ..default()
+                    },
+                    BorderColor(COLOR_EVE_AMBER),
+                    BackgroundColor(Color::srgba(0.83, 0.66, 0.29, 0.1)),
+                )).with_children(|btn| {
+                    btn.spawn((
+                        Text::new("RETRY"),
+                        TextFont {
+                            font_size: 24.0,
+                            ..default()
+                        },
+                        TextColor(COLOR_EVE_AMBER),
+                    ));
+                });
+
+                // EXIT button
+                row.spawn((
+                    DeathButton { action: DeathAction::Exit },
+                    Node {
+                        width: Val::Px(150.0),
+                        height: Val::Px(50.0),
+                        justify_content: JustifyContent::Center,
+                        align_items: AlignItems::Center,
+                        border: UiRect::all(Val::Px(2.0)),
+                        ..default()
+                    },
+                    BorderColor(COLOR_EVE_AMBER),
+                    BackgroundColor(Color::NONE),
+                )).with_children(|btn| {
+                    btn.spawn((
+                        Text::new("EXIT"),
+                        TextFont {
+                            font_size: 24.0,
+                            ..default()
+                        },
+                        TextColor(COLOR_EVE_AMBER),
+                    ));
+                });
             });
 
-            parent.spawn((
-                Text::new("Press SPACE to try again"),
-                TextFont {
-                    font_size: 20.0,
-                    ..default()
-                },
-                TextColor(Color::srgb(0.6, 0.6, 0.6)),
-            ));
+            // Spacer
+            parent.spawn(Node { height: Val::Px(30.0), ..default() });
 
+            // Flavor text
             parent.spawn((
-                Text::new("Press ESC to return to menu"),
+                Text::new("\"You fall... but the Fleet continues.\""),
                 TextFont {
-                    font_size: 16.0,
+                    font_size: 14.0,
                     ..default()
                 },
                 TextColor(Color::srgb(0.4, 0.4, 0.4)),
@@ -815,24 +987,116 @@ fn spawn_game_over(mut commands: Commands, score: Res<ScoreSystem>) {
         });
 }
 
-fn game_over_input(
+fn update_death_screen_animation(
+    time: Res<Time>,
+    mut debris_query: Query<(&mut Transform, &DeathDebris), Without<DeathCorpse>>,
+    mut corpse_query: Query<(&mut Transform, &DeathCorpse), Without<DeathDebris>>,
+    selection: Res<DeathSelection>,
+    mut button_query: Query<(&DeathButton, &mut BorderColor, &mut BackgroundColor)>,
+) {
+    let dt = time.delta_secs();
+
+    // Animate debris
+    for (mut transform, debris) in debris_query.iter_mut() {
+        transform.translation.x += debris.velocity.x * dt;
+        transform.translation.y += debris.velocity.y * dt;
+        transform.rotate_z(debris.spin * dt);
+
+        // Wrap around screen
+        if transform.translation.x < -SCREEN_WIDTH / 2.0 - 20.0 {
+            transform.translation.x = SCREEN_WIDTH / 2.0 + 20.0;
+        }
+        if transform.translation.x > SCREEN_WIDTH / 2.0 + 20.0 {
+            transform.translation.x = -SCREEN_WIDTH / 2.0 - 20.0;
+        }
+        if transform.translation.y < -SCREEN_HEIGHT / 2.0 - 20.0 {
+            transform.translation.y = SCREEN_HEIGHT / 2.0 + 20.0;
+        }
+        if transform.translation.y > SCREEN_HEIGHT / 2.0 + 20.0 {
+            transform.translation.y = -SCREEN_HEIGHT / 2.0 - 20.0;
+        }
+    }
+
+    // Animate corpse (slower, more constrained)
+    for (mut transform, corpse) in corpse_query.iter_mut() {
+        transform.translation.x += corpse.velocity.x * dt;
+        transform.translation.y += corpse.velocity.y * dt;
+        transform.rotate_z(corpse.spin * dt);
+
+        // Keep corpse near center
+        if transform.translation.x.abs() > 100.0 {
+            transform.translation.x *= 0.99;
+        }
+        if transform.translation.y.abs() > 80.0 {
+            transform.translation.y *= 0.99;
+        }
+    }
+
+    // Update button highlights
+    for (button, mut border, mut bg) in button_query.iter_mut() {
+        if button.action == selection.selected {
+            border.0 = COLOR_EVE_AMBER_BRIGHT;
+            bg.0 = Color::srgba(1.0, 0.8, 0.0, 0.15);
+        } else {
+            border.0 = COLOR_EVE_AMBER;
+            bg.0 = Color::NONE;
+        }
+    }
+}
+
+fn death_screen_input(
     keyboard: Res<ButtonInput<KeyCode>>,
     joystick: Res<JoystickState>,
+    mut selection: ResMut<DeathSelection>,
     mut next_state: ResMut<NextState<GameState>>,
     mut score: ResMut<ScoreSystem>,
+    mut campaign: ResMut<CampaignState>,
 ) {
+    // Navigation
+    if keyboard.just_pressed(KeyCode::ArrowLeft)
+        || keyboard.just_pressed(KeyCode::KeyA)
+        || joystick.dpad_x < 0
+    {
+        selection.selected = DeathAction::Retry;
+    }
+    if keyboard.just_pressed(KeyCode::ArrowRight)
+        || keyboard.just_pressed(KeyCode::KeyD)
+        || joystick.dpad_x > 0
+    {
+        selection.selected = DeathAction::Exit;
+    }
+
+    // Confirm selection
     if keyboard.just_pressed(KeyCode::Space)
         || keyboard.just_pressed(KeyCode::Enter)
         || joystick.confirm()
     {
-        score.reset_game();
-        next_state.set(GameState::ShipSelect);
+        match selection.selected {
+            DeathAction::Retry => {
+                score.reset_game();
+                *campaign = CampaignState::default();
+                next_state.set(GameState::ShipSelect);
+            }
+            DeathAction::Exit => {
+                next_state.set(GameState::MainMenu);
+            }
+        }
     }
 
+    // Quick exit
     if keyboard.just_pressed(KeyCode::Escape) || joystick.back() {
-        score.reset_game();
         next_state.set(GameState::MainMenu);
     }
+}
+
+fn despawn_death_screen(
+    mut commands: Commands,
+    query: Query<Entity, With<GameOverRoot>>,
+) {
+    for entity in query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+    commands.remove_resource::<DeathSelection>();
 }
 
 // ============================================================================
