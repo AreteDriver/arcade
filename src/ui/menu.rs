@@ -8,6 +8,7 @@
 use crate::core::*;
 use crate::games::ActiveModule;
 use crate::systems::JoystickState;
+use crate::ui::TransitionEvent;
 use bevy::prelude::*;
 
 /// Menu plugin
@@ -335,9 +336,9 @@ fn main_menu_input(
     joystick: Res<JoystickState>,
     mut selection: ResMut<MenuSelection>,
     time: Res<Time>,
-    mut next_state: ResMut<NextState<GameState>>,
     _active_module: ResMut<ActiveModule>,
     mut exit: EventWriter<AppExit>,
+    mut transitions: EventWriter<TransitionEvent>,
 ) {
     selection.cooldown -= time.delta_secs();
 
@@ -354,7 +355,7 @@ fn main_menu_input(
         match selection.index {
             0 => {
                 // PLAY - go to unified faction select
-                next_state.set(GameState::FactionSelect);
+                transitions.send(TransitionEvent::to(GameState::FactionSelect));
             }
             1 => {} // Options - TODO
             2 => {
@@ -998,7 +999,7 @@ fn ship_menu_input(
     mut selection: ResMut<MenuSelection>,
     mut session: ResMut<GameSession>,
     time: Res<Time>,
-    mut next_state: ResMut<NextState<GameState>>,
+    mut transitions: EventWriter<TransitionEvent>,
 ) {
     selection.cooldown -= time.delta_secs();
 
@@ -1018,7 +1019,8 @@ fn ship_menu_input(
             if is_unlocked {
                 session.selected_ship_index = selection.index;
                 info!("Selected ship: {} ({})", ship.name, ship.class.name());
-                next_state.set(GameState::Playing);
+                // Slow transition into gameplay
+                transitions.send(TransitionEvent::slow(GameState::Playing));
             } else {
                 info!(
                     "Ship {} is locked - complete Stage {} to unlock",
@@ -1028,7 +1030,7 @@ fn ship_menu_input(
         }
 
     if keyboard.just_pressed(KeyCode::Escape) || joystick.back() {
-        next_state.set(GameState::DifficultySelect);
+        transitions.send(TransitionEvent::quick(GameState::DifficultySelect));
     }
 }
 
@@ -1372,9 +1374,9 @@ fn death_screen_input(
     keyboard: Res<ButtonInput<KeyCode>>,
     joystick: Res<JoystickState>,
     mut selection: ResMut<DeathSelection>,
-    mut next_state: ResMut<NextState<GameState>>,
     mut score: ResMut<ScoreSystem>,
     mut campaign: ResMut<CampaignState>,
+    mut transitions: EventWriter<TransitionEvent>,
 ) {
     // Navigation
     if keyboard.just_pressed(KeyCode::ArrowLeft)
@@ -1399,17 +1401,17 @@ fn death_screen_input(
             DeathAction::Retry => {
                 score.reset_game();
                 *campaign = CampaignState::default();
-                next_state.set(GameState::ShipSelect);
+                transitions.send(TransitionEvent::to(GameState::ShipSelect));
             }
             DeathAction::Exit => {
-                next_state.set(GameState::MainMenu);
+                transitions.send(TransitionEvent::to(GameState::MainMenu));
             }
         }
     }
 
     // Quick exit
     if keyboard.just_pressed(KeyCode::Escape) || joystick.back() {
-        next_state.set(GameState::MainMenu);
+        transitions.send(TransitionEvent::to(GameState::MainMenu));
     }
 }
 
@@ -1637,7 +1639,7 @@ fn stage_complete_input(
     keyboard: Res<ButtonInput<KeyCode>>,
     joystick: Res<JoystickState>,
     mut campaign: ResMut<CampaignState>,
-    mut next_state: ResMut<NextState<GameState>>,
+    mut transitions: EventWriter<TransitionEvent>,
 ) {
     if keyboard.just_pressed(KeyCode::Space)
         || keyboard.just_pressed(KeyCode::Enter)
@@ -1646,15 +1648,15 @@ fn stage_complete_input(
         // Advance to next mission
         if campaign.complete_mission() {
             // More missions available
-            next_state.set(GameState::Playing);
+            transitions.send(TransitionEvent::to(GameState::Playing));
         } else {
             // Campaign complete!
-            next_state.set(GameState::Victory);
+            transitions.send(TransitionEvent::slow(GameState::Victory));
         }
     }
 
     if keyboard.just_pressed(KeyCode::Escape) || joystick.back() {
-        next_state.set(GameState::MainMenu);
+        transitions.send(TransitionEvent::to(GameState::MainMenu));
     }
 }
 
@@ -1915,9 +1917,9 @@ fn update_victory_particles(
 fn victory_input(
     keyboard: Res<ButtonInput<KeyCode>>,
     joystick: Res<JoystickState>,
-    mut next_state: ResMut<NextState<GameState>>,
     mut score: ResMut<ScoreSystem>,
     mut campaign: ResMut<CampaignState>,
+    mut transitions: EventWriter<TransitionEvent>,
 ) {
     if keyboard.just_pressed(KeyCode::Space)
         || keyboard.just_pressed(KeyCode::Enter)
@@ -1928,7 +1930,7 @@ fn victory_input(
         // Reset for new game
         score.reset_game();
         *campaign = CampaignState::default();
-        next_state.set(GameState::MainMenu);
+        transitions.send(TransitionEvent::slow(GameState::MainMenu));
     }
 }
 
