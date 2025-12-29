@@ -18,11 +18,15 @@ pub struct SpawningPlugin;
 impl Plugin for SpawningPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<WaveManager>()
-            .add_systems(OnEnter(GameState::Playing), (reset_wave_manager, spawn_enemy_carrier))
+            .add_systems(
+                OnEnter(GameState::Playing),
+                (reset_wave_manager, spawn_enemy_carrier),
+            )
             .add_systems(OnExit(GameState::Playing), cleanup_carrier)
             .add_systems(
                 Update,
-                (wave_spawning, handle_spawn_events, animate_carrier).run_if(in_state(GameState::Playing)),
+                (wave_spawning, handle_spawn_events, animate_carrier)
+                    .run_if(in_state(GameState::Playing)),
             );
     }
 }
@@ -64,17 +68,18 @@ fn spawn_enemy_carrier(
 
     // Add sprite or 3D model based on what's available
     if let Some(texture) = sprite {
-        entity.insert((
-            Sprite {
-                image: texture,
-                color: Color::srgba(1.0, 1.0, 1.0, 0.0), // Start invisible for warp-in
-                flip_y: true, // Enemy faces down
-                ..default()
-            },
-        ));
+        entity.insert((Sprite {
+            image: texture,
+            color: Color::srgba(1.0, 1.0, 1.0, 0.0), // Start invisible for warp-in
+            flip_y: true,                            // Enemy faces down
+            ..default()
+        },));
     }
 
-    info!("Enemy {} carrier warping in!", session.enemy_faction.short_name());
+    info!(
+        "Enemy {} carrier warping in!",
+        session.enemy_faction.short_name()
+    );
 }
 
 /// Animate the carrier - warp-in effect and gentle bobbing
@@ -94,7 +99,8 @@ fn animate_carrier(
             // Slide in from above
             let target_y = carrier.base_y;
             let start_y = carrier.base_y + 200.0;
-            transform.translation.y = start_y + (target_y - start_y) * ease_out_cubic(carrier.warp_progress);
+            transform.translation.y =
+                start_y + (target_y - start_y) * ease_out_cubic(carrier.warp_progress);
 
             // Fade in with slight blue tint during warp
             let alpha = carrier.warp_progress * 0.6; // Max 60% opacity
@@ -118,10 +124,7 @@ fn ease_out_cubic(t: f32) -> f32 {
 }
 
 /// Cleanup carrier when leaving playing state
-fn cleanup_carrier(
-    mut commands: Commands,
-    carrier_query: Query<Entity, With<EnemyCarrier>>,
-) {
+fn cleanup_carrier(mut commands: Commands, carrier_query: Query<Entity, With<EnemyCarrier>>) {
     for entity in carrier_query.iter() {
         commands.entity(entity).despawn_recursive();
     }
