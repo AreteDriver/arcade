@@ -779,9 +779,11 @@ fn spawn_ship_menu(
     mut selection: ResMut<MenuSelection>,
     difficulty: Res<Difficulty>,
     session: Res<GameSession>,
+    save_data: Res<crate::core::SaveData>,
 ) {
     let ships = session.player_ships();
     let faction = session.player_faction;
+    let enemy = session.enemy_faction;
     let faction_color = faction.primary_color();
 
     selection.index = 0;
@@ -833,7 +835,12 @@ fn spawn_ship_menu(
 
             // Ship options from selected faction
             for (i, ship) in ships.iter().enumerate() {
-                let is_unlocked = ship.unlock_stage == 0; // TODO: track unlocks per faction
+                let is_unlocked = save_data.is_ship_unlocked(
+                    ship.type_id,
+                    ship.unlock_stage,
+                    faction.short_name(),
+                    enemy.short_name(),
+                );
                 spawn_ship_item_new(parent, ship, i, is_unlocked, faction_color);
             }
 
@@ -1000,6 +1007,7 @@ fn ship_menu_input(
     mut session: ResMut<GameSession>,
     time: Res<Time>,
     mut transitions: EventWriter<TransitionEvent>,
+    save_data: Res<crate::core::SaveData>,
 ) {
     selection.cooldown -= time.delta_secs();
 
@@ -1011,10 +1019,18 @@ fn ship_menu_input(
     }
 
     let ships = session.player_ships();
+    let faction = session.player_faction;
+    let enemy = session.enemy_faction;
+
     if is_confirm(&keyboard, &joystick)
         && selection.index < ships.len() {
             let ship = &ships[selection.index];
-            let is_unlocked = ship.unlock_stage == 0; // TODO: proper unlock tracking
+            let is_unlocked = save_data.is_ship_unlocked(
+                ship.type_id,
+                ship.unlock_stage,
+                faction.short_name(),
+                enemy.short_name(),
+            );
 
             if is_unlocked {
                 session.selected_ship_index = selection.index;

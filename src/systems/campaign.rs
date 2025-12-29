@@ -330,6 +330,8 @@ fn check_boss_defeated(
     mut campaign: ResMut<CampaignState>,
     mut score: ResMut<ScoreSystem>,
     mut ship_unlocks: ResMut<ShipUnlocks>,
+    mut save_data: ResMut<crate::core::SaveData>,
+    session: Res<crate::core::GameSession>,
     boss_query: Query<(Entity, &Transform, &BossData), With<Boss>>,
     mut boss_events: EventWriter<BossDefeatedEvent>,
     mut act_events: EventWriter<ActCompleteEvent>,
@@ -357,6 +359,21 @@ fn check_boss_defeated(
                 position: transform.translation.truncate(),
                 score_value: data.score_value,
             });
+
+            // Save progress
+            let stage = campaign.mission_index as u32 + 1;
+            save_data.complete_stage(
+                session.player_faction.short_name(),
+                session.enemy_faction.short_name(),
+                stage,
+                campaign.mission_index as u32,
+            );
+            save_data.record_score(
+                session.player_faction.short_name(),
+                session.enemy_faction.short_name(),
+                score.score,
+                stage,
+            );
 
             // Check for act completion and ship unlocks
             let missions = campaign.act.missions();

@@ -13,6 +13,7 @@ pub mod events;
 pub mod factions;
 pub mod game_state;
 pub mod resources;
+pub mod save;
 
 pub use campaign::*;
 pub use constants::*;
@@ -20,3 +21,4 @@ pub use events::*;
 pub use factions::*;
 pub use game_state::*;
 pub use resources::*;
+pub use save::*;

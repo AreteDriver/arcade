@@ -21,7 +21,7 @@ use assets::AssetsPlugin;
 use core::{
     ActCompleteEvent, AudioSettings, BerserkSystem, BossSpawnEvent, CampaignState, CurrentStage,
     Difficulty, GameEventsPlugin, GameProgress, GameSession, GameState, InputConfig,
-    MissionCompleteEvent, MissionStartEvent, ScoreSystem, SelectedShip, ShipUnlocks,
+    MissionCompleteEvent, MissionStartEvent, SavePlugin, ScoreSystem, SelectedShip, ShipUnlocks,
     WaveCompleteEvent,
 };
 use entities::EntitiesPlugin;
@@ -64,6 +64,7 @@ fn main() {
         .add_event::<ActCompleteEvent>()
         // Game plugins
         .add_plugins((
+            SavePlugin,
             AssetsPlugin,
             GameEventsPlugin,
             EntitiesPlugin,
