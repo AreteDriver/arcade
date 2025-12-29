@@ -161,8 +161,8 @@ pub const SIZE_BATTLECRUISER: f32 = 114.0;
 /// Battleship sprite size (~3x frigate)
 pub const SIZE_BATTLESHIP: f32 = 143.0;
 
-/// Carrier sprite size (~10x frigate, background element)
-pub const SIZE_CARRIER: f32 = 500.0;
+/// Carrier sprite size (~12x frigate, background element)
+pub const SIZE_CARRIER: f32 = 600.0;
 
 /// Player ship size bonus (player ships slightly larger for visibility)
 pub const PLAYER_SIZE_BONUS: f32 = 1.15;

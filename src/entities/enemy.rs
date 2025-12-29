@@ -449,29 +449,42 @@ fn get_faction_weapon(type_id: u32) -> WeaponType {
 pub fn get_ship_rotation_correction(type_id: u32) -> f32 {
     use std::f32::consts::FRAC_PI_2;
     match type_id {
-        // Ships that render sideways (need 90° correction)
-        602 => FRAC_PI_2,  // Kestrel - faces right, rotate left 90°
-        603 => FRAC_PI_2,  // Merlin - faces right
-        583 => FRAC_PI_2,  // Condor - faces right
-        593 => FRAC_PI_2,  // Tristan - faces right
-        594 => FRAC_PI_2,  // Incursus - faces right
-        608 => FRAC_PI_2,  // Atron - faces right
+        // === CALDARI === (most render sideways)
+        602 => FRAC_PI_2,   // Kestrel - faces right
+        603 => FRAC_PI_2,   // Merlin - faces right
+        583 => FRAC_PI_2,   // Condor - faces right
+        11381 => FRAC_PI_2, // Hawk - assault frigate
+        11387 => FRAC_PI_2, // Harpy - assault frigate
+        35683 => FRAC_PI_2, // Jackdaw - tactical destroyer
 
-        // Ships that render facing left (need -90° correction)
-        // 597 => -FRAC_PI_2, // Punisher - if facing left
+        // === GALLENTE === (most render sideways)
+        593 => FRAC_PI_2,   // Tristan - faces right
+        594 => FRAC_PI_2,   // Incursus - faces right
+        608 => FRAC_PI_2,   // Atron - faces right
+        11373 => FRAC_PI_2, // Enyo - assault frigate
+        11377 => FRAC_PI_2, // Ishkur - assault frigate
+        35685 => FRAC_PI_2, // Hecate - tactical destroyer
 
-        // Destroyers
-        16236 => FRAC_PI_2, // Coercer
-        16238 => FRAC_PI_2, // Cormorant
-        16242 => FRAC_PI_2, // Catalyst
+        // === DESTROYERS ===
+        16236 => FRAC_PI_2,  // Coercer (Amarr)
+        16238 => FRAC_PI_2,  // Cormorant (Caldari)
+        16242 => -FRAC_PI_2, // Catalyst (Gallente) - faces left
 
-        // Battlecruisers
-        24688 => FRAC_PI_2, // Drake
-        24690 => FRAC_PI_2, // Harbinger
-        24700 => FRAC_PI_2, // Myrmidon
+        // === BATTLECRUISERS ===
+        24688 => FRAC_PI_2, // Drake (Caldari)
+        24690 => FRAC_PI_2, // Harbinger (Amarr)
+        24700 => FRAC_PI_2, // Myrmidon (Gallente)
 
-        // Carriers - already face correctly, no correction needed
-        // 23757, 23911, 23915, 24483 => 0.0
+        // === AMARR === (most face up correctly)
+        // 597 (Punisher), 589 (Executioner), 591 (Tormentor) - face up
+
+        // === MINMATAR ===
+        587 => FRAC_PI_2,  // Rifter - faces right
+        585 => FRAC_PI_2,  // Slasher - faces right
+        // 598 (Breacher) - faces up
+
+        // === CARRIERS === (face up correctly)
+        // 23757 (Archon), 23911 (Thanatos), 23915 (Chimera), 24483 (Nidhoggur)
 
         // Ships that already face up correctly
         _ => 0.0,

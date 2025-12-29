@@ -110,15 +110,52 @@ fn spawn_faction_select(mut commands: Commands) {
             // Left panel - Caldari
             spawn_faction_panel(parent, "caldari", "CALDARI STATE", true);
 
-            // Divider
-            parent.spawn((
-                Node {
-                    width: Val::Px(4.0),
-                    height: Val::Percent(100.0),
-                    ..default()
-                },
-                BackgroundColor(Color::srgb(0.3, 0.3, 0.3)),
-            ));
+            // Center divider with VS
+            parent
+                .spawn((
+                    Node {
+                        width: Val::Px(80.0),
+                        height: Val::Percent(100.0),
+                        justify_content: JustifyContent::Center,
+                        align_items: AlignItems::Center,
+                        flex_direction: FlexDirection::Column,
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgb(0.05, 0.05, 0.08)),
+                ))
+                .with_children(|divider| {
+                    // Top line
+                    divider.spawn((
+                        Node {
+                            width: Val::Px(2.0),
+                            height: Val::Percent(35.0),
+                            ..default()
+                        },
+                        BackgroundColor(Color::srgb(0.3, 0.3, 0.4)),
+                    ));
+                    // VS text
+                    divider.spawn((
+                        Text::new("VS"),
+                        TextFont {
+                            font_size: 36.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgb(0.9, 0.3, 0.3)),
+                        Node {
+                            margin: UiRect::axes(Val::ZERO, Val::Px(20.0)),
+                            ..default()
+                        },
+                    ));
+                    // Bottom line
+                    divider.spawn((
+                        Node {
+                            width: Val::Px(2.0),
+                            height: Val::Percent(35.0),
+                            ..default()
+                        },
+                        BackgroundColor(Color::srgb(0.3, 0.3, 0.4)),
+                    ));
+                });
 
             // Right panel - Gallente
             spawn_faction_panel(parent, "gallente", "GALLENTE FEDERATION", false);
@@ -132,18 +169,28 @@ fn spawn_faction_select(mut commands: Commands) {
                 width: Val::Percent(100.0),
                 position_type: PositionType::Absolute,
                 top: Val::Px(30.0),
-                justify_content: JustifyContent::Center,
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                row_gap: Val::Px(8.0),
                 ..default()
             },
         ))
         .with_children(|parent| {
+            parent.spawn((
+                Text::new("BATTLE OF CALDARI PRIME"),
+                TextFont {
+                    font_size: 24.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.5, 0.5, 0.6)),
+            ));
             parent.spawn((
                 Text::new("CHOOSE YOUR SIDE"),
                 TextFont {
                     font_size: 48.0,
                     ..default()
                 },
-                TextColor(Color::srgb(0.8, 0.8, 0.8)),
+                TextColor(Color::srgb(0.9, 0.9, 0.9)),
             ));
         });
 
@@ -161,7 +208,7 @@ fn spawn_faction_select(mut commands: Commands) {
         ))
         .with_children(|parent| {
             parent.spawn((
-                Text::new("← → to select   SPACE/A to confirm   ESC/B to back"),
+                Text::new("[←/→] Select   [SPACE/ENTER] Confirm   [ESC] Back"),
                 TextFont {
                     font_size: 18.0,
                     ..default()
@@ -197,110 +244,167 @@ fn spawn_faction_panel(
         vec!["DRONES", "ARMOR", "BLASTERS"]
     };
 
-    let description = if is_caldari {
-        "Corporate efficiency meets military precision.\nShield-tanked missile platforms dominate the battlefield."
+    let tagline = if is_caldari {
+        "\"The State Provides\""
     } else {
-        "Freedom through firepower.\nArmor-tanked drone and blaster platforms."
+        "\"Liberty or Death\""
     };
 
+    let description = if is_caldari {
+        "Corporate efficiency meets military precision.\nShield-tanked missile platforms\ndominate the battlefield."
+    } else {
+        "Freedom through firepower.\nArmor-tanked drone and blaster\nplatforms break all opposition."
+    };
+
+    // Outer container with border for selection
     parent
         .spawn((
             FactionPanel { faction },
             Node {
                 width: Val::Percent(50.0),
                 height: Val::Percent(100.0),
-                flex_direction: FlexDirection::Column,
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                padding: UiRect::all(Val::Px(40.0)),
-                row_gap: Val::Px(20.0),
+                border: UiRect::all(Val::Px(4.0)),
                 ..default()
             },
-            BackgroundColor(primary.with_alpha(0.3)),
+            BackgroundColor(Color::NONE),
+            BorderColor(Color::NONE), // Will be set by selection logic
         ))
-        .with_children(|panel| {
-            // Faction emblem placeholder (colored square)
-            panel
+        .with_children(|outer| {
+            // Inner panel
+            outer
                 .spawn((
                     Node {
-                        width: Val::Px(120.0),
-                        height: Val::Px(120.0),
-                        border: UiRect::all(Val::Px(3.0)),
-                        justify_content: JustifyContent::Center,
+                        width: Val::Percent(100.0),
+                        height: Val::Percent(100.0),
+                        flex_direction: FlexDirection::Column,
                         align_items: AlignItems::Center,
+                        justify_content: JustifyContent::Center,
+                        padding: UiRect::all(Val::Px(40.0)),
+                        row_gap: Val::Px(16.0),
                         ..default()
                     },
-                    BackgroundColor(primary),
-                    BorderColor(accent),
+                    BackgroundColor(primary.with_alpha(0.25)),
                 ))
-                .with_children(|emblem| {
-                    // Faction initial
-                    let initial = if is_caldari { "C" } else { "G" };
-                    emblem.spawn((
-                        Text::new(initial),
-                        TextFont {
-                            font_size: 72.0,
-                            ..default()
-                        },
-                        TextColor(accent),
-                    ));
-                });
-
-            // Faction name
-            panel.spawn((
-                Text::new(name),
-                TextFont {
-                    font_size: 36.0,
-                    ..default()
-                },
-                TextColor(secondary),
-            ));
-
-            // Doctrine tags
-            panel
-                .spawn((Node {
-                    flex_direction: FlexDirection::Row,
-                    column_gap: Val::Px(15.0),
-                    ..default()
-                },))
-                .with_children(|tags| {
-                    for tag in doctrine {
-                        tags.spawn((
+                .with_children(|panel| {
+                    // Faction emblem (hexagon-ish shape)
+                    panel
+                        .spawn((
                             Node {
-                                padding: UiRect::axes(Val::Px(12.0), Val::Px(6.0)),
-                                border: UiRect::all(Val::Px(1.0)),
+                                width: Val::Px(140.0),
+                                height: Val::Px(140.0),
+                                border: UiRect::all(Val::Px(4.0)),
+                                justify_content: JustifyContent::Center,
+                                align_items: AlignItems::Center,
+                                margin: UiRect::bottom(Val::Px(10.0)),
                                 ..default()
                             },
-                            BackgroundColor(primary),
+                            BackgroundColor(primary.with_alpha(0.8)),
                             BorderColor(accent),
                         ))
-                        .with_children(|tag_node| {
-                            tag_node.spawn((
-                                Text::new(tag),
+                        .with_children(|emblem| {
+                            // Faction symbol
+                            let symbol = if is_caldari { "◆" } else { "✦" };
+                            emblem.spawn((
+                                Text::new(symbol),
                                 TextFont {
-                                    font_size: 14.0,
+                                    font_size: 80.0,
                                     ..default()
                                 },
                                 TextColor(accent),
                             ));
                         });
-                    }
-                });
 
-            // Description
-            panel.spawn((
-                Text::new(description),
-                TextFont {
-                    font_size: 16.0,
-                    ..default()
-                },
-                TextColor(Color::srgb(0.7, 0.7, 0.7)),
-                Node {
-                    max_width: Val::Px(300.0),
-                    ..default()
-                },
-            ));
+                    // Faction name
+                    panel.spawn((
+                        Text::new(name),
+                        TextFont {
+                            font_size: 32.0,
+                            ..default()
+                        },
+                        TextColor(Color::WHITE),
+                    ));
+
+                    // Tagline
+                    panel.spawn((
+                        Text::new(tagline),
+                        TextFont {
+                            font_size: 18.0,
+                            ..default()
+                        },
+                        TextColor(accent),
+                        Node {
+                            margin: UiRect::bottom(Val::Px(10.0)),
+                            ..default()
+                        },
+                    ));
+
+                    // Doctrine tags
+                    panel
+                        .spawn((Node {
+                            flex_direction: FlexDirection::Row,
+                            column_gap: Val::Px(12.0),
+                            margin: UiRect::bottom(Val::Px(15.0)),
+                            ..default()
+                        },))
+                        .with_children(|tags| {
+                            for tag in doctrine {
+                                tags.spawn((
+                                    Node {
+                                        padding: UiRect::axes(Val::Px(14.0), Val::Px(8.0)),
+                                        border: UiRect::all(Val::Px(2.0)),
+                                        ..default()
+                                    },
+                                    BackgroundColor(primary.with_alpha(0.6)),
+                                    BorderColor(secondary),
+                                ))
+                                .with_children(|tag_node| {
+                                    tag_node.spawn((
+                                        Text::new(tag),
+                                        TextFont {
+                                            font_size: 13.0,
+                                            ..default()
+                                        },
+                                        TextColor(Color::WHITE),
+                                    ));
+                                });
+                            }
+                        });
+
+                    // Description
+                    panel.spawn((
+                        Text::new(description),
+                        TextFont {
+                            font_size: 15.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgb(0.7, 0.7, 0.7)),
+                        Node {
+                            max_width: Val::Px(320.0),
+                            ..default()
+                        },
+                    ));
+
+                    // Selection indicator arrow
+                    panel.spawn((
+                        SelectionArrow { faction },
+                        Text::new("▼ SELECT ▼"),
+                        TextFont {
+                            font_size: 20.0,
+                            ..default()
+                        },
+                        TextColor(Color::NONE), // Hidden by default
+                        Node {
+                            margin: UiRect::top(Val::Px(20.0)),
+                            ..default()
+                        },
+                    ));
+                });
         });
+}
+
+#[derive(Component)]
+struct SelectionArrow {
+    faction: &'static str,
 }
 
 fn faction_select_input(
@@ -310,7 +414,8 @@ fn faction_select_input(
     mut state: ResMut<FactionSelectState>,
     mut next_state: ResMut<NextState<GameState>>,
     mut active_module: ResMut<ActiveModule>,
-    mut panels: Query<(&FactionPanel, &mut BackgroundColor)>,
+    mut panels: Query<(&FactionPanel, &mut BorderColor)>,
+    mut arrows: Query<(&SelectionArrow, &mut TextColor)>,
 ) {
     let dt = time.delta_secs();
     state.cooldown = (state.cooldown - dt).max(0.0);
@@ -333,21 +438,39 @@ fn faction_select_input(
         }
     }
 
-    // Update panel highlights
-    for (panel, mut bg) in panels.iter_mut() {
+    // Update panel borders for selection
+    for (panel, mut border) in panels.iter_mut() {
         let is_selected = (panel.faction == "caldari" && state.selected == 0)
             || (panel.faction == "gallente" && state.selected == 1);
 
-        let primary = if panel.faction == "caldari" {
-            COLOR_CALDARI_PRIMARY
+        let accent = if panel.faction == "caldari" {
+            COLOR_CALDARI_ACCENT
         } else {
-            COLOR_GALLENTE_PRIMARY
+            COLOR_GALLENTE_ACCENT
         };
 
-        *bg = if is_selected {
-            BackgroundColor(primary.with_alpha(0.6))
+        *border = if is_selected {
+            BorderColor(accent)
         } else {
-            BackgroundColor(primary.with_alpha(0.2))
+            BorderColor(Color::NONE)
+        };
+    }
+
+    // Update selection arrows
+    for (arrow, mut color) in arrows.iter_mut() {
+        let is_selected = (arrow.faction == "caldari" && state.selected == 0)
+            || (arrow.faction == "gallente" && state.selected == 1);
+
+        let accent = if arrow.faction == "caldari" {
+            COLOR_CALDARI_ACCENT
+        } else {
+            COLOR_GALLENTE_ACCENT
+        };
+
+        *color = if is_selected {
+            TextColor(accent)
+        } else {
+            TextColor(Color::NONE)
         };
     }
 

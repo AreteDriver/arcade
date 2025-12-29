@@ -397,6 +397,7 @@ pub fn get_boss_for_stage(stage: u32) -> Option<BossData> {
 pub fn spawn_boss(
     commands: &mut Commands,
     stage: u32,
+    enemy_faction: crate::core::Faction,
     sprite_cache: Option<&crate::assets::ShipSpriteCache>,
     model_cache: Option<&ShipModelCache>,
 ) -> bool {
@@ -405,6 +406,10 @@ pub fn spawn_boss(
     let Some(boss_data) = get_boss_for_stage(stage) else {
         return false;
     };
+
+    // Get faction-appropriate drone types
+    let fast_drone = enemy_faction.fighter_type_id();
+    let tough_drone = enemy_faction.tough_fighter_type_id();
 
     // Get boss scale based on ship class
     let scale_mult = match boss_data.ship_class.as_str() {
@@ -433,14 +438,14 @@ pub fn spawn_boss(
         }
     };
 
-    // Drone spawner for carrier/station bosses
+    // Drone spawner for carrier/station bosses (uses faction-appropriate ships)
     let drone_spawner = match stage {
         // Stage 3 - Orbital Platform (first station)
         3 => Some(BossDroneSpawner {
             spawn_interval: 8.0,
             spawn_timer: 4.0,
             drones_per_wave: 2,
-            drone_type_id: 589, // Executioner
+            drone_type_id: fast_drone,
             max_drones: 4,
             active_drones: 0,
             pattern: DroneSpawnPattern::FromSides,
@@ -450,7 +455,7 @@ pub fn spawn_boss(
             spawn_interval: 6.0,
             spawn_timer: 3.0,
             drones_per_wave: 3,
-            drone_type_id: 589, // Executioner
+            drone_type_id: fast_drone,
             max_drones: 6,
             active_drones: 0,
             pattern: DroneSpawnPattern::FromSides,
@@ -460,27 +465,27 @@ pub fn spawn_boss(
             spawn_interval: 5.0,
             spawn_timer: 2.0,
             drones_per_wave: 4,
-            drone_type_id: 591, // Tormentor (tougher)
+            drone_type_id: tough_drone, // Tougher fighters
             max_drones: 8,
             active_drones: 0,
             pattern: DroneSpawnPattern::Surround,
         }),
-        // Stage 11 - Archon Carrier (dedicated drone boat)
+        // Stage 11 - Carrier (dedicated drone boat)
         11 => Some(BossDroneSpawner {
             spawn_interval: 4.0,
             spawn_timer: 2.0,
             drones_per_wave: 5,
-            drone_type_id: 589, // Executioner fighters
+            drone_type_id: fast_drone,
             max_drones: 10,
             active_drones: 0,
             pattern: DroneSpawnPattern::VFormation,
         }),
-        // Stage 13 - Avatar Titan (light drone support)
+        // Stage 13 - Titan (light drone support)
         13 => Some(BossDroneSpawner {
             spawn_interval: 7.0,
             spawn_timer: 5.0,
             drones_per_wave: 3,
-            drone_type_id: 591, // Tormentor
+            drone_type_id: tough_drone, // Tougher fighters
             max_drones: 6,
             active_drones: 0,
             pattern: DroneSpawnPattern::Flanking,

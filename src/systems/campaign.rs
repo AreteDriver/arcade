@@ -93,6 +93,7 @@ fn check_wave_complete(
 fn spawn_next_wave(
     mut commands: Commands,
     mut campaign: ResMut<CampaignState>,
+    session: Res<crate::core::GameSession>,
     enemy_query: Query<Entity, With<Enemy>>,
     boss_query: Query<Entity, With<Boss>>,
     sprite_cache: Res<ShipSpriteCache>,
@@ -124,17 +125,12 @@ fn spawn_next_wave(
     let spawn_mult = difficulty.spawn_rate_mult();
     let count = (base_count as f32 * spawn_mult) as usize;
 
-    // Enemy types based on mission act
-    let enemy_types: &[u32] = match campaign.act {
-        Act::Act1 => &[597, 589, 591], // Punisher, Executioner, Tormentor
-        Act::Act2 => &[597, 589, 591, 2006], // + Apocalypse variant
-        Act::Act3 => &[597, 589, 2006, 24690], // + Harbinger
-    };
-
     info!("Spawning wave {} with {} enemies", wave, count);
 
+    // Use faction-appropriate enemies from session
     for i in 0..count {
-        let type_id = enemy_types[i % enemy_types.len()];
+        let enemy_def = session.random_enemy();
+        let type_id = enemy_def.type_id;
         let x = (i as f32 - count as f32 / 2.0) * 80.0;
         let y = SCREEN_HEIGHT / 2.0 + 50.0 + (i as f32 * 20.0);
 
@@ -158,6 +154,7 @@ fn spawn_next_wave(
 fn spawn_mission_boss(
     mut commands: Commands,
     mut campaign: ResMut<CampaignState>,
+    session: Res<crate::core::GameSession>,
     sprite_cache: Res<ShipSpriteCache>,
     model_cache: Res<ShipModelCache>,
     mut boss_events: EventWriter<BossSpawnEvent>,
@@ -172,6 +169,7 @@ fn spawn_mission_boss(
     if spawn_boss(
         &mut commands,
         stage,
+        session.enemy_faction,
         Some(&sprite_cache),
         Some(&model_cache),
     ) {

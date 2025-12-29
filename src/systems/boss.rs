@@ -121,6 +121,7 @@ fn handle_boss_spawn(
     mut commands: Commands,
     mut spawn_events: EventReader<BossSpawnEvent>,
     mut encounter: ResMut<BossEncounter>,
+    session: Res<crate::core::GameSession>,
     sprite_cache: Res<crate::assets::ShipSpriteCache>,
     model_cache: Res<ShipModelCache>,
     boss_query: Query<Entity, With<Boss>>,
@@ -134,6 +135,7 @@ fn handle_boss_spawn(
         if spawn_boss(
             &mut commands,
             event.stage,
+            session.enemy_faction,
             Some(&sprite_cache),
             Some(&model_cache),
         ) {
@@ -773,10 +775,12 @@ fn boss_drone_spawning(
                 // Get sprite for drone type
                 let sprite = sprite_cache.get(spawner.drone_type_id);
 
-                // Determine behavior based on drone type
+                // Determine behavior based on drone type (fast fighters chase, tough fighters snipe)
+                // Fast fighters: 585 (Slasher), 589 (Executioner), 583 (Condor), 608 (Atron)
+                // Tough fighters: 598 (Breacher), 591 (Tormentor), 602 (Kestrel), 594 (Incursus)
                 let behavior = match spawner.drone_type_id {
-                    589 => crate::entities::EnemyBehavior::Homing, // Executioner - chase player
-                    591 => crate::entities::EnemyBehavior::Sniper, // Tormentor - stay at range
+                    585 | 589 | 583 | 608 => crate::entities::EnemyBehavior::Homing, // Fast - chase player
+                    598 | 591 | 602 | 594 => crate::entities::EnemyBehavior::Sniper, // Tough - stay at range
                     593 => crate::entities::EnemyBehavior::Weaver, // Tristan - erratic
                     _ => crate::entities::EnemyBehavior::Linear,
                 };
