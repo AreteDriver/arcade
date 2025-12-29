@@ -22,7 +22,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libasound2-dev libudev-dev libxkbcommon-dev
+          sudo apt-get install -y libasound2-dev libudev-dev libxkbcommon-dev libwayland-dev
 
       - name: Check
         run: cargo check --all-targets
@@ -41,7 +41,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libasound2-dev libudev-dev libxkbcommon-dev
+          sudo apt-get install -y libasound2-dev libudev-dev libxkbcommon-dev libwayland-dev
 
       - name: Clippy
         run: cargo clippy --all-targets -- -D warnings
@@ -72,7 +72,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libasound2-dev libudev-dev libxkbcommon-dev
+          sudo apt-get install -y libasound2-dev libudev-dev libxkbcommon-dev libwayland-dev
 
       - name: Run tests
         run: cargo test
@@ -90,7 +90,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libasound2-dev libudev-dev libxkbcommon-dev
+          sudo apt-get install -y libasound2-dev libudev-dev libxkbcommon-dev libwayland-dev
 
       - name: Build release
         run: cargo build --release
