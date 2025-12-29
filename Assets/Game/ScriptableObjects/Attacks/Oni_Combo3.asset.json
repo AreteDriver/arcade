@@ -1,0 +1,14 @@
+{
+    "AttackId": "Oni_Combo3",
+    "DisplayName": "Final Blow",
+    "StartupFrames": 18,
+    "ActiveFrames": 8,
+    "RecoveryFrames": 35,
+    "Telegraph": 1,
+    "TelegraphLeadFrames": 6,
+    "Damage": 1,
+    "Unblockable": false,
+    "CorrectResponse": 1,
+    "HitboxOffset": { "x": 0, "y": 1.5, "z": 1.5 },
+    "HitboxSize": { "x": 2.5, "y": 2, "z": 3 }
+}
