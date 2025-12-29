@@ -1054,7 +1054,29 @@ fn ship_menu_input(
 // Pause Menu
 // ============================================================================
 
-fn spawn_pause_menu(mut commands: Commands) {
+/// Pause menu selection state
+#[derive(Resource, Default)]
+struct PauseSelection {
+    index: usize,
+}
+
+const PAUSE_OPTIONS: &[&str] = &["RESUME", "RESTART MISSION", "QUIT TO MENU"];
+
+fn spawn_pause_menu(
+    mut commands: Commands,
+    campaign: Res<CampaignState>,
+    score: Res<ScoreSystem>,
+    session: Res<GameSession>,
+) {
+    commands.insert_resource(PauseSelection::default());
+
+    let mission_name = campaign
+        .current_mission()
+        .map(|m| m.name)
+        .unwrap_or("MISSION");
+
+    let faction_color = session.player_faction.primary_color();
+
     commands
         .spawn((
             PauseMenuRoot,
@@ -1064,56 +1086,158 @@ fn spawn_pause_menu(mut commands: Commands) {
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 flex_direction: FlexDirection::Column,
-                row_gap: Val::Px(20.0),
+                row_gap: Val::Px(15.0),
                 ..default()
             },
-            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.7)),
+            BackgroundColor(Color::srgba(0.0, 0.0, 0.05, 0.85)),
         ))
         .with_children(|parent| {
+            // Title
             parent.spawn((
                 Text::new("PAUSED"),
                 TextFont {
-                    font_size: 64.0,
+                    font_size: 56.0,
                     ..default()
                 },
-                TextColor(COLOR_MINMATAR),
+                TextColor(faction_color),
             ));
 
+            // Mission info
             parent.spawn((
-                Text::new("Press SPACE to resume"),
+                Text::new(mission_name),
                 TextFont {
-                    font_size: 20.0,
+                    font_size: 18.0,
                     ..default()
                 },
-                TextColor(Color::WHITE),
+                TextColor(Color::srgb(0.5, 0.5, 0.5)),
             ));
 
+            // Current stats
             parent.spawn((
-                Text::new("Press ESC to quit to menu"),
+                Text::new(format!(
+                    "Score: {} • Souls: {}",
+                    score.score, campaign.mission_souls
+                )),
                 TextFont {
-                    font_size: 16.0,
+                    font_size: 14.0,
                     ..default()
                 },
-                TextColor(Color::srgb(0.6, 0.6, 0.6)),
+                TextColor(Color::srgb(0.4, 0.6, 0.8)),
+            ));
+
+            // Spacer
+            parent.spawn(Node {
+                height: Val::Px(25.0),
+                ..default()
+            });
+
+            // Menu options
+            for (i, option) in PAUSE_OPTIONS.iter().enumerate() {
+                parent
+                    .spawn((
+                        PauseMenuItem(i),
+                        Node {
+                            padding: UiRect::axes(Val::Px(30.0), Val::Px(12.0)),
+                            ..default()
+                        },
+                        BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.8)),
+                    ))
+                    .with_children(|btn| {
+                        btn.spawn((
+                            PauseMenuItemText(i),
+                            Text::new(*option),
+                            TextFont {
+                                font_size: 22.0,
+                                ..default()
+                            },
+                            TextColor(Color::srgb(0.7, 0.7, 0.7)),
+                        ));
+                    });
+            }
+
+            // Spacer
+            parent.spawn(Node {
+                height: Val::Px(20.0),
+                ..default()
+            });
+
+            // Controls hint
+            parent.spawn((
+                Text::new("↑↓ Navigate • SPACE/A Select • ESC Resume"),
+                TextFont {
+                    font_size: 12.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.35, 0.35, 0.35)),
             ));
         });
 }
 
+#[derive(Component)]
+struct PauseMenuItem(usize);
+
+#[derive(Component)]
+struct PauseMenuItemText(usize);
+
 fn pause_menu_input(
     keyboard: Res<ButtonInput<KeyCode>>,
     joystick: Res<JoystickState>,
+    mut selection: ResMut<PauseSelection>,
     mut next_state: ResMut<NextState<GameState>>,
+    mut transitions: EventWriter<TransitionEvent>,
+    mut item_query: Query<(&PauseMenuItem, &mut BackgroundColor)>,
+    mut text_query: Query<(&PauseMenuItemText, &mut TextColor)>,
+    time: Res<Time>,
+    mut cooldown: Local<f32>,
 ) {
-    if keyboard.just_pressed(KeyCode::Space)
-        || keyboard.just_pressed(KeyCode::Enter)
-        || joystick.confirm()
-        || joystick.start()
-    {
-        next_state.set(GameState::Playing);
+    *cooldown -= time.delta_secs();
+
+    // Navigation
+    let nav = get_nav_input(&keyboard, &joystick);
+    if nav != 0 && *cooldown <= 0.0 {
+        selection.index = (selection.index as i32 + nav).rem_euclid(PAUSE_OPTIONS.len() as i32) as usize;
+        *cooldown = MENU_NAV_COOLDOWN;
     }
 
-    if keyboard.just_pressed(KeyCode::Escape) || joystick.back() {
-        next_state.set(GameState::MainMenu);
+    // Update visual selection
+    let session_faction_color = Color::srgb(0.8, 0.5, 0.2); // Default orange
+    for (item, mut bg) in item_query.iter_mut() {
+        if item.0 == selection.index {
+            bg.0 = Color::srgba(0.3, 0.25, 0.15, 0.9);
+        } else {
+            bg.0 = Color::srgba(0.1, 0.1, 0.1, 0.8);
+        }
+    }
+    for (item, mut color) in text_query.iter_mut() {
+        if item.0 == selection.index {
+            color.0 = session_faction_color;
+        } else {
+            color.0 = Color::srgb(0.6, 0.6, 0.6);
+        }
+    }
+
+    // Selection
+    if is_confirm(&keyboard, &joystick) {
+        match selection.index {
+            0 => {
+                // Resume
+                next_state.set(GameState::Playing);
+            }
+            1 => {
+                // Restart Mission
+                transitions.send(TransitionEvent::quick(GameState::Playing));
+            }
+            2 => {
+                // Quit to Menu
+                transitions.send(TransitionEvent::to(GameState::MainMenu));
+            }
+            _ => {}
+        }
+    }
+
+    // Quick resume with ESC or Start
+    if keyboard.just_pressed(KeyCode::Escape) || joystick.start() {
+        next_state.set(GameState::Playing);
     }
 }
 
