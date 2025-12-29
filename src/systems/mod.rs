@@ -10,6 +10,7 @@ pub mod dialogue;
 pub mod effects;
 pub mod joystick;
 pub mod maneuvers;
+pub mod music;
 pub mod scoring;
 pub mod scoring_v2;
 pub mod spawning;
@@ -22,6 +23,7 @@ pub use dialogue::*;
 pub use effects::*;
 pub use joystick::*;
 pub use maneuvers::*;
+pub use music::*;
 pub use scoring::*;
 pub use scoring_v2::*;
 pub use spawning::*;
@@ -43,6 +45,7 @@ impl Plugin for SystemsPlugin {
             BossPlugin,
             DialoguePlugin,
             AudioPlugin,
+            MusicPlugin,
             ManeuverPlugin,
             CampaignPlugin,
         ));
