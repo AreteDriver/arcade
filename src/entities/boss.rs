@@ -398,6 +398,8 @@ pub fn spawn_boss(
     sprite_cache: Option<&crate::assets::ShipSpriteCache>,
     model_cache: Option<&ShipModelCache>,
 ) -> bool {
+    use crate::systems::boss::{BossDroneSpawner, DroneSpawnPattern};
+
     let Some(boss_data) = get_boss_for_stage(stage) else {
         return false;
     };
@@ -429,6 +431,61 @@ pub fn spawn_boss(
         }
     };
 
+    // Drone spawner for carrier/station bosses
+    let drone_spawner = match stage {
+        // Stage 3 - Orbital Platform (first station)
+        3 => Some(BossDroneSpawner {
+            spawn_interval: 8.0,
+            spawn_timer: 4.0,
+            drones_per_wave: 2,
+            drone_type_id: 589, // Executioner
+            max_drones: 4,
+            active_drones: 0,
+            pattern: DroneSpawnPattern::FromSides,
+        }),
+        // Stage 8 - Stargate Defense
+        8 => Some(BossDroneSpawner {
+            spawn_interval: 6.0,
+            spawn_timer: 3.0,
+            drones_per_wave: 3,
+            drone_type_id: 589, // Executioner
+            max_drones: 6,
+            active_drones: 0,
+            pattern: DroneSpawnPattern::FromSides,
+        }),
+        // Stage 9 - Battlestation (major drone spawner)
+        9 => Some(BossDroneSpawner {
+            spawn_interval: 5.0,
+            spawn_timer: 2.0,
+            drones_per_wave: 4,
+            drone_type_id: 591, // Tormentor (tougher)
+            max_drones: 8,
+            active_drones: 0,
+            pattern: DroneSpawnPattern::Surround,
+        }),
+        // Stage 11 - Archon Carrier (dedicated drone boat)
+        11 => Some(BossDroneSpawner {
+            spawn_interval: 4.0,
+            spawn_timer: 2.0,
+            drones_per_wave: 5,
+            drone_type_id: 589, // Executioner fighters
+            max_drones: 10,
+            active_drones: 0,
+            pattern: DroneSpawnPattern::VFormation,
+        }),
+        // Stage 13 - Avatar Titan (light drone support)
+        13 => Some(BossDroneSpawner {
+            spawn_interval: 7.0,
+            spawn_timer: 5.0,
+            drones_per_wave: 3,
+            drone_type_id: 591, // Tormentor
+            max_drones: 6,
+            active_drones: 0,
+            pattern: DroneSpawnPattern::Flanking,
+        }),
+        _ => None,
+    };
+
     // Spawn at top of screen
     let start_y = SCREEN_HEIGHT / 2.0 + size;
 
@@ -439,7 +496,7 @@ pub fn spawn_boss(
                 let model_rot = ShipModelRotation::new_boss();
                 let model_scale = get_model_scale(boss_data.type_id) * size;
 
-                commands.spawn((
+                let mut entity_commands = commands.spawn((
                     Boss,
                     boss_data,
                     BossState::Intro,
@@ -454,6 +511,11 @@ pub fn spawn_boss(
                         .with_scale(Vec3::splat(model_scale))
                         .with_rotation(model_rot.base_rotation),
                 ));
+
+                if let Some(spawner) = drone_spawner {
+                    entity_commands.insert(spawner);
+                }
+
                 return true;
             }
         }
@@ -492,7 +554,7 @@ pub fn spawn_boss(
         }
     };
 
-    commands.spawn(BossBundle {
+    let mut entity_commands = commands.spawn(BossBundle {
         boss: Boss,
         data: boss_data,
         state: BossState::Intro,
@@ -504,6 +566,10 @@ pub fn spawn_boss(
         sprite,
         transform: Transform::from_xyz(0.0, start_y, LAYER_ENEMIES),
     });
+
+    if let Some(spawner) = drone_spawner {
+        entity_commands.insert(spawner);
+    }
 
     true
 }

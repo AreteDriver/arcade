@@ -32,6 +32,7 @@ impl Plugin for BossPlugin {
                     boss_movement,
                     boss_attack,
                     boss_phase_check,
+                    boss_drone_spawning,
                     boss_damage,
                 )
                     .run_if(in_state(GameState::Playing)),
@@ -66,6 +67,53 @@ pub struct BossDefeatedEvent {
     pub boss_name: String,
     pub score: u64,
     pub liberation_value: u32,
+}
+
+/// Component for bosses that spawn drones/fighters
+#[derive(Component, Debug)]
+pub struct BossDroneSpawner {
+    /// Time between drone waves
+    pub spawn_interval: f32,
+    /// Cooldown timer
+    pub spawn_timer: f32,
+    /// Number of drones per wave
+    pub drones_per_wave: u32,
+    /// Type ID of spawned drones (589 = Executioner, 593 = Tristan)
+    pub drone_type_id: u32,
+    /// Maximum active drones
+    pub max_drones: u32,
+    /// Currently spawned drones count
+    pub active_drones: u32,
+    /// Drone spawn pattern
+    pub pattern: DroneSpawnPattern,
+}
+
+impl Default for BossDroneSpawner {
+    fn default() -> Self {
+        Self {
+            spawn_interval: 6.0,
+            spawn_timer: 3.0, // First wave after 3 seconds
+            drones_per_wave: 3,
+            drone_type_id: 589, // Executioner (small, fast)
+            max_drones: 6,
+            active_drones: 0,
+            pattern: DroneSpawnPattern::Flanking,
+        }
+    }
+}
+
+/// How drones are spawned around the boss
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum DroneSpawnPattern {
+    /// Spawn in a line below boss
+    #[default]
+    Flanking,
+    /// Spawn in a V formation
+    VFormation,
+    /// Spawn around boss in a circle
+    Surround,
+    /// Spawn from sides (for stations)
+    FromSides,
 }
 
 /// Handle boss spawn events
@@ -636,6 +684,108 @@ fn boss_phase_check(
                     health_percent * 100.0
                 );
             }
+        }
+    }
+}
+
+/// Boss drone spawning system
+fn boss_drone_spawning(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut boss_query: Query<
+        (&Transform, &BossState, &BossData, &mut BossDroneSpawner),
+        With<Boss>,
+    >,
+    enemy_query: Query<Entity, With<crate::entities::Enemy>>,
+    sprite_cache: Res<crate::assets::ShipSpriteCache>,
+    model_cache: Res<ShipModelCache>,
+    mut explosion_events: EventWriter<ExplosionEvent>,
+) {
+    let dt = time.delta_secs();
+
+    for (transform, state, data, mut spawner) in boss_query.iter_mut() {
+        // Only spawn during battle phase
+        if *state != BossState::Battle {
+            continue;
+        }
+
+        spawner.spawn_timer -= dt;
+
+        // Count current active drones (rough estimate - all enemies)
+        let current_enemies = enemy_query.iter().count() as u32;
+
+        // Spawn more frequently when enraged
+        let interval = if data.is_enraged {
+            spawner.spawn_interval * 0.6
+        } else {
+            spawner.spawn_interval
+        };
+
+        if spawner.spawn_timer <= 0.0 && current_enemies < spawner.max_drones + 10 {
+            spawner.spawn_timer = interval;
+
+            let boss_pos = transform.translation.truncate();
+            let count = spawner.drones_per_wave;
+
+            // Spawn drones based on pattern
+            for i in 0..count {
+                let spawn_pos = match spawner.pattern {
+                    DroneSpawnPattern::Flanking => {
+                        let offset = (i as f32 - (count - 1) as f32 / 2.0) * 50.0;
+                        Vec2::new(boss_pos.x + offset, boss_pos.y - 60.0)
+                    }
+                    DroneSpawnPattern::VFormation => {
+                        let offset = (i as f32 - (count - 1) as f32 / 2.0) * 40.0;
+                        let y_offset = offset.abs() * 0.5;
+                        Vec2::new(boss_pos.x + offset, boss_pos.y - 50.0 - y_offset)
+                    }
+                    DroneSpawnPattern::Surround => {
+                        let angle = (i as f32 / count as f32) * std::f32::consts::TAU;
+                        let radius = 80.0;
+                        Vec2::new(
+                            boss_pos.x + angle.cos() * radius,
+                            boss_pos.y + angle.sin() * radius,
+                        )
+                    }
+                    DroneSpawnPattern::FromSides => {
+                        let side = if i % 2 == 0 { -1.0 } else { 1.0 };
+                        let offset = (i as f32 / 2.0).floor() * 30.0;
+                        Vec2::new(boss_pos.x + side * 100.0, boss_pos.y - offset)
+                    }
+                };
+
+                // Spawn effect
+                explosion_events.send(ExplosionEvent {
+                    position: spawn_pos,
+                    size: ExplosionSize::Tiny,
+                    color: Color::srgb(0.5, 0.8, 1.0),
+                });
+
+                // Get sprite for drone type
+                let sprite = sprite_cache.get(spawner.drone_type_id);
+
+                // Determine behavior based on drone type
+                let behavior = match spawner.drone_type_id {
+                    589 => crate::entities::EnemyBehavior::Homing,  // Executioner - chase player
+                    591 => crate::entities::EnemyBehavior::Sniper,  // Tormentor - stay at range
+                    593 => crate::entities::EnemyBehavior::Weaver,  // Tristan - erratic
+                    _ => crate::entities::EnemyBehavior::Linear,
+                };
+
+                crate::entities::spawn_enemy(
+                    &mut commands,
+                    spawner.drone_type_id,
+                    spawn_pos,
+                    behavior,
+                    sprite,
+                    Some(&model_cache),
+                );
+            }
+
+            info!(
+                "{} launched {} drones!",
+                data.name, count
+            );
         }
     }
 }
