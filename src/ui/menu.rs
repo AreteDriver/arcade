@@ -29,6 +29,16 @@ impl Plugin for MenuPlugin {
                     .run_if(in_state(GameState::MainMenu)),
             )
             .add_systems(OnExit(GameState::MainMenu), despawn_menu::<MainMenuRoot>)
+            // Faction Select (unified 4-faction)
+            .add_systems(OnEnter(GameState::FactionSelect), spawn_faction_select)
+            .add_systems(
+                Update,
+                faction_select_input.run_if(in_state(GameState::FactionSelect)),
+            )
+            .add_systems(
+                OnExit(GameState::FactionSelect),
+                despawn_menu::<FactionSelectRoot>,
+            )
             // Difficulty Select
             .add_systems(OnEnter(GameState::DifficultySelect), spawn_difficulty_menu)
             .add_systems(
@@ -114,6 +124,9 @@ struct LoadingRoot;
 
 #[derive(Component)]
 struct MainMenuRoot;
+
+#[derive(Component)]
+struct FactionSelectRoot;
 
 #[derive(Component)]
 struct DifficultyMenuRoot;
@@ -242,7 +255,7 @@ fn loading_progress(
 
 fn spawn_main_menu(mut commands: Commands, mut selection: ResMut<MenuSelection>) {
     selection.index = 0;
-    selection.total = 4;
+    selection.total = 3;
 
     commands
         .spawn((
@@ -256,7 +269,7 @@ fn spawn_main_menu(mut commands: Commands, mut selection: ResMut<MenuSelection>)
                 row_gap: Val::Px(20.0),
                 ..default()
             },
-            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.4)), // Semi-transparent to show background
+            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.4)),
         ))
         .with_children(|parent| {
             // Title
@@ -266,16 +279,16 @@ fn spawn_main_menu(mut commands: Commands, mut selection: ResMut<MenuSelection>)
                     font_size: 72.0,
                     ..default()
                 },
-                TextColor(COLOR_MINMATAR),
+                TextColor(Color::srgb(0.8, 0.5, 0.2)), // Orange/gold
             ));
 
             parent.spawn((
-                Text::new("MINMATAR RISING"),
+                Text::new("FOUR FACTIONS • ONE DESTINY"),
                 TextFont {
                     font_size: 24.0,
                     ..default()
                 },
-                TextColor(Color::srgb(0.6, 0.4, 0.3)),
+                TextColor(Color::srgb(0.5, 0.5, 0.5)),
             ));
 
             // Spacer
@@ -285,10 +298,9 @@ fn spawn_main_menu(mut commands: Commands, mut selection: ResMut<MenuSelection>)
             });
 
             // Menu buttons
-            spawn_menu_item(parent, "ELDER FLEET CAMPAIGN", 0);
-            spawn_menu_item(parent, "CALDARI VS GALLENTE", 1);
-            spawn_menu_item(parent, "OPTIONS", 2);
-            spawn_menu_item(parent, "QUIT", 3);
+            spawn_menu_item(parent, "PLAY", 0);
+            spawn_menu_item(parent, "OPTIONS", 1);
+            spawn_menu_item(parent, "QUIT", 2);
 
             // Footer
             parent.spawn(Node {
@@ -306,7 +318,7 @@ fn spawn_main_menu(mut commands: Commands, mut selection: ResMut<MenuSelection>)
             ));
 
             parent.spawn((
-                Text::new("v0.3.0 - Multi-Campaign"),
+                Text::new("v0.4.0 - Unified Factions"),
                 TextFont {
                     font_size: 12.0,
                     ..default()
@@ -322,7 +334,7 @@ fn main_menu_input(
     mut selection: ResMut<MenuSelection>,
     time: Res<Time>,
     mut next_state: ResMut<NextState<GameState>>,
-    mut active_module: ResMut<ActiveModule>,
+    _active_module: ResMut<ActiveModule>,
     mut exit: EventWriter<AppExit>,
 ) {
     selection.cooldown -= time.delta_secs();
@@ -339,18 +351,11 @@ fn main_menu_input(
     if is_confirm(&keyboard, &joystick) {
         match selection.index {
             0 => {
-                // Elder Fleet Campaign (original game)
-                active_module.set_module("elder_fleet");
-                next_state.set(GameState::DifficultySelect);
-            }
-            1 => {
-                // Caldari vs Gallente - go to faction select
-                info!("Selected CALDARI VS GALLENTE - transitioning to FactionSelect");
-                active_module.set_module("caldari_gallente");
+                // PLAY - go to unified faction select
                 next_state.set(GameState::FactionSelect);
             }
-            2 => {} // Options - TODO
-            3 => {
+            1 => {} // Options - TODO
+            2 => {
                 exit.send(AppExit::Success);
             }
             _ => {}
@@ -360,6 +365,266 @@ fn main_menu_input(
     // Quick quit
     if keyboard.just_pressed(KeyCode::Escape) || joystick.back() {
         exit.send(AppExit::Success);
+    }
+}
+
+// ============================================================================
+// Faction Select (Unified 4-Faction)
+// ============================================================================
+
+fn spawn_faction_select(
+    mut commands: Commands,
+    mut selection: ResMut<MenuSelection>,
+    mut session: ResMut<GameSession>,
+) {
+    selection.index = 0;
+    selection.total = 4; // 4 factions
+
+    // Default to Minmatar vs Amarr
+    *session = GameSession::new(Faction::Minmatar, Faction::Amarr);
+
+    commands
+        .spawn((
+            FactionSelectRoot,
+            Node {
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                row_gap: Val::Px(15.0),
+                ..default()
+            },
+            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.5)),
+        ))
+        .with_children(|parent| {
+            // Title
+            parent.spawn((
+                Text::new("CHOOSE YOUR FACTION"),
+                TextFont {
+                    font_size: 48.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.8, 0.8, 0.8)),
+            ));
+
+            parent.spawn(Node {
+                height: Val::Px(30.0),
+                ..default()
+            });
+
+            // Faction grid - 2x2
+            parent
+                .spawn((Node {
+                    flex_direction: FlexDirection::Row,
+                    column_gap: Val::Px(20.0),
+                    ..default()
+                },))
+                .with_children(|row| {
+                    // Left column: Minmatar, Caldari
+                    row.spawn((Node {
+                        flex_direction: FlexDirection::Column,
+                        row_gap: Val::Px(15.0),
+                        ..default()
+                    },))
+                    .with_children(|col| {
+                        spawn_faction_card(col, Faction::Minmatar, 0);
+                        spawn_faction_card(col, Faction::Caldari, 2);
+                    });
+
+                    // Right column: Amarr, Gallente
+                    row.spawn((Node {
+                        flex_direction: FlexDirection::Column,
+                        row_gap: Val::Px(15.0),
+                        ..default()
+                    },))
+                    .with_children(|col| {
+                        spawn_faction_card(col, Faction::Amarr, 1);
+                        spawn_faction_card(col, Faction::Gallente, 3);
+                    });
+                });
+
+            parent.spawn(Node {
+                height: Val::Px(30.0),
+                ..default()
+            });
+
+            // Instructions
+            parent.spawn((
+                Text::new("← → ↑ ↓ to select • SPACE/A to confirm • ESC/B to back"),
+                TextFont {
+                    font_size: 14.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.4, 0.4, 0.4)),
+            ));
+        });
+}
+
+fn spawn_faction_card(parent: &mut ChildBuilder, faction: Faction, index: usize) {
+    let primary = faction.primary_color();
+    let secondary = faction.secondary_color();
+
+    parent
+        .spawn((
+            FactionSelectRoot,
+            MenuItem { index },
+            Node {
+                width: Val::Px(280.0),
+                padding: UiRect::all(Val::Px(15.0)),
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                row_gap: Val::Px(8.0),
+                border: UiRect::all(Val::Px(2.0)),
+                ..default()
+            },
+            BackgroundColor(secondary.with_alpha(0.8)),
+            BorderColor(primary.with_alpha(0.5)),
+        ))
+        .with_children(|card| {
+            // Faction name
+            card.spawn((
+                Text::new(faction.short_name()),
+                TextFont {
+                    font_size: 28.0,
+                    ..default()
+                },
+                TextColor(primary),
+            ));
+
+            // Full name
+            card.spawn((
+                Text::new(faction.name()),
+                TextFont {
+                    font_size: 14.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.7, 0.7, 0.7)),
+            ));
+
+            // Tagline
+            card.spawn((
+                Text::new(format!("\"{}\"", faction.tagline())),
+                TextFont {
+                    font_size: 12.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.5, 0.5, 0.5)),
+            ));
+
+            // Doctrine
+            card.spawn((
+                Text::new(format!(
+                    "{} • {}",
+                    faction.weapon_type().name(),
+                    match faction.tank_type() {
+                        TankDoctrine::Shield => "Shield Tank",
+                        TankDoctrine::Armor => "Armor Tank",
+                        TankDoctrine::Speed => "Speed Tank",
+                    }
+                )),
+                TextFont {
+                    font_size: 11.0,
+                    ..default()
+                },
+                TextColor(primary.with_alpha(0.8)),
+            ));
+
+            // Enemy faction
+            card.spawn((
+                Text::new(format!("vs {}", faction.rival().short_name())),
+                TextFont {
+                    font_size: 12.0,
+                    ..default()
+                },
+                TextColor(faction.rival().primary_color().with_alpha(0.7)),
+            ));
+        });
+}
+
+fn faction_select_input(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    joystick: Res<JoystickState>,
+    mut selection: ResMut<MenuSelection>,
+    mut session: ResMut<GameSession>,
+    time: Res<Time>,
+    mut next_state: ResMut<NextState<GameState>>,
+    mut cards: Query<(&MenuItem, &mut BackgroundColor, &mut BorderColor), With<FactionSelectRoot>>,
+) {
+    selection.cooldown -= time.delta_secs();
+
+    // 2D navigation for 2x2 grid
+    // Layout: 0=Minmatar(top-left), 1=Amarr(top-right), 2=Caldari(bottom-left), 3=Gallente(bottom-right)
+    if selection.cooldown <= 0.0 {
+        let left = keyboard.pressed(KeyCode::ArrowLeft)
+            || keyboard.pressed(KeyCode::KeyA)
+            || joystick.dpad_x < 0;
+        let right = keyboard.pressed(KeyCode::ArrowRight)
+            || keyboard.pressed(KeyCode::KeyD)
+            || joystick.dpad_x > 0;
+        let up = keyboard.pressed(KeyCode::ArrowUp)
+            || keyboard.pressed(KeyCode::KeyW)
+            || joystick.dpad_y < 0;
+        let down = keyboard.pressed(KeyCode::ArrowDown)
+            || keyboard.pressed(KeyCode::KeyS)
+            || joystick.dpad_y > 0;
+
+        let mut new_index = selection.index;
+
+        if left && (selection.index == 1 || selection.index == 3) {
+            new_index = selection.index - 1;
+        } else if right && (selection.index == 0 || selection.index == 2) {
+            new_index = selection.index + 1;
+        } else if up && selection.index >= 2 {
+            new_index = selection.index - 2;
+        } else if down && selection.index <= 1 {
+            new_index = selection.index + 2;
+        }
+
+        if new_index != selection.index {
+            selection.index = new_index;
+            selection.cooldown = MENU_NAV_COOLDOWN;
+        }
+    }
+
+    // Update card highlights
+    let factions = [
+        Faction::Minmatar,
+        Faction::Amarr,
+        Faction::Caldari,
+        Faction::Gallente,
+    ];
+
+    for (item, mut bg, mut border) in cards.iter_mut() {
+        let faction = factions[item.index];
+        let is_selected = item.index == selection.index;
+
+        if is_selected {
+            *bg = BackgroundColor(faction.primary_color().with_alpha(0.4));
+            *border = BorderColor(faction.primary_color());
+        } else {
+            *bg = BackgroundColor(faction.secondary_color().with_alpha(0.6));
+            *border = BorderColor(faction.primary_color().with_alpha(0.3));
+        }
+    }
+
+    // Confirm selection
+    if is_confirm(&keyboard, &joystick) {
+        let player_faction = factions[selection.index];
+        let enemy_faction = player_faction.rival();
+
+        *session = GameSession::new(player_faction, enemy_faction);
+        info!(
+            "Selected {} vs {}",
+            player_faction.name(),
+            enemy_faction.name()
+        );
+        next_state.set(GameState::DifficultySelect);
+    }
+
+    // Back to main menu
+    if keyboard.just_pressed(KeyCode::Escape) || joystick.back() {
+        next_state.set(GameState::MainMenu);
     }
 }
 
