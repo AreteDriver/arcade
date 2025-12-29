@@ -106,6 +106,7 @@ fn wave_spawning(
     mut manager: ResMut<WaveManager>,
     mut next_state: ResMut<NextState<GameState>>,
     _stage: Res<CurrentStage>,
+    session: Res<crate::core::GameSession>,
     enemy_query: Query<Entity, With<crate::entities::Enemy>>,
     boss_query: Query<Entity, With<crate::entities::Boss>>,
     mut wave_events: EventWriter<SpawnWaveEvent>,
@@ -213,14 +214,14 @@ fn wave_spawning(
         if manager.spawn_timer <= 0.0 {
             manager.spawn_timer = manager.spawn_interval;
 
-            // Get wave definition
+            // Get wave definition for behaviors and patterns
             let wave_def = get_wave_definition(manager.current_stage, manager.wave);
 
-            // Pick random enemy type
-            let type_idx = fastrand::usize(..wave_def.enemy_types.len());
-            let type_id = wave_def.enemy_types[type_idx];
+            // Get random enemy from enemy faction using GameSession
+            let enemy_def = session.random_enemy();
+            let type_id = enemy_def.type_id;
 
-            // Pick behavior
+            // Pick behavior based on stage progression
             let behavior_idx = fastrand::usize(..wave_def.behaviors.len());
             let behavior = wave_def.behaviors[behavior_idx];
 

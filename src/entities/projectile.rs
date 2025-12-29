@@ -123,38 +123,23 @@ fn spawn_player_projectiles(
         let damage_mult = berserk.damage_mult();
         let velocity = event.direction * PLAYER_BULLET_SPEED;
 
-        // Determine damage type and color from weapon
-        let (damage_type, bullet_color) = match event.weapon_type {
-            WeaponType::Autocannon | WeaponType::Artillery => (
-                DamageType::Kinetic,
-                Color::srgb(1.0, 0.9, 0.4), // Yellow/orange
-            ),
-            WeaponType::Laser => (
-                DamageType::EM,
-                Color::srgb(1.0, 0.3, 0.3), // Red
-            ),
-            WeaponType::Railgun => (
-                DamageType::Kinetic,
-                Color::srgb(0.5, 0.8, 1.0), // Cyan
-            ),
-            WeaponType::MissileLauncher => (
-                DamageType::Explosive,
-                Color::srgb(1.0, 0.5, 0.2), // Orange
-            ),
-            WeaponType::Drone => (
-                DamageType::Thermal,
-                Color::srgb(0.8, 1.0, 0.5), // Green
-            ),
+        // Determine damage type from weapon
+        let damage_type = match event.weapon_type {
+            WeaponType::Autocannon | WeaponType::Artillery => DamageType::Kinetic,
+            WeaponType::Laser => DamageType::EM,
+            WeaponType::Railgun => DamageType::Kinetic,
+            WeaponType::MissileLauncher => DamageType::Explosive,
+            WeaponType::Drone => DamageType::Thermal,
         };
 
-        // Berserk mode makes bullets purple
+        // Use event's bullet color, or purple if berserk
         let color = if berserk.is_active {
             Color::srgb(1.0, 0.2, 0.8)
         } else {
-            bullet_color
+            event.bullet_color
         };
 
-        // Simple single-entity projectile (no parent-child hierarchy)
+        // Simple single-entity projectile
         commands.spawn((
             PlayerProjectile,
             ProjectilePhysics {
@@ -162,7 +147,7 @@ fn spawn_player_projectiles(
                 lifetime: 2.0,
             },
             ProjectileDamage {
-                damage: PLAYER_BULLET_DAMAGE * damage_mult,
+                damage: event.damage * damage_mult,
                 damage_type,
             },
             Sprite {

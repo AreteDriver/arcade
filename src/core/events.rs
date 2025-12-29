@@ -27,6 +27,8 @@ pub struct PlayerFireEvent {
     pub position: Vec2,
     pub direction: Vec2,
     pub weapon_type: WeaponType,
+    pub bullet_color: Color,
+    pub damage: f32,
 }
 
 /// Spawn enemy event

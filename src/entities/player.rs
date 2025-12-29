@@ -197,6 +197,8 @@ pub struct Weapon {
     pub cap_usage: f32,
     /// Current aim direction
     pub aim_direction: Vec2,
+    /// Bullet/projectile color
+    pub bullet_color: Color,
 }
 
 impl Default for Weapon {
@@ -209,6 +211,7 @@ impl Default for Weapon {
             damage: PLAYER_BULLET_DAMAGE,
             cap_usage: 5.0,
             aim_direction: Vec2::Y, // Up by default
+            bullet_color: Color::srgb(1.0, 0.8, 0.4), // Default orange tracer
         }
     }
 }
@@ -275,40 +278,67 @@ impl Plugin for PlayerPlugin {
 /// Spawn player at start of gameplay
 fn spawn_player(
     mut commands: Commands,
-    selected_ship: Res<SelectedShip>,
+    session: Res<GameSession>,
     sprite_cache: Res<crate::assets::ShipSpriteCache>,
 ) {
-    let ship = selected_ship.ship;
-    let type_id = ship.type_id();
+    let ship_def = session.selected_ship();
+    let faction = session.player_faction;
+    let type_id = ship_def.type_id;
 
-    let mut stats = ShipStats::from_type_id(type_id);
-    // Apply ship health multipliers
-    stats.max_shield *= ship.health_mult();
-    stats.shield *= ship.health_mult();
-    stats.max_armor *= ship.health_mult();
-    stats.armor *= ship.health_mult();
-    stats.max_hull *= ship.health_mult();
-    stats.hull *= ship.health_mult();
+    // Create stats from ship definition
+    let stats = ShipStats {
+        type_id,
+        name: ship_def.name.to_string(),
+        max_shield: ship_def.health * 0.4, // 40% shield
+        shield: ship_def.health * 0.4,
+        shield_recharge: PLAYER_SHIELD_RECHARGE_RATE,
+        shield_recharge_delay: PLAYER_SHIELD_RECHARGE_DELAY,
+        shield_timer: 0.0,
+        max_armor: ship_def.health * 0.35, // 35% armor
+        armor: ship_def.health * 0.35,
+        max_hull: ship_def.health * 0.25, // 25% hull
+        hull: ship_def.health * 0.25,
+        max_capacitor: CAP_FRIGATE,
+        capacitor: CAP_FRIGATE,
+        capacitor_recharge: 10.0,
+    };
 
-    // Create movement with ship speed multiplier
-    let mut movement = Movement::default();
-    movement.max_speed *= ship.speed_mult();
-    movement.acceleration *= ship.speed_mult();
+    // Create movement from ship speed
+    let movement = Movement {
+        velocity: Vec2::ZERO,
+        max_speed: ship_def.speed,
+        acceleration: ship_def.speed * 3.0, // 3x speed for accel
+        friction: 8.0,
+    };
 
-    let base_color = COLOR_MINMATAR;
+    // Create weapon from ship stats
+    let weapon = Weapon {
+        fire_rate: ship_def.fire_rate,
+        damage: ship_def.damage,
+        bullet_color: faction.weapon_type().bullet_color(),
+        ..default()
+    };
+
+    let base_color = faction.primary_color();
+    let engine_trail = EngineTrail::from_faction(faction);
 
     // Use sprites (2D camera compatible)
     if let Some(texture) = sprite_cache.get(type_id) {
-        info!("Using EVE sprite for player ship type {}", type_id);
+        info!(
+            "Spawning {} {} with {} engine",
+            faction.short_name(),
+            ship_def.name,
+            faction.weapon_type().name()
+        );
         commands.spawn((
             Player,
             stats,
             movement,
-            Weapon::default(),
+            weapon,
             Hitbox::default(),
             super::collectible::PowerupEffects::default(),
             ManeuverState::default(),
-            EngineTrail::minmatar(), // Minmatar rust-orange engine trail
+            engine_trail,
             Sprite {
                 image: texture,
                 custom_size: Some(Vec2::new(64.0, 64.0)),
@@ -319,18 +349,18 @@ fn spawn_player(
     } else {
         // Fallback: simple colored sprite
         warn!(
-            "No model or sprite for type {}, using color fallback",
+            "No sprite for type {}, using color fallback",
             type_id
         );
         commands.spawn((
             Player,
             stats,
             movement,
-            Weapon::default(),
+            weapon,
             Hitbox::default(),
             super::collectible::PowerupEffects::default(),
             ManeuverState::default(),
-            EngineTrail::minmatar(), // Minmatar rust-orange engine trail
+            engine_trail,
             Sprite {
                 color: base_color,
                 custom_size: Some(Vec2::new(48.0, 64.0)),
@@ -340,7 +370,14 @@ fn spawn_player(
         ));
     }
 
-    info!("Player spawned!");
+    info!(
+        "Player spawned: {} [{}] - HP:{} SPD:{} DMG:{}",
+        ship_def.name,
+        ship_def.class.name(),
+        ship_def.health,
+        ship_def.speed,
+        ship_def.damage
+    );
 }
 
 /// Lighten a color
@@ -497,6 +534,8 @@ fn player_shooting(
             position: transform.translation.truncate(),
             direction: weapon.aim_direction,
             weapon_type: weapon.weapon_type,
+            bullet_color: weapon.bullet_color,
+            damage: weapon.damage,
         });
     }
 }

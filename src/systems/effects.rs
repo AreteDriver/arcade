@@ -331,6 +331,14 @@ impl EngineTrail {
             ..default()
         }
     }
+
+    /// Create engine trail from faction
+    pub fn from_faction(faction: crate::core::Faction) -> Self {
+        Self {
+            color: faction.engine_color(),
+            ..default()
+        }
+    }
 }
 
 /// Engine trail particle
