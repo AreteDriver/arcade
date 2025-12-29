@@ -1,0 +1,14 @@
+{
+    "AttackId": "Tanuki_Swipe",
+    "DisplayName": "Leaf Swipe",
+    "StartupFrames": 20,
+    "ActiveFrames": 8,
+    "RecoveryFrames": 25,
+    "Telegraph": 1,
+    "TelegraphLeadFrames": 8,
+    "Damage": 1,
+    "Unblockable": false,
+    "CorrectResponse": 1,
+    "HitboxOffset": { "x": 0, "y": 1, "z": 1.5 },
+    "HitboxSize": { "x": 2, "y": 1.5, "z": 2 }
+}
