@@ -68,18 +68,22 @@ fn spawn_enemy_carrier(
         Name::new("EnemyCarrier"),
     ));
 
-    // Add sprite - carrier faces down (rotated 180°)
+    // Add sprite - carrier faces down (rotated 180° + ship-specific correction)
     if let Some(texture) = sprite {
+        // Get rotation: 180° base (face down) + per-ship correction
+        let base_rotation = std::f32::consts::PI;
+        let correction = crate::entities::get_ship_rotation_correction(carrier_id);
+        let total_rotation = base_rotation + correction;
+
         entity.insert((Sprite {
             image: texture,
             color: Color::srgba(1.0, 1.0, 1.0, 0.0), // Start invisible for warp-in
             custom_size: Some(Vec2::splat(carrier_size)),
             ..default()
         },));
-        // EVE renders face UP, rotate 180° to face DOWN
         entity.insert(
             Transform::from_xyz(0.0, carrier_y + 200.0, -50.0)
-                .with_rotation(Quat::from_rotation_z(std::f32::consts::PI)),
+                .with_rotation(Quat::from_rotation_z(total_rotation)),
         );
     }
 

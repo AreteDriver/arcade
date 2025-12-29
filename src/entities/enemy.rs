@@ -444,6 +444,40 @@ fn get_faction_weapon(type_id: u32) -> WeaponType {
     }
 }
 
+/// Get rotation correction for ships with non-standard orientations from CCP renders
+/// Returns additional rotation in radians to apply on top of base rotation
+pub fn get_ship_rotation_correction(type_id: u32) -> f32 {
+    use std::f32::consts::FRAC_PI_2;
+    match type_id {
+        // Ships that render sideways (need 90° correction)
+        602 => FRAC_PI_2,  // Kestrel - faces right, rotate left 90°
+        603 => FRAC_PI_2,  // Merlin - faces right
+        583 => FRAC_PI_2,  // Condor - faces right
+        593 => FRAC_PI_2,  // Tristan - faces right
+        594 => FRAC_PI_2,  // Incursus - faces right
+        608 => FRAC_PI_2,  // Atron - faces right
+
+        // Ships that render facing left (need -90° correction)
+        // 597 => -FRAC_PI_2, // Punisher - if facing left
+
+        // Destroyers
+        16236 => FRAC_PI_2, // Coercer
+        16238 => FRAC_PI_2, // Cormorant
+        16242 => FRAC_PI_2, // Catalyst
+
+        // Battlecruisers
+        24688 => FRAC_PI_2, // Drake
+        24690 => FRAC_PI_2, // Harbinger
+        24700 => FRAC_PI_2, // Myrmidon
+
+        // Carriers - already face correctly, no correction needed
+        // 23757, 23911, 23915, 24483 => 0.0
+
+        // Ships that already face up correctly
+        _ => 0.0,
+    }
+}
+
 /// Spawn a single enemy with 3D model, EVE sprite, or fallback color
 pub fn spawn_enemy(
     commands: &mut Commands,
@@ -564,6 +598,11 @@ pub fn spawn_enemy(
     let mut engine_trail = get_faction_engine_trail(type_id);
     engine_trail.offset = Vec2::new(0.0, 25.0); // Offset up since enemies face down
 
+    // Get rotation: 180° base (face down) + per-ship correction
+    let base_rotation = std::f32::consts::PI; // Face down
+    let correction = get_ship_rotation_correction(type_id);
+    let total_rotation = base_rotation + correction;
+
     // Use sprites (2D camera compatible)
     if let Some(texture) = sprite {
         commands
@@ -578,9 +617,8 @@ pub fn spawn_enemy(
                     custom_size: Some(Vec2::splat(sprite_size)),
                     ..default()
                 },
-                // EVE renders face UP, rotate 180° to face DOWN
                 Transform::from_xyz(position.x, position.y, LAYER_ENEMIES)
-                    .with_rotation(Quat::from_rotation_z(std::f32::consts::PI)),
+                    .with_rotation(Quat::from_rotation_z(total_rotation)),
             ))
             .id()
     } else {

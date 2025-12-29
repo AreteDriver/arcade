@@ -328,6 +328,9 @@ fn spawn_player(
     let base_size = ship_def.class.sprite_size();
     let player_size = base_size * crate::core::PLAYER_SIZE_BONUS;
 
+    // Get rotation correction for this ship type (player faces UP, so no base rotation)
+    let rotation = super::enemy::get_ship_rotation_correction(type_id);
+
     // Use sprites (2D camera compatible)
     if let Some(texture) = sprite_cache.get(type_id) {
         info!(
@@ -351,8 +354,8 @@ fn spawn_player(
                 custom_size: Some(Vec2::splat(player_size)),
                 ..default()
             },
-            // EVE renders already face UP - no rotation needed
-            Transform::from_xyz(0.0, -250.0, LAYER_PLAYER),
+            Transform::from_xyz(0.0, -250.0, LAYER_PLAYER)
+                .with_rotation(Quat::from_rotation_z(rotation)),
         ));
     } else {
         // Fallback: simple colored sprite
