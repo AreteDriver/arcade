@@ -212,7 +212,7 @@ impl Default for Weapon {
             bullet_speed: PLAYER_BULLET_SPEED,
             damage: PLAYER_BULLET_DAMAGE,
             cap_usage: 5.0,
-            aim_direction: Vec2::Y, // Up by default
+            aim_direction: Vec2::Y,                   // Up by default
             bullet_color: Color::srgb(1.0, 0.8, 0.4), // Default orange tracer
         }
     }
@@ -350,10 +350,7 @@ fn spawn_player(
         ));
     } else {
         // Fallback: simple colored sprite
-        warn!(
-            "No sprite for type {}, using color fallback",
-            type_id
-        );
+        warn!("No sprite for type {}, using color fallback", type_id);
         commands.spawn((
             Player,
             stats,

@@ -132,8 +132,7 @@ pub const CG_EPILOGUE_SHIIGERU: CGMission = CGMission {
 };
 
 /// Campaign state for Caldari/Gallente module
-#[derive(Debug, Clone, Resource)]
-#[derive(Default)]
+#[derive(Debug, Clone, Resource, Default)]
 pub struct CGCampaignState {
     pub mission_index: usize,
     pub current_wave: u32,
@@ -142,7 +141,6 @@ pub struct CGCampaignState {
     pub boss_defeated: bool,
     pub t3_unlocked: bool,
 }
-
 
 impl CGCampaignState {
     pub fn current_mission(&self) -> Option<&'static CGMission> {

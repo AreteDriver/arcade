@@ -189,7 +189,7 @@ impl Difficulty {
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Resource, Default)]
 pub enum MinmatarShip {
     #[default]
-    Rifter,   // T1 Frigate - balanced autocannon
+    Rifter, // T1 Frigate - balanced autocannon
     Slasher,  // T1 Frigate - fast interceptor
     Breacher, // T1 Frigate - rocket specialist
     Probe,    // T1 Frigate - evasion/utility

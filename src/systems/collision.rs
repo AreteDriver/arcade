@@ -82,17 +82,16 @@ pub struct CollisionPlugin;
 
 impl Plugin for CollisionPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(SpatialGrid::new())
-            .add_systems(
-                Update,
-                (
-                    update_spatial_grid,
-                    player_projectile_enemy_collision,
-                    enemy_projectile_player_collision,
-                )
-                    .chain()
-                    .run_if(in_state(GameState::Playing)),
-            );
+        app.insert_resource(SpatialGrid::new()).add_systems(
+            Update,
+            (
+                update_spatial_grid,
+                player_projectile_enemy_collision,
+                enemy_projectile_player_collision,
+            )
+                .chain()
+                .run_if(in_state(GameState::Playing)),
+        );
     }
 }
 
@@ -204,7 +203,12 @@ fn player_projectile_enemy_collision(
                     // 30% chance to drop powerup (100% for bosses)
                     let drop_chance = if enemy_stats.is_boss { 1.0 } else { 0.30 };
                     if fastrand::f32() < drop_chance {
-                        spawn_smart_powerup(&mut commands, enemy_pos, Some(&icon_cache), player_health);
+                        spawn_smart_powerup(
+                            &mut commands,
+                            enemy_pos,
+                            Some(&icon_cache),
+                            player_health,
+                        );
                     }
 
                     // Despawn enemy

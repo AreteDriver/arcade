@@ -138,7 +138,7 @@ fn draw_capacitor_wheel(
             let arc_width = 7.0;
             let arc_gap = 2.0;
             let arc_start = -PI; // Left
-            let arc_end = 0.0;   // Right (top semicircle)
+            let arc_end = 0.0; // Right (top semicircle)
 
             // Shield arc (outermost) - grayish white
             let shield_radius = wheel_radius - 2.0;
@@ -366,7 +366,15 @@ fn draw_eve_health_arc(
             empty_color
         };
 
-        draw_arc_segment(painter, center, radius, width, angle_start, segment_arc, color);
+        draw_arc_segment(
+            painter,
+            center,
+            radius,
+            width,
+            angle_start,
+            segment_arc,
+            color,
+        );
     }
 }
 
@@ -407,7 +415,11 @@ fn draw_arc_segment(
     }
 
     if points.len() >= 3 {
-        painter.add(egui::Shape::convex_polygon(points, color, egui::Stroke::NONE));
+        painter.add(egui::Shape::convex_polygon(
+            points,
+            color,
+            egui::Stroke::NONE,
+        ));
     }
 }
 
@@ -473,7 +485,15 @@ fn draw_capacitor_rings(
                 empty_color
             };
 
-            draw_capacitor_dash(painter, center, ring_radius, dash_width, angle, dash_length, color);
+            draw_capacitor_dash(
+                painter,
+                center,
+                ring_radius,
+                dash_width,
+                angle,
+                dash_length,
+                color,
+            );
         }
     }
 
@@ -527,7 +547,11 @@ fn draw_capacitor_dash(
     }
 
     if points.len() >= 3 {
-        painter.add(egui::Shape::convex_polygon(points, color, egui::Stroke::NONE));
+        painter.add(egui::Shape::convex_polygon(
+            points,
+            color,
+            egui::Stroke::NONE,
+        ));
     }
 }
 
@@ -567,10 +591,7 @@ fn draw_heat_indicators(
         };
 
         // Small rectangular indicator
-        let rect = egui::Rect::from_center_size(
-            egui::pos2(x, y),
-            egui::vec2(4.0, 8.0),
-        );
+        let rect = egui::Rect::from_center_size(egui::pos2(x, y), egui::vec2(4.0, 8.0));
         painter.rect_filled(rect, 1.0, color);
     }
 }

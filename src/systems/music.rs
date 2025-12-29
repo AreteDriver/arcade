@@ -124,11 +124,13 @@ fn generate_menu_ambient() -> Option<AudioSource> {
         // Slow LFO modulated pad
         let lfo = (2.0 * PI * 0.05 * t).sin(); // Very slow modulation
         let pad_freq = 110.0 + lfo * 5.0;
-        let pad = (2.0 * PI * pad_freq * t).sin() * 0.06 * (0.5 + 0.5 * (2.0 * PI * 0.03 * t).sin());
+        let pad =
+            (2.0 * PI * pad_freq * t).sin() * 0.06 * (0.5 + 0.5 * (2.0 * PI * 0.03 * t).sin());
 
         // Ethereal shimmer (high frequencies)
         let shimmer_freq = 880.0 + 220.0 * (0.07 * t).sin();
-        let shimmer = (2.0 * PI * shimmer_freq * t).sin() * 0.02 * (0.5 + 0.5 * (2.0 * PI * 0.02 * t).sin());
+        let shimmer =
+            (2.0 * PI * shimmer_freq * t).sin() * 0.02 * (0.5 + 0.5 * (2.0 * PI * 0.02 * t).sin());
 
         // Occasional distant "star" twinkles
         let twinkle = if (t * 0.3).fract() < 0.01 {
@@ -179,7 +181,11 @@ fn generate_gameplay_ambient() -> Option<AudioSource> {
 
         // Pulsing synth (offbeat)
         let synth_freq = 110.0;
-        let synth_env = if beat_phase > 0.5 { (-(beat_phase - 0.5) * 10.0).exp() } else { 0.0 };
+        let synth_env = if beat_phase > 0.5 {
+            (-(beat_phase - 0.5) * 10.0).exp()
+        } else {
+            0.0
+        };
         let synth = (2.0 * PI * synth_freq * t).sin() * synth_env * 0.08;
 
         // High tension string-like pad
@@ -379,7 +385,9 @@ fn manage_menu_music(
                         AudioPlayer(source),
                         PlaybackSettings {
                             mode: PlaybackMode::Loop,
-                            volume: Volume::new(settings.music_volume * settings.master_volume * 0.4),
+                            volume: Volume::new(
+                                settings.music_volume * settings.master_volume * 0.4,
+                            ),
                             ..default()
                         },
                     ))
@@ -430,7 +438,9 @@ fn manage_gameplay_music(
                         AudioPlayer(source),
                         PlaybackSettings {
                             mode: PlaybackMode::Loop,
-                            volume: Volume::new(settings.music_volume * settings.master_volume * 0.35),
+                            volume: Volume::new(
+                                settings.music_volume * settings.master_volume * 0.35,
+                            ),
                             ..default()
                         },
                     ))

@@ -97,7 +97,11 @@ impl Plugin for MenuPlugin {
             .add_systems(OnEnter(GameState::Victory), spawn_victory_screen)
             .add_systems(
                 Update,
-                (victory_input, update_victory_particles, update_victory_buttons)
+                (
+                    victory_input,
+                    update_victory_particles,
+                    update_victory_buttons,
+                )
                     .run_if(in_state(GameState::Victory)),
             )
             .add_systems(OnExit(GameState::Victory), despawn_victory_screen)
@@ -354,7 +358,12 @@ fn spawn_main_menu(
                 parent
                     .spawn((
                         Node {
-                            padding: UiRect::new(Val::Px(20.0), Val::Px(20.0), Val::Px(8.0), Val::Px(8.0)),
+                            padding: UiRect::new(
+                                Val::Px(20.0),
+                                Val::Px(20.0),
+                                Val::Px(8.0),
+                                Val::Px(8.0),
+                            ),
                             border: UiRect::all(Val::Px(1.0)),
                             flex_direction: FlexDirection::Column,
                             align_items: AlignItems::Center,
@@ -508,10 +517,10 @@ fn spawn_faction_select(
                         row_gap: Val::Px(15.0),
                         ..default()
                     },))
-                    .with_children(|col| {
-                        spawn_faction_card(col, Faction::Minmatar, 0);
-                        spawn_faction_card(col, Faction::Caldari, 2);
-                    });
+                        .with_children(|col| {
+                            spawn_faction_card(col, Faction::Minmatar, 0);
+                            spawn_faction_card(col, Faction::Caldari, 2);
+                        });
 
                     // Right column: Amarr, Gallente
                     row.spawn((Node {
@@ -519,10 +528,10 @@ fn spawn_faction_select(
                         row_gap: Val::Px(15.0),
                         ..default()
                     },))
-                    .with_children(|col| {
-                        spawn_faction_card(col, Faction::Amarr, 1);
-                        spawn_faction_card(col, Faction::Gallente, 3);
-                    });
+                        .with_children(|col| {
+                            spawn_faction_card(col, Faction::Amarr, 1);
+                            spawn_faction_card(col, Faction::Gallente, 3);
+                        });
                 });
 
             parent.spawn(Node {
@@ -1149,7 +1158,10 @@ fn spawn_ship_item_new(
                     ));
                 } else {
                     left.spawn((
-                        Text::new(format!("LOCKED - Complete Stage {} to unlock", ship.unlock_stage)),
+                        Text::new(format!(
+                            "LOCKED - Complete Stage {} to unlock",
+                            ship.unlock_stage
+                        )),
                         TextFont {
                             font_size: 10.0,
                             ..default()
@@ -1225,28 +1237,27 @@ fn ship_menu_input(
     let faction = session.player_faction;
     let enemy = session.enemy_faction;
 
-    if is_confirm(&keyboard, &joystick)
-        && selection.index < ships.len() {
-            let ship = &ships[selection.index];
-            let is_unlocked = save_data.is_ship_unlocked(
-                ship.type_id,
-                ship.unlock_stage,
-                faction.short_name(),
-                enemy.short_name(),
-            );
+    if is_confirm(&keyboard, &joystick) && selection.index < ships.len() {
+        let ship = &ships[selection.index];
+        let is_unlocked = save_data.is_ship_unlocked(
+            ship.type_id,
+            ship.unlock_stage,
+            faction.short_name(),
+            enemy.short_name(),
+        );
 
-            if is_unlocked {
-                session.selected_ship_index = selection.index;
-                info!("Selected ship: {} ({})", ship.name, ship.class.name());
-                // Slow transition into gameplay
-                transitions.send(TransitionEvent::slow(GameState::Playing));
-            } else {
-                info!(
-                    "Ship {} is locked - complete Stage {} to unlock",
-                    ship.name, ship.unlock_stage
-                );
-            }
+        if is_unlocked {
+            session.selected_ship_index = selection.index;
+            info!("Selected ship: {} ({})", ship.name, ship.class.name());
+            // Slow transition into gameplay
+            transitions.send(TransitionEvent::slow(GameState::Playing));
+        } else {
+            info!(
+                "Ship {} is locked - complete Stage {} to unlock",
+                ship.name, ship.unlock_stage
+            );
         }
+    }
 
     if keyboard.just_pressed(KeyCode::Escape) || joystick.back() {
         transitions.send(TransitionEvent::quick(GameState::DifficultySelect));
@@ -1398,7 +1409,8 @@ fn pause_menu_input(
     // Navigation
     let nav = get_nav_input(&keyboard, &joystick);
     if nav != 0 && *cooldown <= 0.0 {
-        selection.index = (selection.index as i32 + nav).rem_euclid(PAUSE_OPTIONS.len() as i32) as usize;
+        selection.index =
+            (selection.index as i32 + nav).rem_euclid(PAUSE_OPTIONS.len() as i32) as usize;
         *cooldown = MENU_NAV_COOLDOWN;
     }
 
@@ -1463,7 +1475,8 @@ fn spawn_death_screen(
     commands.insert_resource(DeathSelection::default());
 
     // Get high score for comparison
-    let high_score = save_data.get_high_score(session.player_faction.name(), session.enemy_faction.name());
+    let high_score =
+        save_data.get_high_score(session.player_faction.name(), session.enemy_faction.name());
     let is_new_high = score.score > high_score && score.score > 0;
 
     // Get mission info
@@ -1623,7 +1636,11 @@ fn spawn_death_screen(
                     }
 
                     row.spawn((
-                        Text::new(format!("Stage {}-{}", campaign.stage_number(), campaign.mission_in_stage())),
+                        Text::new(format!(
+                            "Stage {}-{}",
+                            campaign.stage_number(),
+                            campaign.mission_in_stage()
+                        )),
                         TextFont {
                             font_size: 20.0,
                             ..default()
@@ -2142,7 +2159,8 @@ fn spawn_victory_screen(
     commands.insert_resource(VictorySelection::default());
 
     // Check for new high score
-    let previous_high = save_data.get_high_score(session.player_faction.name(), session.enemy_faction.name());
+    let previous_high =
+        save_data.get_high_score(session.player_faction.name(), session.enemy_faction.name());
     let is_new_high_score = score.score > previous_high;
 
     // Record the score if it's a new high

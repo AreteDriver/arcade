@@ -337,5 +337,8 @@ pub fn get_liberation_milestones() -> &'static [u32] {
 
 /// Check if a count has crossed a milestone
 pub fn check_liberation_milestone(old_count: u32, new_count: u32) -> Option<u32> {
-    get_liberation_milestones().iter().find(|&&milestone| old_count < milestone && new_count >= milestone).copied()
+    get_liberation_milestones()
+        .iter()
+        .find(|&&milestone| old_count < milestone && new_count >= milestone)
+        .copied()
 }

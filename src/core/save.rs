@@ -17,10 +17,7 @@ impl Plugin for SavePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<SaveData>()
             .add_systems(Startup, load_save_data)
-            .add_systems(
-                Update,
-                auto_save.run_if(resource_changed::<SaveData>),
-            );
+            .add_systems(Update, auto_save.run_if(resource_changed::<SaveData>));
     }
 }
 
@@ -127,7 +124,13 @@ impl SaveData {
     }
 
     /// Check if a ship is unlocked
-    pub fn is_ship_unlocked(&self, type_id: u32, unlock_stage: u32, faction: &str, enemy: &str) -> bool {
+    pub fn is_ship_unlocked(
+        &self,
+        type_id: u32,
+        unlock_stage: u32,
+        faction: &str,
+        enemy: &str,
+    ) -> bool {
         // Stage 0 = always unlocked
         if unlock_stage == 0 {
             return true;

@@ -6,9 +6,7 @@
 #![allow(dead_code)]
 
 use crate::core::*;
-use crate::entities::{
-    Boss, BossData, BossState, Player, PowerupEffects, Wingman, WingmanTracker,
-};
+use crate::entities::{Boss, BossData, BossState, Player, PowerupEffects, Wingman, WingmanTracker};
 use crate::systems::{ComboHeatSystem, DialogueSystem};
 use bevy::prelude::*;
 

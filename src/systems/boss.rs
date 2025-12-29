@@ -8,9 +8,7 @@ use super::dialogue::DialogueEvent;
 use super::effects::ScreenShake;
 use crate::assets::ShipModelCache;
 use crate::core::*;
-use crate::entities::projectile::{
-    EnemyProjectile, ProjectileDamage, ProjectilePhysics,
-};
+use crate::entities::projectile::{EnemyProjectile, ProjectileDamage, ProjectilePhysics};
 use crate::entities::{
     get_phase_threshold, spawn_boss, Boss, BossAttack, BossData, BossMovement, BossState,
     MovementPattern,
@@ -304,8 +302,7 @@ fn boss_attack(
                     let bullet_count = if is_enraged { 11 } else { 7 };
 
                     for i in 0..bullet_count {
-                        let angle_offset =
-                            (i as f32 - (bullet_count - 1) as f32 / 2.0) * 0.18;
+                        let angle_offset = (i as f32 - (bullet_count - 1) as f32 / 2.0) * 0.18;
                         let angle = base_angle + angle_offset;
                         let dir = Vec2::new(angle.cos(), angle.sin());
                         spawn_boss_projectile_styled(
@@ -368,10 +365,7 @@ fn boss_attack(
                     for i in 0..5 {
                         let offset = (i as f32 - 2.0) * 15.0;
                         let spread = (i as f32 - 2.0) * 0.08;
-                        let bullet_dir = Vec2::new(
-                            dir.x + spread,
-                            dir.y,
-                        ).normalize_or_zero();
+                        let bullet_dir = Vec2::new(dir.x + spread, dir.y).normalize_or_zero();
                         spawn_boss_projectile_styled(
                             &mut commands,
                             boss_pos + Vec2::new(offset, -30.0),
@@ -424,7 +418,13 @@ fn boss_attack(
                     for i in 0..count {
                         let angle = -0.6 + (i as f32 * 1.2 / count as f32);
                         let dir = Vec2::new(angle.sin(), -angle.cos());
-                        spawn_boss_projectile(&mut commands, boss_pos + dir * 40.0, dir, 200.0, 15.0);
+                        spawn_boss_projectile(
+                            &mut commands,
+                            boss_pos + dir * 40.0,
+                            dir,
+                            200.0,
+                            15.0,
+                        );
                     }
                     attack.fire_timer = if is_enraged { 0.3 } else { 0.5 };
                 }
@@ -513,17 +513,24 @@ fn boss_attack(
 
 /// Spawn a boss projectile
 fn spawn_boss_projectile(commands: &mut Commands, pos: Vec2, dir: Vec2, speed: f32, damage: f32) {
-    spawn_boss_projectile_styled(commands, pos, dir, speed, damage, BossProjectileStyle::Default);
+    spawn_boss_projectile_styled(
+        commands,
+        pos,
+        dir,
+        speed,
+        damage,
+        BossProjectileStyle::Default,
+    );
 }
 
 /// Boss projectile visual styles
 #[derive(Clone, Copy)]
 enum BossProjectileStyle {
-    Default,    // Orange boss bullets
-    Laser,      // Red Amarr laser beam
-    Heavy,      // Large slow projectile
-    Missile,    // Caldari missile style
-    Drone,      // Gallente drone shot
+    Default, // Orange boss bullets
+    Laser,   // Red Amarr laser beam
+    Heavy,   // Large slow projectile
+    Missile, // Caldari missile style
+    Drone,   // Gallente drone shot
 }
 
 /// Spawn a styled boss projectile
@@ -571,7 +578,10 @@ fn spawn_boss_projectile_styled(
             velocity: dir * speed,
             lifetime: 4.0,
         },
-        ProjectileDamage { damage, damage_type },
+        ProjectileDamage {
+            damage,
+            damage_type,
+        },
         Sprite {
             color,
             custom_size: Some(size),
@@ -694,10 +704,7 @@ fn boss_phase_check(
 fn boss_drone_spawning(
     mut commands: Commands,
     time: Res<Time>,
-    mut boss_query: Query<
-        (&Transform, &BossState, &BossData, &mut BossDroneSpawner),
-        With<Boss>,
-    >,
+    mut boss_query: Query<(&Transform, &BossState, &BossData, &mut BossDroneSpawner), With<Boss>>,
     enemy_query: Query<Entity, With<crate::entities::Enemy>>,
     sprite_cache: Res<crate::assets::ShipSpriteCache>,
     model_cache: Res<ShipModelCache>,
@@ -768,9 +775,9 @@ fn boss_drone_spawning(
 
                 // Determine behavior based on drone type
                 let behavior = match spawner.drone_type_id {
-                    589 => crate::entities::EnemyBehavior::Homing,  // Executioner - chase player
-                    591 => crate::entities::EnemyBehavior::Sniper,  // Tormentor - stay at range
-                    593 => crate::entities::EnemyBehavior::Weaver,  // Tristan - erratic
+                    589 => crate::entities::EnemyBehavior::Homing, // Executioner - chase player
+                    591 => crate::entities::EnemyBehavior::Sniper, // Tormentor - stay at range
+                    593 => crate::entities::EnemyBehavior::Weaver, // Tristan - erratic
                     _ => crate::entities::EnemyBehavior::Linear,
                 };
 
@@ -784,10 +791,7 @@ fn boss_drone_spawning(
                 );
             }
 
-            info!(
-                "{} launched {} drones!",
-                data.name, count
-            );
+            info!("{} launched {} drones!", data.name, count);
         }
     }
 }

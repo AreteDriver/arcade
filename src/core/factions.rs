@@ -80,9 +80,9 @@ impl Faction {
     /// Engine trail color
     pub fn engine_color(&self) -> Color {
         match self {
-            Faction::Minmatar => Color::srgba(1.0, 0.59, 0.2, 0.9),  // Orange
-            Faction::Amarr => Color::srgba(0.39, 0.59, 1.0, 0.9),    // Blue
-            Faction::Caldari => Color::srgba(0.39, 0.78, 1.0, 0.9),  // Cyan
+            Faction::Minmatar => Color::srgba(1.0, 0.59, 0.2, 0.9), // Orange
+            Faction::Amarr => Color::srgba(0.39, 0.59, 1.0, 0.9),   // Blue
+            Faction::Caldari => Color::srgba(0.39, 0.78, 1.0, 0.9), // Cyan
             Faction::Gallente => Color::srgba(0.59, 1.0, 0.59, 0.9), // Green
         }
     }
@@ -100,10 +100,10 @@ impl Faction {
     /// Tank doctrine
     pub fn tank_type(&self) -> TankDoctrine {
         match self {
-            Faction::Minmatar => TankDoctrine::Speed,  // Speed tank
-            Faction::Amarr => TankDoctrine::Armor,     // Armor tank
-            Faction::Caldari => TankDoctrine::Shield,  // Shield tank
-            Faction::Gallente => TankDoctrine::Armor,  // Armor tank
+            Faction::Minmatar => TankDoctrine::Speed, // Speed tank
+            Faction::Amarr => TankDoctrine::Armor,    // Armor tank
+            Faction::Caldari => TankDoctrine::Shield, // Shield tank
+            Faction::Gallente => TankDoctrine::Armor, // Armor tank
         }
     }
 
@@ -180,10 +180,10 @@ impl WeaponDoctrine {
     /// Projectile color
     pub fn bullet_color(&self) -> Color {
         match self {
-            WeaponDoctrine::Projectile => Color::srgb(1.0, 0.8, 0.4),  // Yellow-orange tracer
-            WeaponDoctrine::Laser => Color::srgb(1.0, 0.9, 0.3),       // Golden beam
-            WeaponDoctrine::Missile => Color::srgb(0.8, 0.9, 1.0),     // White-blue exhaust
-            WeaponDoctrine::Hybrid => Color::srgb(0.4, 1.0, 0.6),      // Green plasma
+            WeaponDoctrine::Projectile => Color::srgb(1.0, 0.8, 0.4), // Yellow-orange tracer
+            WeaponDoctrine::Laser => Color::srgb(1.0, 0.9, 0.3),      // Golden beam
+            WeaponDoctrine::Missile => Color::srgb(0.8, 0.9, 1.0),    // White-blue exhaust
+            WeaponDoctrine::Hybrid => Color::srgb(0.4, 1.0, 0.6),     // Green plasma
         }
     }
 }
