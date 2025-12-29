@@ -775,10 +775,14 @@ fn spawn_ship_menu(
     mut commands: Commands,
     mut selection: ResMut<MenuSelection>,
     difficulty: Res<Difficulty>,
-    unlocks: Res<ShipUnlocks>,
+    session: Res<GameSession>,
 ) {
+    let ships = session.player_ships();
+    let faction = session.player_faction;
+    let faction_color = faction.primary_color();
+
     selection.index = 0;
-    selection.total = MinmatarShip::all_including_unlocks().len();
+    selection.total = ships.len();
 
     commands
         .spawn((
@@ -795,18 +799,20 @@ fn spawn_ship_menu(
             BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.4)),
         ))
         .with_children(|parent| {
+            // Title with faction name
             parent.spawn((
-                Text::new("SELECT SHIP"),
+                Text::new(format!("{} - SELECT SHIP", faction.short_name())),
                 TextFont {
-                    font_size: 48.0,
+                    font_size: 42.0,
                     ..default()
                 },
-                TextColor(COLOR_MINMATAR),
+                TextColor(faction_color),
             ));
 
             parent.spawn((
                 Text::new(format!(
-                    "Difficulty: {} - \"{}\"",
+                    "{} • {} - \"{}\"",
+                    faction.weapon_type().name(),
                     difficulty.name(),
                     difficulty.tagline()
                 )),
@@ -822,10 +828,10 @@ fn spawn_ship_menu(
                 ..default()
             });
 
-            // Ship options - show all including unlockables
-            for (i, ship) in MinmatarShip::all_including_unlocks().iter().enumerate() {
-                let is_unlocked = unlocks.is_unlocked(*ship);
-                spawn_ship_item(parent, *ship, i, is_unlocked);
+            // Ship options from selected faction
+            for (i, ship) in ships.iter().enumerate() {
+                let is_unlocked = ship.unlock_stage == 0; // TODO: track unlocks per faction
+                spawn_ship_item_new(parent, ship, i, is_unlocked, faction_color);
             }
 
             parent.spawn(Node {
@@ -844,10 +850,15 @@ fn spawn_ship_menu(
         });
 }
 
-fn spawn_ship_item(parent: &mut ChildBuilder, ship: MinmatarShip, index: usize, is_unlocked: bool) {
-    // Colors depend on unlock state
+fn spawn_ship_item_new(
+    parent: &mut ChildBuilder,
+    ship: &ShipDef,
+    index: usize,
+    is_unlocked: bool,
+    faction_color: Color,
+) {
     let name_color = if is_unlocked {
-        COLOR_MINMATAR
+        faction_color
     } else {
         Color::srgb(0.4, 0.4, 0.4)
     };
@@ -869,11 +880,11 @@ fn spawn_ship_item(parent: &mut ChildBuilder, ship: MinmatarShip, index: usize, 
 
     parent
         .spawn((
-            ShipMenuRoot, // Marker for update_menu_selection query
+            ShipMenuRoot,
             MenuItem { index },
             Node {
-                width: Val::Px(450.0),
-                height: Val::Px(80.0),
+                width: Val::Px(500.0),
+                height: Val::Px(85.0),
                 padding: UiRect::all(Val::Px(10.0)),
                 justify_content: JustifyContent::SpaceBetween,
                 align_items: AlignItems::Center,
@@ -893,11 +904,7 @@ fn spawn_ship_item(parent: &mut ChildBuilder, ship: MinmatarShip, index: usize, 
             })
             .with_children(|left| {
                 // Ship name with class
-                let name_text = if ship.requires_unlock() {
-                    format!("{} [{}]", ship.name(), ship.ship_class())
-                } else {
-                    ship.name().to_string()
-                };
+                let name_text = format!("{} [{}]", ship.name, ship.class.name());
                 left.spawn((
                     Text::new(name_text),
                     TextFont {
@@ -907,18 +914,20 @@ fn spawn_ship_item(parent: &mut ChildBuilder, ship: MinmatarShip, index: usize, 
                     TextColor(name_color),
                 ));
 
-                // Description or lock message
+                // Role
+                left.spawn((
+                    Text::new(ship.role),
+                    TextFont {
+                        font_size: 11.0,
+                        ..default()
+                    },
+                    TextColor(desc_color),
+                ));
+
+                // Special ability or lock message
                 if is_unlocked {
                     left.spawn((
-                        Text::new(ship.description()),
-                        TextFont {
-                            font_size: 11.0,
-                            ..default()
-                        },
-                        TextColor(desc_color),
-                    ));
-                    left.spawn((
-                        Text::new(ship.special()),
+                        Text::new(ship.special),
                         TextFont {
                             font_size: 10.0,
                             ..default()
@@ -927,28 +936,17 @@ fn spawn_ship_item(parent: &mut ChildBuilder, ship: MinmatarShip, index: usize, 
                     ));
                 } else {
                     left.spawn((
-                        Text::new(format!(
-                            "LOCKED - Complete Act {} to unlock",
-                            ship.unlock_act()
-                        )),
-                        TextFont {
-                            font_size: 11.0,
-                            ..default()
-                        },
-                        TextColor(Color::srgb(0.6, 0.3, 0.3)),
-                    ));
-                    left.spawn((
-                        Text::new(ship.description()),
+                        Text::new(format!("LOCKED - Complete Stage {} to unlock", ship.unlock_stage)),
                         TextFont {
                             font_size: 10.0,
                             ..default()
                         },
-                        TextColor(desc_color),
+                        TextColor(Color::srgb(0.6, 0.3, 0.3)),
                     ));
                 }
             });
 
-            // Right side - stats (dimmed if locked)
+            // Right side - stats
             btn.spawn(Node {
                 flex_direction: FlexDirection::Column,
                 align_items: AlignItems::FlexEnd,
@@ -957,7 +955,7 @@ fn spawn_ship_item(parent: &mut ChildBuilder, ship: MinmatarShip, index: usize, 
             .with_children(|right| {
                 let stat_alpha = if is_unlocked { 1.0 } else { 0.4 };
                 right.spawn((
-                    Text::new(format!("SPD: {:.0}%", ship.speed_mult() * 100.0)),
+                    Text::new(format!("SPD: {:.0}", ship.speed)),
                     TextFont {
                         font_size: 11.0,
                         ..default()
@@ -965,7 +963,7 @@ fn spawn_ship_item(parent: &mut ChildBuilder, ship: MinmatarShip, index: usize, 
                     TextColor(Color::srgba(0.3, 0.8, 0.3, stat_alpha)),
                 ));
                 right.spawn((
-                    Text::new(format!("DMG: {:.0}%", ship.damage_mult() * 100.0)),
+                    Text::new(format!("DMG: {:.0}", ship.damage)),
                     TextFont {
                         font_size: 11.0,
                         ..default()
@@ -973,12 +971,20 @@ fn spawn_ship_item(parent: &mut ChildBuilder, ship: MinmatarShip, index: usize, 
                     TextColor(Color::srgba(0.9, 0.3, 0.3, stat_alpha)),
                 ));
                 right.spawn((
-                    Text::new(format!("HP: {:.0}%", ship.health_mult() * 100.0)),
+                    Text::new(format!("HP: {:.0}", ship.health)),
                     TextFont {
                         font_size: 11.0,
                         ..default()
                     },
                     TextColor(Color::srgba(0.3, 0.6, 0.9, stat_alpha)),
+                ));
+                right.spawn((
+                    Text::new(format!("ROF: {:.1}/s", ship.fire_rate)),
+                    TextFont {
+                        font_size: 11.0,
+                        ..default()
+                    },
+                    TextColor(Color::srgba(0.9, 0.7, 0.3, stat_alpha)),
                 ));
             });
         });
@@ -988,8 +994,7 @@ fn ship_menu_input(
     keyboard: Res<ButtonInput<KeyCode>>,
     joystick: Res<JoystickState>,
     mut selection: ResMut<MenuSelection>,
-    mut selected_ship: ResMut<SelectedShip>,
-    unlocks: Res<ShipUnlocks>,
+    mut session: ResMut<GameSession>,
     time: Res<Time>,
     mut next_state: ResMut<NextState<GameState>>,
 ) {
@@ -1002,19 +1007,20 @@ fn ship_menu_input(
         selection.cooldown = MENU_NAV_COOLDOWN;
     }
 
+    let ships = session.player_ships();
     if is_confirm(&keyboard, &joystick) {
-        let all_ships = MinmatarShip::all_including_unlocks();
-        if selection.index < all_ships.len() {
-            let ship = all_ships[selection.index];
-            if unlocks.is_unlocked(ship) {
-                selected_ship.ship = ship;
-                info!("Selected ship: {} ({})", ship.name(), ship.ship_class());
+        if selection.index < ships.len() {
+            let ship = &ships[selection.index];
+            let is_unlocked = ship.unlock_stage == 0; // TODO: proper unlock tracking
+
+            if is_unlocked {
+                session.selected_ship_index = selection.index;
+                info!("Selected ship: {} ({})", ship.name, ship.class.name());
                 next_state.set(GameState::Playing);
             } else {
                 info!(
-                    "Ship {} is locked - complete Act {} to unlock",
-                    ship.name(),
-                    ship.unlock_act()
+                    "Ship {} is locked - complete Stage {} to unlock",
+                    ship.name, ship.unlock_stage
                 );
             }
         }
