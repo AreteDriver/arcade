@@ -322,7 +322,6 @@ fn spawn_player(
     };
 
     let base_color = faction.primary_color();
-    let engine_trail = EngineTrail::from_faction(faction);
 
     // Get ship size from class with player visibility bonus
     let base_size = ship_def.class.sprite_size();
@@ -330,6 +329,14 @@ fn spawn_player(
 
     // Get rotation correction for this ship type (player faces UP, so no base rotation)
     let rotation = super::enemy::get_ship_rotation_correction(type_id);
+
+    // Adjust engine trail offset based on rotation correction
+    // For 180° rotated ships, the engine offset needs to be flipped
+    let mut engine_trail = EngineTrail::from_faction(faction);
+    if (rotation - std::f32::consts::PI).abs() < 0.1 {
+        // Ship is flipped 180°, flip the engine offset
+        engine_trail.offset.y = -engine_trail.offset.y;
+    }
 
     // Use sprites (2D camera compatible)
     if let Some(texture) = sprite_cache.get(type_id) {

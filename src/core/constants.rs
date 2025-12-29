@@ -155,11 +155,11 @@ pub const SIZE_TACTICAL_DESTROYER: f32 = 62.0;
 /// Cruiser sprite size (~2x frigate)
 pub const SIZE_CRUISER: f32 = 94.0;
 
-/// Battlecruiser sprite size (~2.5x frigate)
-pub const SIZE_BATTLECRUISER: f32 = 114.0;
+/// Battlecruiser sprite size (~3x frigate)
+pub const SIZE_BATTLECRUISER: f32 = 150.0;
 
-/// Battleship sprite size (~3x frigate)
-pub const SIZE_BATTLESHIP: f32 = 143.0;
+/// Battleship sprite size (~3.5x frigate)
+pub const SIZE_BATTLESHIP: f32 = 182.0;
 
 /// Carrier sprite size (~12x frigate, background element)
 pub const SIZE_CARRIER: f32 = 600.0;

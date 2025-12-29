@@ -451,7 +451,7 @@ pub fn get_ship_rotation_correction(type_id: u32) -> f32 {
     match type_id {
         // === CALDARI === (most render sideways)
         602 => FRAC_PI_2,   // Kestrel - faces right
-        603 => FRAC_PI_2,   // Merlin - faces right
+        603 => -FRAC_PI_2,  // Merlin - faces left
         583 => FRAC_PI_2,   // Condor - faces right
         11381 => FRAC_PI_2, // Hawk - assault frigate
         11387 => FRAC_PI_2, // Harpy - assault frigate
@@ -475,16 +475,20 @@ pub fn get_ship_rotation_correction(type_id: u32) -> f32 {
         24690 => FRAC_PI_2, // Harbinger (Amarr)
         24700 => FRAC_PI_2, // Myrmidon (Gallente)
 
-        // === AMARR === (most face up correctly)
-        // 597 (Punisher), 589 (Executioner), 591 (Tormentor) - face up
+        // === AMARR ===
+        597 => std::f32::consts::PI, // Punisher - faces down, flip 180°
+        591 => FRAC_PI_2,            // Tormentor - faces right
+        // 589 (Executioner) - faces up
 
         // === MINMATAR ===
         587 => FRAC_PI_2,  // Rifter - faces right
         585 => FRAC_PI_2,  // Slasher - faces right
         // 598 (Breacher) - faces up
 
-        // === CARRIERS === (face up correctly)
-        // 23757 (Archon), 23911 (Thanatos), 23915 (Chimera), 24483 (Nidhoggur)
+        // === CARRIERS ===
+        24483 => std::f32::consts::PI, // Nidhoggur (Minmatar) - needs 180° flip
+        23915 => std::f32::consts::PI, // Chimera (Caldari) - needs 180° flip
+        // 23757 (Archon), 23911 (Thanatos) - face correctly
 
         // Ships that already face up correctly
         _ => 0.0,
