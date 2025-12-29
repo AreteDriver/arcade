@@ -1,7 +1,7 @@
 //! EVE Ship Sprite Loading
 //!
-//! Downloads and caches ship renders from CCP's Image Server.
-//! https://images.evetech.net/types/{type_id}/render?size={size}
+//! Loads ship sprites from bundled assets, with fallback to CCP's Image Server.
+//! Priority: assets/ships/{type_id}.png -> cache -> download
 
 #![allow(dead_code)]
 
@@ -13,11 +13,14 @@ use std::path::PathBuf;
 
 use crate::core::*;
 
-/// EVE Image Server base URL
+/// EVE Image Server base URL (fallback only)
 const IMAGE_SERVER: &str = "https://images.evetech.net";
 
-/// Default render size
+/// Default render size for downloads
 const RENDER_SIZE: u32 = 128;
+
+/// Bundled assets directory
+const BUNDLED_SHIPS_DIR: &str = "assets/ships";
 
 /// Ship sprites plugin
 pub struct ShipSpritesPlugin;
@@ -104,34 +107,58 @@ fn start_loading_sprites(mut cache: ResMut<ShipSpriteCache>, mut images: ResMut<
         }
     }
 
-    info!("Starting to load {} ship sprites...", SHIPS_TO_LOAD.len());
+    info!("Loading {} ship sprites...", SHIPS_TO_LOAD.len());
+
+    let bundled_dir = PathBuf::from(BUNDLED_SHIPS_DIR);
+    let mut loaded_bundled = 0;
+    let mut loaded_cached = 0;
 
     for &type_id in SHIPS_TO_LOAD {
-        let cache_path = cache.cache_dir.join(format!("{}.png", type_id));
+        // Priority 1: Check bundled assets (fastest, works offline)
+        let bundled_path = bundled_dir.join(format!("{}.png", type_id));
+        if bundled_path.exists() {
+            match load_image_file(&bundled_path) {
+                Ok(image) => {
+                    let handle = images.add(image);
+                    cache.sprites.insert(type_id, handle);
+                    loaded_bundled += 1;
+                    continue;
+                }
+                Err(e) => {
+                    warn!("Failed to load bundled sprite {}: {}", type_id, e);
+                }
+            }
+        }
 
+        // Priority 2: Check cache directory
+        let cache_path = cache.cache_dir.join(format!("{}.png", type_id));
         if cache_path.exists() {
-            // Load from cache - read bytes and create image directly
             match load_image_file(&cache_path) {
                 Ok(image) => {
                     let handle = images.add(image);
                     cache.sprites.insert(type_id, handle);
-                    info!("Loaded cached sprite for type {}", type_id);
+                    loaded_cached += 1;
+                    continue;
                 }
                 Err(e) => {
-                    warn!("Failed to load sprite {}: {}", type_id, e);
-                    cache.loading.push(type_id);
+                    warn!("Failed to load cached sprite {}: {}", type_id, e);
                 }
             }
-        } else {
-            // Need to download
-            cache.loading.push(type_id);
         }
+
+        // Priority 3: Need to download
+        cache.loading.push(type_id);
     }
+
+    info!(
+        "Loaded {} bundled, {} cached sprites",
+        loaded_bundled, loaded_cached
+    );
 
     // If nothing to download, we're ready
     if cache.loading.is_empty() {
         cache.ready = true;
-        info!("All sprites loaded from cache!");
+        info!("All sprites loaded!");
     } else {
         info!("Need to download {} sprites", cache.loading.len());
         // Spawn download task
@@ -140,16 +167,42 @@ fn start_loading_sprites(mut cache: ResMut<ShipSpriteCache>, mut images: ResMut<
 }
 
 /// Load an image file (JPEG or PNG) and convert to Bevy Image
-/// Note: EVE Image Server returns JPEG with black backgrounds - we remove the background
 fn load_image_file(path: &PathBuf) -> Result<Image, String> {
     let bytes = fs::read(path).map_err(|e| e.to_string())?;
 
     // Use image crate to auto-detect format and decode
+    let img = image::load_from_memory(&bytes)
+        .map_err(|e| e.to_string())?
+        .into_rgba8();
+
+    // Note: Bundled sprites already have transparent backgrounds
+    // Downloaded sprites from CCP's server need background removal (handled separately)
+
+    let (width, height) = img.dimensions();
+    let data = img.into_raw();
+
+    Ok(Image::new(
+        bevy::render::render_resource::Extent3d {
+            width,
+            height,
+            depth_or_array_layers: 1,
+        },
+        bevy::render::render_resource::TextureDimension::D2,
+        data,
+        bevy::render::render_resource::TextureFormat::Rgba8UnormSrgb,
+        RenderAssetUsages::RENDER_WORLD,
+    ))
+}
+
+/// Load an image from downloaded bytes (needs background removal)
+fn load_downloaded_image(path: &PathBuf) -> Result<Image, String> {
+    let bytes = fs::read(path).map_err(|e| e.to_string())?;
+
     let mut img = image::load_from_memory(&bytes)
         .map_err(|e| e.to_string())?
         .into_rgba8();
 
-    // Remove black background and smooth edges
+    // Remove black background from CCP server images
     remove_black_background(&mut img);
 
     let (width, height) = img.dimensions();
@@ -260,8 +313,8 @@ fn check_sprite_loading(
     for &type_id in &cache.loading.clone() {
         let cache_path = cache.cache_dir.join(format!("{}.png", type_id));
         if cache_path.exists() && !cache.sprites.contains_key(&type_id) {
-            // Load PNG directly instead of using asset_server
-            match load_image_file(&cache_path) {
+            // Load downloaded image (needs background removal)
+            match load_downloaded_image(&cache_path) {
                 Ok(image) => {
                     let handle = images.add(image);
                     cache.sprites.insert(type_id, handle);
