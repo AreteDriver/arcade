@@ -378,31 +378,120 @@ pub fn spawn_liberation_pods(commands: &mut Commands, position: Vec2, count: u32
     }
 }
 
-/// Spawn random powerup with weighted chances
+/// Player health state for smart powerup drops
+#[derive(Debug, Clone, Copy)]
+pub struct PlayerHealthState {
+    pub shield_percent: f32,
+    pub armor_percent: f32,
+    pub hull_percent: f32,
+}
+
+impl PlayerHealthState {
+    pub fn from_stats(stats: &super::player::ShipStats) -> Self {
+        Self {
+            shield_percent: if stats.max_shield > 0.0 {
+                stats.shield / stats.max_shield
+            } else {
+                1.0
+            },
+            armor_percent: if stats.max_armor > 0.0 {
+                stats.armor / stats.max_armor
+            } else {
+                1.0
+            },
+            hull_percent: if stats.max_hull > 0.0 {
+                stats.hull / stats.max_hull
+            } else {
+                1.0
+            },
+        }
+    }
+
+    /// Determine what health type is most needed
+    pub fn most_needed_health(&self) -> CollectibleType {
+        // Priority: Hull (critical) > Armor > Shield
+        if self.hull_percent < 0.5 {
+            // Hull is low - could give any health type, weighted toward hull/armor
+            let roll = fastrand::f32();
+            if roll < 0.4 {
+                CollectibleType::HullRepair
+            } else if roll < 0.75 {
+                CollectibleType::ArmorRepair
+            } else {
+                CollectibleType::ShieldBoost
+            }
+        } else if self.armor_percent < 0.5 {
+            // Armor is low - give armor or shield
+            let roll = fastrand::f32();
+            if roll < 0.6 {
+                CollectibleType::ArmorRepair
+            } else {
+                CollectibleType::ShieldBoost
+            }
+        } else if self.shield_percent < 0.7 {
+            // Shield is down - primarily shield
+            CollectibleType::ShieldBoost
+        } else {
+            // Player is healthy - random health type
+            let roll = fastrand::f32();
+            if roll < 0.5 {
+                CollectibleType::ShieldBoost
+            } else if roll < 0.8 {
+                CollectibleType::ArmorRepair
+            } else {
+                CollectibleType::HullRepair
+            }
+        }
+    }
+}
+
+/// Spawn random powerup with weighted chances (legacy - no health awareness)
 pub fn spawn_random_powerup(
     commands: &mut Commands,
     position: Vec2,
     icon_cache: Option<&crate::assets::PowerupIconCache>,
 ) {
+    spawn_smart_powerup(commands, position, icon_cache, None);
+}
+
+/// Spawn powerup that's smart about what the player needs
+pub fn spawn_smart_powerup(
+    commands: &mut Commands,
+    position: Vec2,
+    icon_cache: Option<&crate::assets::PowerupIconCache>,
+    player_health: Option<PlayerHealthState>,
+) {
     let roll = fastrand::f32();
-    let powerup = if roll < 0.30 {
+
+    // 30% credits, 40% health (smart), 30% special powerups
+    let powerup = if roll < 0.25 {
         CollectibleType::Credits
-    } else if roll < 0.50 {
-        CollectibleType::ShieldBoost
     } else if roll < 0.65 {
-        CollectibleType::ArmorRepair
+        // Health drop - be smart about what type
+        if let Some(health) = player_health {
+            health.most_needed_health()
+        } else {
+            // Fallback to random health type
+            let health_roll = fastrand::f32();
+            if health_roll < 0.4 {
+                CollectibleType::ShieldBoost
+            } else if health_roll < 0.75 {
+                CollectibleType::ArmorRepair
+            } else {
+                CollectibleType::HullRepair
+            }
+        }
     } else if roll < 0.75 {
-        CollectibleType::HullRepair
-    } else if roll < 0.82 {
         CollectibleType::Overdrive
-    } else if roll < 0.89 {
+    } else if roll < 0.85 {
         CollectibleType::DamageBoost
-    } else if roll < 0.94 {
+    } else if roll < 0.92 {
         CollectibleType::Nanite
-    } else if roll < 0.98 {
+    } else if roll < 0.97 {
         CollectibleType::Invulnerability
     } else {
         CollectibleType::ExtraLife
     };
+
     spawn_collectible(commands, position, powerup, icon_cache);
 }

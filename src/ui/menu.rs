@@ -424,6 +424,7 @@ fn spawn_difficulty_menu(mut commands: Commands, mut selection: ResMut<MenuSelec
 fn spawn_difficulty_item(parent: &mut ChildBuilder, diff: Difficulty, index: usize) {
     parent
         .spawn((
+            DifficultyMenuRoot, // Marker for update_menu_selection query
             MenuItem { index },
             Node {
                 width: Val::Px(450.0),
@@ -603,6 +604,7 @@ fn spawn_ship_item(parent: &mut ChildBuilder, ship: MinmatarShip, index: usize, 
 
     parent
         .spawn((
+            ShipMenuRoot, // Marker for update_menu_selection query
             MenuItem { index },
             Node {
                 width: Val::Px(450.0),
@@ -1665,6 +1667,7 @@ fn victory_input(
 fn spawn_menu_item(parent: &mut ChildBuilder, text: &str, index: usize) {
     parent
         .spawn((
+            MainMenuRoot, // Marker for update_menu_selection query
             MenuItem { index },
             Node {
                 width: Val::Px(280.0),
@@ -1715,7 +1718,7 @@ fn get_nav_input(keyboard: &ButtonInput<KeyCode>, joystick: &JoystickState) -> i
         nav = 1;
     }
 
-    // Joystick dpad (edge triggered for snappy menu feel)
+    // Joystick dpad (edge triggered)
     if joystick.dpad_just_up() {
         nav = -1;
     }
@@ -1723,11 +1726,12 @@ fn get_nav_input(keyboard: &ButtonInput<KeyCode>, joystick: &JoystickState) -> i
         nav = 1;
     }
 
-    // Analog stick (edge triggered for menu navigation)
-    if joystick.stick_just_up() {
+    // Analog stick (held state - menu cooldown prevents rapid repeat)
+    // This is more reliable than edge detection for gradual analog input
+    if joystick.left_y < -0.5 {
         nav = -1;
     }
-    if joystick.stick_just_down() {
+    if joystick.left_y > 0.5 {
         nav = 1;
     }
 

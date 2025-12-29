@@ -1,13 +1,10 @@
 //! Raw Linux Joystick Input
 //!
 //! Reads from /dev/input/js0 directly without needing libudev-dev.
+//! On non-Unix platforms, provides a no-op implementation.
 
 use bevy::prelude::*;
-use std::fs::File;
-use std::io::Read;
-use std::os::unix::io::AsRawFd;
 
-const JOYSTICK_DEVICE: &str = "/dev/input/js0";
 const DEADZONE: f32 = 0.15;
 
 /// Joystick input plugin
@@ -15,9 +12,18 @@ pub struct JoystickPlugin;
 
 impl Plugin for JoystickPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<JoystickState>()
-            .add_systems(Startup, setup_joystick)
-            .add_systems(PreUpdate, poll_joystick);
+        app.init_resource::<JoystickState>();
+
+        #[cfg(unix)]
+        {
+            app.add_systems(Startup, setup_joystick)
+                .add_systems(PreUpdate, poll_joystick);
+        }
+
+        #[cfg(not(unix))]
+        {
+            info!("Joystick support is only available on Unix platforms");
+        }
     }
 }
 
@@ -165,127 +171,141 @@ impl JoystickState {
     }
 }
 
-/// Joystick file handle resource
-#[derive(Resource, Default)]
-struct JoystickHandle {
-    file: Option<File>,
-}
+// Unix-specific implementation
+#[cfg(unix)]
+mod unix_impl {
+    use super::*;
+    use std::fs::File;
+    use std::io::Read;
+    use std::os::unix::io::AsRawFd;
 
-/// Linux joystick event structure
-#[repr(C)]
-struct JsEvent {
-    time: u32,      // event timestamp in milliseconds
-    value: i16,     // value
-    event_type: u8, // event type
-    number: u8,     // axis/button number
-}
+    const JOYSTICK_DEVICE: &str = "/dev/input/js0";
 
-const JS_EVENT_BUTTON: u8 = 0x01;
-const JS_EVENT_AXIS: u8 = 0x02;
-const JS_EVENT_INIT: u8 = 0x80;
+    /// Joystick file handle resource
+    #[derive(Resource, Default)]
+    pub struct JoystickHandle {
+        file: Option<File>,
+    }
 
-fn setup_joystick(mut commands: Commands, mut state: ResMut<JoystickState>) {
-    match File::open(JOYSTICK_DEVICE) {
-        Ok(file) => {
-            // Set non-blocking mode
-            unsafe {
-                let fd = file.as_raw_fd();
-                let flags = libc::fcntl(fd, libc::F_GETFL);
-                libc::fcntl(fd, libc::F_SETFL, flags | libc::O_NONBLOCK);
+    /// Linux joystick event structure
+    #[repr(C)]
+    struct JsEvent {
+        time: u32,      // event timestamp in milliseconds
+        value: i16,     // value
+        event_type: u8, // event type
+        number: u8,     // axis/button number
+    }
+
+    const JS_EVENT_BUTTON: u8 = 0x01;
+    const JS_EVENT_AXIS: u8 = 0x02;
+    const JS_EVENT_INIT: u8 = 0x80;
+
+    pub fn setup_joystick(mut commands: Commands, mut state: ResMut<JoystickState>) {
+        match File::open(JOYSTICK_DEVICE) {
+            Ok(file) => {
+                // Set non-blocking mode
+                unsafe {
+                    let fd = file.as_raw_fd();
+                    let flags = libc::fcntl(fd, libc::F_GETFL);
+                    libc::fcntl(fd, libc::F_SETFL, flags | libc::O_NONBLOCK);
+                }
+
+                info!("Joystick connected: {}", JOYSTICK_DEVICE);
+                state.connected = true;
+                commands.insert_resource(JoystickHandle { file: Some(file) });
             }
-
-            info!("Joystick connected: {}", JOYSTICK_DEVICE);
-            state.connected = true;
-            commands.insert_resource(JoystickHandle { file: Some(file) });
-        }
-        Err(e) => {
-            info!("No joystick found: {} ({})", JOYSTICK_DEVICE, e);
-            commands.insert_resource(JoystickHandle::default());
+            Err(e) => {
+                info!("No joystick found: {} ({})", JOYSTICK_DEVICE, e);
+                commands.insert_resource(JoystickHandle::default());
+            }
         }
     }
-}
 
-fn poll_joystick(mut handle: ResMut<JoystickHandle>, mut state: ResMut<JoystickState>) {
-    // Save previous state for edge detection
-    state.prev_buttons = state.buttons;
-    state.prev_dpad_x = state.dpad_x;
-    state.prev_dpad_y = state.dpad_y;
-    state.prev_left_y = state.left_y;
+    pub fn poll_joystick(mut handle: ResMut<JoystickHandle>, mut state: ResMut<JoystickState>) {
+        // Save previous state for edge detection
+        state.prev_buttons = state.buttons;
+        state.prev_dpad_x = state.dpad_x;
+        state.prev_dpad_y = state.dpad_y;
+        state.prev_left_y = state.left_y;
 
-    let Some(ref mut file) = handle.file else {
-        return;
-    };
+        let Some(ref mut file) = handle.file else {
+            return;
+        };
 
-    // Read all pending events
-    let mut buffer = [0u8; 8];
-    loop {
-        match file.read_exact(&mut buffer) {
-            Ok(_) => {
-                // Parse event
-                let event = unsafe { std::ptr::read(buffer.as_ptr() as *const JsEvent) };
+        // Read all pending events
+        let mut buffer = [0u8; 8];
+        loop {
+            match file.read_exact(&mut buffer) {
+                Ok(_) => {
+                    // Parse event
+                    let event = unsafe { std::ptr::read(buffer.as_ptr() as *const JsEvent) };
 
-                let event_type = event.event_type & !JS_EVENT_INIT;
+                    let event_type = event.event_type & !JS_EVENT_INIT;
 
-                match event_type {
-                    JS_EVENT_BUTTON => {
-                        let pressed = event.value != 0;
-                        let button = event.number as usize;
-                        if button < 16 {
-                            if pressed {
-                                info!("Joystick button {} pressed", button);
-                            }
-                            state.buttons[button] = pressed;
-                        }
-                    }
-                    JS_EVENT_AXIS => {
-                        let value = event.value as f32 / 32767.0;
-                        match event.number {
-                            // Left stick
-                            0 => state.left_x = value,
-                            1 => state.left_y = value,
-                            // Left trigger (LT) - axis 2
-                            // Triggers go from -1 (released) to +1 (pressed), normalize to 0-1
-                            2 => state.left_trigger = (value + 1.0) / 2.0,
-                            // Right stick
-                            3 => state.right_x = value,
-                            4 => state.right_y = value,
-                            // Right trigger (RT) - axis 5
-                            5 => state.right_trigger = (value + 1.0) / 2.0,
-                            // D-pad as axes
-                            6 => {
-                                state.dpad_x = if value < -0.5 {
-                                    -1
-                                } else if value > 0.5 {
-                                    1
-                                } else {
-                                    0
+                    match event_type {
+                        JS_EVENT_BUTTON => {
+                            let pressed = event.value != 0;
+                            let button = event.number as usize;
+                            if button < 16 {
+                                if pressed {
+                                    info!("Joystick button {} pressed", button);
                                 }
+                                state.buttons[button] = pressed;
                             }
-                            7 => {
-                                state.dpad_y = if value < -0.5 {
-                                    -1
-                                } else if value > 0.5 {
-                                    1
-                                } else {
-                                    0
-                                }
-                            }
-                            _ => {}
                         }
+                        JS_EVENT_AXIS => {
+                            let value = event.value as f32 / 32767.0;
+                            match event.number {
+                                // Left stick
+                                0 => state.left_x = value,
+                                1 => state.left_y = value,
+                                // Left trigger (LT) - axis 2
+                                // Triggers go from -1 (released) to +1 (pressed), normalize to 0-1
+                                2 => state.left_trigger = (value + 1.0) / 2.0,
+                                // Right stick
+                                3 => state.right_x = value,
+                                4 => state.right_y = value,
+                                // Right trigger (RT) - axis 5
+                                5 => state.right_trigger = (value + 1.0) / 2.0,
+                                // D-pad as axes
+                                6 => {
+                                    state.dpad_x = if value < -0.5 {
+                                        -1
+                                    } else if value > 0.5 {
+                                        1
+                                    } else {
+                                        0
+                                    }
+                                }
+                                7 => {
+                                    state.dpad_y = if value < -0.5 {
+                                        -1
+                                    } else if value > 0.5 {
+                                        1
+                                    } else {
+                                        0
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                        _ => {}
                     }
-                    _ => {}
+                }
+                Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                    // No more events
+                    break;
+                }
+                Err(_) => {
+                    // Device disconnected
+                    state.connected = false;
+                    handle.file = None;
+                    break;
                 }
             }
-            Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                // No more events
-                break;
-            }
-            Err(_) => {
-                // Device disconnected
-                state.connected = false;
-                handle.file = None;
-                break;
-            }
         }
     }
 }
+
+#[cfg(unix)]
+use unix_impl::{poll_joystick, setup_joystick};

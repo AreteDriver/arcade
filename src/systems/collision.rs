@@ -3,6 +3,7 @@
 //! Handles all collision between entities.
 
 use crate::core::*;
+use crate::entities::collectible::{spawn_smart_powerup, PlayerHealthState};
 use crate::entities::*;
 use bevy::prelude::*;
 
@@ -27,7 +28,7 @@ fn player_projectile_enemy_collision(
     mut commands: Commands,
     projectile_query: Query<(Entity, &Transform, &ProjectileDamage), With<PlayerProjectile>>,
     mut enemy_query: Query<(Entity, &Transform, &mut EnemyStats), With<Enemy>>,
-    player_query: Query<&Transform, With<Player>>,
+    player_query: Query<(&Transform, &ShipStats), With<Player>>,
     mut score: ResMut<ScoreSystem>,
     mut berserk: ResMut<BerserkSystem>,
     mut destroy_events: EventWriter<EnemyDestroyedEvent>,
@@ -35,11 +36,16 @@ fn player_projectile_enemy_collision(
     mut screen_shake: ResMut<super::effects::ScreenShake>,
     icon_cache: Res<crate::assets::PowerupIconCache>,
 ) {
-    // Get player position for proximity check
-    let player_pos = player_query
+    // Get player position and health for proximity check and smart powerups
+    let (player_pos, player_health) = player_query
         .get_single()
-        .map(|t| t.translation.truncate())
-        .unwrap_or(Vec2::ZERO);
+        .map(|(t, stats)| {
+            (
+                t.translation.truncate(),
+                Some(PlayerHealthState::from_stats(stats)),
+            )
+        })
+        .unwrap_or((Vec2::ZERO, None));
 
     for (proj_entity, proj_transform, proj_damage) in projectile_query.iter() {
         let proj_pos = proj_transform.translation.truncate();
@@ -105,7 +111,7 @@ fn player_projectile_enemy_collision(
                     // 30% chance to drop powerup (100% for bosses)
                     let drop_chance = if enemy_stats.is_boss { 1.0 } else { 0.30 };
                     if fastrand::f32() < drop_chance {
-                        spawn_random_powerup(&mut commands, enemy_pos, Some(&icon_cache));
+                        spawn_smart_powerup(&mut commands, enemy_pos, Some(&icon_cache), player_health);
                     }
 
                     // Despawn enemy

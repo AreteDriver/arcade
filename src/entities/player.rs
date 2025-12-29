@@ -3,7 +3,7 @@
 //! The player-controlled ship with EVE-style shield/armor/hull.
 
 use crate::core::*;
-use crate::systems::ManeuverState;
+use crate::systems::{EngineTrail, ManeuverState};
 use bevy::prelude::*;
 
 /// Marker component for the player entity
@@ -308,6 +308,7 @@ fn spawn_player(
             Hitbox::default(),
             super::collectible::PowerupEffects::default(),
             ManeuverState::default(),
+            EngineTrail::minmatar(), // Minmatar rust-orange engine trail
             Sprite {
                 image: texture,
                 custom_size: Some(Vec2::new(64.0, 64.0)),
@@ -329,6 +330,7 @@ fn spawn_player(
             Hitbox::default(),
             super::collectible::PowerupEffects::default(),
             ManeuverState::default(),
+            EngineTrail::minmatar(), // Minmatar rust-orange engine trail
             Sprite {
                 color: base_color,
                 custom_size: Some(Vec2::new(48.0, 64.0)),

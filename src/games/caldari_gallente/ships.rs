@@ -121,7 +121,7 @@ fn build_caldari_pool() -> FactionShipPool {
                 spawn_weight: 30,
             },
             EnemyShipDef {
-                type_id: 593, // Incursus
+                type_id: 594, // Incursus
                 name: "Incursus",
                 class: "Frigate",
                 spawn_weight: 25,

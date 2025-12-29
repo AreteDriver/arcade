@@ -1,6 +1,6 @@
 //! Visual Effects System
 //!
-//! Starfield, explosions, particle effects, screen shake.
+//! Starfield, explosions, particle effects, screen shake, engine trails.
 
 use crate::core::*;
 use bevy::prelude::*;
@@ -19,6 +19,8 @@ impl Plugin for EffectsPlugin {
                     update_explosions,
                     update_screen_shake,
                     handle_explosion_events,
+                    spawn_engine_trails,
+                    update_engine_particles,
                 )
                     .run_if(in_state(GameState::Playing)),
             )
@@ -267,18 +269,194 @@ fn update_screen_shake(
 }
 
 // =============================================================================
+// ENGINE TRAILS
+// =============================================================================
+
+/// Component for entities that emit engine trails
+#[derive(Component)]
+pub struct EngineTrail {
+    /// Trail color (faction-based)
+    pub color: Color,
+    /// Spawn rate (particles per second)
+    pub spawn_rate: f32,
+    /// Timer for spawning
+    pub spawn_timer: f32,
+    /// Offset from entity center (engine position)
+    pub offset: Vec2,
+    /// Whether trail is active (moving)
+    pub active: bool,
+}
+
+impl Default for EngineTrail {
+    fn default() -> Self {
+        Self {
+            color: Color::srgba(0.4, 0.7, 1.0, 0.9), // Blue engine glow
+            spawn_rate: 60.0,
+            spawn_timer: 0.0,
+            offset: Vec2::new(0.0, -25.0), // Behind ship
+            active: true,
+        }
+    }
+}
+
+impl EngineTrail {
+    /// Minmatar rust-orange engine
+    pub fn minmatar() -> Self {
+        Self {
+            color: Color::srgba(1.0, 0.5, 0.2, 0.9),
+            ..default()
+        }
+    }
+
+    /// Amarr golden engine
+    pub fn amarr() -> Self {
+        Self {
+            color: Color::srgba(1.0, 0.85, 0.3, 0.9),
+            ..default()
+        }
+    }
+
+    /// Caldari blue engine
+    pub fn caldari() -> Self {
+        Self {
+            color: Color::srgba(0.3, 0.6, 1.0, 0.9),
+            ..default()
+        }
+    }
+
+    /// Gallente green engine
+    pub fn gallente() -> Self {
+        Self {
+            color: Color::srgba(0.3, 0.9, 0.5, 0.9),
+            ..default()
+        }
+    }
+}
+
+/// Engine trail particle
+#[derive(Component)]
+pub struct EngineParticle {
+    pub velocity: Vec2,
+    pub lifetime: f32,
+    pub max_lifetime: f32,
+}
+
+/// Spawn engine trail particles from entities with EngineTrail
+fn spawn_engine_trails(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(&Transform, &mut EngineTrail)>,
+) {
+    let dt = time.delta_secs();
+
+    for (transform, mut trail) in query.iter_mut() {
+        if !trail.active {
+            continue;
+        }
+
+        trail.spawn_timer += dt;
+        let spawn_interval = 1.0 / trail.spawn_rate;
+
+        while trail.spawn_timer >= spawn_interval {
+            trail.spawn_timer -= spawn_interval;
+
+            // Calculate spawn position with offset
+            let rotation = transform.rotation.to_euler(EulerRot::ZYX).0;
+            let rotated_offset = Vec2::new(
+                trail.offset.x * rotation.cos() - trail.offset.y * rotation.sin(),
+                trail.offset.x * rotation.sin() + trail.offset.y * rotation.cos(),
+            );
+            let spawn_pos = transform.translation.truncate() + rotated_offset;
+
+            // Random variation
+            let spread = 8.0;
+            let offset_x = (fastrand::f32() - 0.5) * spread;
+            let offset_y = (fastrand::f32() - 0.5) * spread;
+
+            // Velocity pointing backward/down with some spread
+            let base_vel = Vec2::new(0.0, -80.0);
+            let vel_spread = Vec2::new(
+                (fastrand::f32() - 0.5) * 40.0,
+                (fastrand::f32() - 0.5) * 30.0,
+            );
+
+            let lifetime = 0.15 + fastrand::f32() * 0.15;
+            let size = 3.0 + fastrand::f32() * 4.0;
+
+            // Spawn particle
+            commands.spawn((
+                EngineParticle {
+                    velocity: base_vel + vel_spread,
+                    lifetime,
+                    max_lifetime: lifetime,
+                },
+                Sprite {
+                    color: trail.color,
+                    custom_size: Some(Vec2::splat(size)),
+                    ..default()
+                },
+                Transform::from_xyz(
+                    spawn_pos.x + offset_x,
+                    spawn_pos.y + offset_y,
+                    LAYER_EFFECTS - 1.0, // Behind ships
+                ),
+            ));
+        }
+    }
+}
+
+/// Update engine trail particles
+fn update_engine_particles(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(Entity, &mut Transform, &mut EngineParticle, &mut Sprite)>,
+) {
+    let dt = time.delta_secs();
+
+    for (entity, mut transform, mut particle, mut sprite) in query.iter_mut() {
+        // Move
+        transform.translation.x += particle.velocity.x * dt;
+        transform.translation.y += particle.velocity.y * dt;
+
+        // Slow down
+        particle.velocity *= 1.0 - 5.0 * dt;
+
+        // Update lifetime
+        particle.lifetime -= dt;
+        let progress = particle.lifetime / particle.max_lifetime;
+
+        // Fade out
+        let alpha = progress * 0.9;
+        sprite.color = sprite.color.with_alpha(alpha);
+
+        // Shrink
+        if let Some(size) = sprite.custom_size {
+            sprite.custom_size = Some(size * (1.0 - 2.0 * dt));
+        }
+
+        if particle.lifetime <= 0.0 {
+            commands.entity(entity).despawn();
+        }
+    }
+}
+
+// =============================================================================
 // CLEANUP
 // =============================================================================
 
 fn cleanup_effects(
     mut commands: Commands,
     stars: Query<Entity, With<Star>>,
-    particles: Query<Entity, With<ExplosionParticle>>,
+    explosion_particles: Query<Entity, With<ExplosionParticle>>,
+    engine_particles: Query<Entity, With<EngineParticle>>,
 ) {
     for entity in stars.iter() {
         commands.entity(entity).despawn();
     }
-    for entity in particles.iter() {
+    for entity in explosion_particles.iter() {
+        commands.entity(entity).despawn();
+    }
+    for entity in engine_particles.iter() {
         commands.entity(entity).despawn();
     }
 }

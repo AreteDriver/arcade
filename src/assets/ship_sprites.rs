@@ -54,21 +54,22 @@ impl ShipSpriteCache {
 
 /// Ships to preload
 const SHIPS_TO_LOAD: &[u32] = &[
-    // Minmatar
-    587, // Rifter
-    585, // Slasher
-    586, // Probe
-    598, // Breacher
-    // Amarr
-    597, // Punisher
-    589, // Executioner
-    591, // Tormentor
-    // Caldari
-    603, // Merlin
-    602, // Kestrel
-    // Gallente
-    593, // Tristan
-    594, // Incursus
+    // Minmatar (player faction)
+    587,   // Rifter (T1 Frigate)
+    11371, // Wolf (Assault Frigate)
+    11400, // Jaguar (Assault Frigate)
+    // Caldari (enemy faction)
+    603,   // Merlin (T1 Frigate)
+    11381, // Hawk (Assault Frigate)
+    11387, // Harpy (Assault Frigate)
+    // Gallente (enemy faction)
+    608,   // Atron (T1 Frigate)
+    11200, // Taranis (Interceptor)
+    11202, // Ares (Interceptor)
+    // Amarr (enemy faction)
+    589,   // Executioner (T1 Frigate)
+    11184, // Crusader (Interceptor)
+    11186, // Malediction (Interceptor)
 ];
 
 /// Setup the sprite cache directory

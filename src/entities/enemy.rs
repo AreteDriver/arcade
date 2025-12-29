@@ -4,6 +4,7 @@
 
 use crate::assets::{get_model_scale, ShipModelCache, ShipModelRotation};
 use crate::core::*;
+use crate::systems::EngineTrail;
 use bevy::prelude::*;
 
 /// Marker component for enemy entities
@@ -408,6 +409,21 @@ fn get_enemy_color(type_id: u32) -> Color {
     }
 }
 
+/// Get engine trail for faction based on type_id
+fn get_faction_engine_trail(type_id: u32) -> EngineTrail {
+    match type_id {
+        // Amarr - golden engines
+        597 | 589 | 591 | 624 | 2006 | 11373 => EngineTrail::amarr(),
+        // Caldari - blue engines
+        603 | 602 | 11381 | 11387 | 35683 => EngineTrail::caldari(),
+        // Gallente - green engines
+        593 | 594 | 11371 | 35685 => EngineTrail::gallente(),
+        // Minmatar - rust engines
+        587 | 585 | 586 | 598 => EngineTrail::minmatar(),
+        _ => EngineTrail::amarr(), // Default to Amarr (enemies)
+    }
+}
+
 /// Get weapon type for faction based on type_id
 fn get_faction_weapon(type_id: u32) -> WeaponType {
     match type_id {
@@ -507,6 +523,10 @@ pub fn spawn_enemy(
         ..default()
     };
 
+    // Get faction-appropriate engine trail (pointing up since enemies face down)
+    let mut engine_trail = get_faction_engine_trail(type_id);
+    engine_trail.offset = Vec2::new(0.0, 25.0); // Offset up since enemies face down
+
     // Use sprites (2D camera compatible)
     if let Some(texture) = sprite {
         commands
@@ -515,6 +535,7 @@ pub fn spawn_enemy(
                 stats,
                 weapon,
                 ai,
+                engine_trail,
                 Sprite {
                     image: texture,
                     custom_size: Some(Vec2::new(48.0, 48.0)),
@@ -532,6 +553,7 @@ pub fn spawn_enemy(
                 stats,
                 weapon,
                 ai,
+                engine_trail,
                 Sprite {
                     color: base_color,
                     custom_size: Some(Vec2::new(40.0, 48.0)),

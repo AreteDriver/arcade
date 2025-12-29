@@ -186,13 +186,8 @@ impl Difficulty {
 /// Minmatar ships available for selection
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Resource, Default)]
 pub enum MinmatarShip {
-    // Frigates (always available)
     #[default]
-    Rifter, // Balanced fighter
-    Slasher,  // Fast interceptor
-    Breacher, // Missile boat
-    Probe,    // Utility/drones
-    // Assault Frigates (unlockable)
+    Rifter, // T1 Frigate - balanced
     Wolf,   // Assault Frigate - Act 2 unlock (autocannon)
     Jaguar, // Assault Frigate - Act 3 unlock (rockets)
 }
@@ -202,20 +197,14 @@ impl MinmatarShip {
     pub fn type_id(&self) -> u32 {
         match self {
             MinmatarShip::Rifter => 587,
-            MinmatarShip::Slasher => 585,
-            MinmatarShip::Breacher => 598,
-            MinmatarShip::Probe => 586,
             MinmatarShip::Wolf => 11371,
-            MinmatarShip::Jaguar => 11377,
+            MinmatarShip::Jaguar => 11400,
         }
     }
 
     pub fn name(&self) -> &'static str {
         match self {
             MinmatarShip::Rifter => "RIFTER",
-            MinmatarShip::Slasher => "SLASHER",
-            MinmatarShip::Breacher => "BREACHER",
-            MinmatarShip::Probe => "PROBE",
             MinmatarShip::Wolf => "WOLF",
             MinmatarShip::Jaguar => "JAGUAR",
         }
@@ -224,9 +213,6 @@ impl MinmatarShip {
     pub fn description(&self) -> &'static str {
         match self {
             MinmatarShip::Rifter => "Balanced assault frigate",
-            MinmatarShip::Slasher => "Fast interceptor, high speed",
-            MinmatarShip::Breacher => "Missile frigate, explosive damage",
-            MinmatarShip::Probe => "Utility frigate with drone support",
             MinmatarShip::Wolf => "Assault frigate, heavy autocannons",
             MinmatarShip::Jaguar => "Assault frigate, rocket swarm",
         }
@@ -235,10 +221,7 @@ impl MinmatarShip {
     /// Ship class name
     pub fn ship_class(&self) -> &'static str {
         match self {
-            MinmatarShip::Rifter
-            | MinmatarShip::Slasher
-            | MinmatarShip::Breacher
-            | MinmatarShip::Probe => "Frigate",
+            MinmatarShip::Rifter => "Frigate",
             MinmatarShip::Wolf | MinmatarShip::Jaguar => "Assault Frigate",
         }
     }
@@ -247,9 +230,6 @@ impl MinmatarShip {
     pub fn speed_mult(&self) -> f32 {
         match self {
             MinmatarShip::Rifter => 1.0,
-            MinmatarShip::Slasher => 1.4,
-            MinmatarShip::Breacher => 0.9,
-            MinmatarShip::Probe => 1.1,
             MinmatarShip::Wolf => 1.13,   // 340/300 base
             MinmatarShip::Jaguar => 1.27, // 380/300 base
         }
@@ -259,9 +239,6 @@ impl MinmatarShip {
     pub fn damage_mult(&self) -> f32 {
         match self {
             MinmatarShip::Rifter => 1.0,
-            MinmatarShip::Slasher => 0.8,
-            MinmatarShip::Breacher => 1.2,
-            MinmatarShip::Probe => 0.7,
             MinmatarShip::Wolf => 1.5,   // Heavy autocannons
             MinmatarShip::Jaguar => 1.8, // Rocket swarm
         }
@@ -271,9 +248,6 @@ impl MinmatarShip {
     pub fn health_mult(&self) -> f32 {
         match self {
             MinmatarShip::Rifter => 1.0,
-            MinmatarShip::Slasher => 0.7,
-            MinmatarShip::Breacher => 1.1,
-            MinmatarShip::Probe => 0.9,
             MinmatarShip::Wolf => 1.5,   // 150 hull
             MinmatarShip::Jaguar => 1.4, // 140 hull
         }
@@ -283,9 +257,6 @@ impl MinmatarShip {
     pub fn fire_rate_mult(&self) -> f32 {
         match self {
             MinmatarShip::Rifter => 1.0,
-            MinmatarShip::Slasher => 1.3,
-            MinmatarShip::Breacher => 0.7,
-            MinmatarShip::Probe => 1.0,
             MinmatarShip::Wolf => 1.6,   // 8 fire rate
             MinmatarShip::Jaguar => 0.5, // 2.5 fire rate, but high damage
         }
@@ -295,9 +266,6 @@ impl MinmatarShip {
     pub fn special(&self) -> &'static str {
         match self {
             MinmatarShip::Rifter => "Overdrive: +50% speed burst",
-            MinmatarShip::Slasher => "Phase Shift: Brief invulnerability",
-            MinmatarShip::Breacher => "Missile Salvo: Triple shot",
-            MinmatarShip::Probe => "Deploy Drone: Auto-turret ally",
             MinmatarShip::Wolf => "Gyrostabilizer: +100% fire rate burst",
             MinmatarShip::Jaguar => "Rocket Swarm: Triple tracking rockets",
         }
@@ -311,10 +279,7 @@ impl MinmatarShip {
     /// Which act unlocks this ship (0 = always available)
     pub fn unlock_act(&self) -> u32 {
         match self {
-            MinmatarShip::Rifter
-            | MinmatarShip::Slasher
-            | MinmatarShip::Breacher
-            | MinmatarShip::Probe => 0,
+            MinmatarShip::Rifter => 0,
             MinmatarShip::Wolf => 2,
             MinmatarShip::Jaguar => 3,
         }
@@ -322,21 +287,13 @@ impl MinmatarShip {
 
     /// Get all base frigate ships (always available)
     pub fn all() -> &'static [MinmatarShip] {
-        &[
-            MinmatarShip::Rifter,
-            MinmatarShip::Slasher,
-            MinmatarShip::Breacher,
-            MinmatarShip::Probe,
-        ]
+        &[MinmatarShip::Rifter]
     }
 
     /// Get all ships including unlockables
     pub fn all_including_unlocks() -> &'static [MinmatarShip] {
         &[
             MinmatarShip::Rifter,
-            MinmatarShip::Slasher,
-            MinmatarShip::Breacher,
-            MinmatarShip::Probe,
             MinmatarShip::Wolf,
             MinmatarShip::Jaguar,
         ]
