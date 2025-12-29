@@ -279,10 +279,8 @@ fn generate_victory_sting() -> Option<AudioSource> {
             329.63 // E4
         } else if t < 0.9 {
             392.0 // G4
-        } else if t < 1.2 {
-            523.25 // C5
         } else {
-            523.25 // Hold
+            523.25 // C5 (hold through end)
         };
 
         let note_t = t % 0.3;

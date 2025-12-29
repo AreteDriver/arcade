@@ -286,12 +286,12 @@ fn spawn_main_menu(mut commands: Commands, mut selection: ResMut<MenuSelection>)
             ));
 
             parent.spawn((
-                Text::new("FOUR FACTIONS • ONE DESTINY"),
+                Text::new("THE ELDER FLEET RISES"),
                 TextFont {
                     font_size: 24.0,
                     ..default()
                 },
-                TextColor(Color::srgb(0.5, 0.5, 0.5)),
+                TextColor(Color::srgb(0.6, 0.4, 0.2)), // Bronze/copper
             ));
 
             // Spacer
@@ -321,7 +321,7 @@ fn spawn_main_menu(mut commands: Commands, mut selection: ResMut<MenuSelection>)
             ));
 
             parent.spawn((
-                Text::new("v0.4.0 - Unified Factions"),
+                Text::new("v0.5.0 - Liberation"),
                 TextFont {
                     font_size: 12.0,
                     ..default()

@@ -25,7 +25,7 @@ impl Plugin for SavePlugin {
 }
 
 /// Persistent save data
-#[derive(Resource, Serialize, Deserialize, Clone, Debug)]
+#[derive(Resource, Serialize, Deserialize, Clone, Debug, Default)]
 pub struct SaveData {
     /// Highest stage completed per faction pair
     pub stage_progress: Vec<FactionProgress>,
@@ -70,18 +70,6 @@ impl Default for GameSettings {
             sfx_volume: 0.8,
             music_volume: 0.5,
             screen_shake: true,
-        }
-    }
-}
-
-impl Default for SaveData {
-    fn default() -> Self {
-        Self {
-            stage_progress: Vec::new(),
-            unlocked_ships: HashSet::new(),
-            lifetime_credits: 0,
-            high_scores: Vec::new(),
-            settings: GameSettings::default(),
         }
     }
 }
