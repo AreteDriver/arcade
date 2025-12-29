@@ -1,0 +1,70 @@
+# YOKAI BLADE CI Pipeline
+# Placeholder - requires Unity license activation for full builds
+
+name: Unity Build & Test
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # Placeholder job until Unity license is configured
+  lint:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for TODO/FIXME in critical systems
+        run: |
+          echo "Checking for unresolved items in Core systems..."
+          ! grep -r "TODO\|FIXME\|HACK" Assets/Core/ --include="*.cs" || echo "Warning: Found TODO/FIXME items"
+
+      - name: Validate telegraph invariants documented
+        run: |
+          echo "Checking telegraph documentation exists..."
+          test -f docs/INVARIANTS.md
+
+  # Full build job - uncomment when Unity license is configured
+  # build:
+  #   name: Build
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         lfs: true
+  #
+  #     - uses: game-ci/unity-builder@v4
+  #       env:
+  #         UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+  #       with:
+  #         targetPlatform: StandaloneWindows64
+  #         projectPath: .
+  #
+  #     - uses: actions/upload-artifact@v4
+  #       with:
+  #         name: Build
+  #         path: build
+
+  # test:
+  #   name: Test
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         lfs: true
+  #
+  #     - uses: game-ci/unity-test-runner@v4
+  #       env:
+  #         UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+  #       with:
+  #         projectPath: .
+  #         testMode: all
+  #
+  #     - uses: actions/upload-artifact@v4
+  #       if: always()
+  #       with:
+  #         name: Test results
+  #         path: artifacts
