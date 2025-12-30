@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools;
 using YokaiBlade.Core.Combat;
 
 namespace YokaiBlade.Tests.EditMode
@@ -10,7 +11,10 @@ namespace YokaiBlade.Tests.EditMode
 
         private AttackDefinition CreateAttack(int startup, int active, int recovery)
         {
+            // OnEnable logs error for invalid definitions (before we set properties)
+            LogAssert.ignoreFailingMessages = true;
             var attack = ScriptableObject.CreateInstance<AttackDefinition>();
+            LogAssert.ignoreFailingMessages = false;
             attack.AttackId = "Test";
             attack.StartupFrames = startup;
             attack.ActiveFrames = active;
