@@ -434,7 +434,7 @@ fn get_faction_weapon(type_id: u32) -> WeaponType {
         // Amarr - Lasers (EM damage) - frigates, destroyers, battlecruisers
         597 | 589 | 591 | 16236 | 24690 => WeaponType::Laser,
         // Caldari - Railguns/Missiles (Kinetic/Explosive)
-        603 | 16238 => WeaponType::Railgun,           // Merlin, Cormorant
+        603 | 16238 => WeaponType::Railgun, // Merlin, Cormorant
         602 | 583 | 24688 => WeaponType::MissileLauncher, // Kestrel, Condor, Drake
         // Gallente - Drones/Blasters (Thermal)
         593 | 594 | 608 | 16242 | 24700 => WeaponType::Drone,
@@ -452,7 +452,7 @@ pub fn get_ship_rotation_correction(type_id: u32) -> f32 {
         // === CALDARI === (most render sideways)
         602 => FRAC_PI_2,   // Kestrel - faces right
         603 => -FRAC_PI_2,  // Merlin - faces left
-        583 => FRAC_PI_2,   // Condor - faces right
+        583 => -FRAC_PI_2,  // Condor - faces left
         11381 => FRAC_PI_2, // Hawk - assault frigate
         11387 => FRAC_PI_2, // Harpy - assault frigate
         35683 => FRAC_PI_2, // Jackdaw - tactical destroyer
@@ -481,8 +481,8 @@ pub fn get_ship_rotation_correction(type_id: u32) -> f32 {
         // 589 (Executioner) - faces up
 
         // === MINMATAR ===
-        587 => FRAC_PI_2,  // Rifter - faces right
-        585 => FRAC_PI_2,  // Slasher - faces right
+        587 => FRAC_PI_2, // Rifter - faces right
+        585 => FRAC_PI_2, // Slasher - faces right
         // 598 (Breacher) - faces up
 
         // === CARRIERS ===

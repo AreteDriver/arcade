@@ -171,10 +171,10 @@ impl Faction {
     /// Returns a small, fast frigate appropriate for the faction
     pub fn fighter_type_id(&self) -> u32 {
         match self {
-            Faction::Minmatar => 585,  // Slasher - fast interceptor
-            Faction::Amarr => 589,     // Executioner - fast interceptor
-            Faction::Caldari => 583,   // Condor - fast frigate
-            Faction::Gallente => 608,  // Atron - fast frigate
+            Faction::Minmatar => 585, // Slasher - fast interceptor
+            Faction::Amarr => 589,    // Executioner - fast interceptor
+            Faction::Caldari => 583,  // Condor - fast frigate
+            Faction::Gallente => 608, // Atron - fast frigate
         }
     }
 
@@ -182,10 +182,10 @@ impl Faction {
     /// Returns a tankier frigate appropriate for the faction
     pub fn tough_fighter_type_id(&self) -> u32 {
         match self {
-            Faction::Minmatar => 598,  // Breacher - tanky missile boat
-            Faction::Amarr => 591,     // Tormentor - tanky laser boat
-            Faction::Caldari => 602,   // Kestrel - tanky missile boat
-            Faction::Gallente => 594,  // Incursus - tanky blaster boat
+            Faction::Minmatar => 598, // Breacher - tanky missile boat
+            Faction::Amarr => 591,    // Tormentor - tanky laser boat
+            Faction::Caldari => 602,  // Kestrel - tanky missile boat
+            Faction::Gallente => 594, // Incursus - tanky blaster boat
         }
     }
 }

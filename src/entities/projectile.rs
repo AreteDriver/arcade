@@ -113,7 +113,11 @@ impl Plugin for ProjectilePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (spawn_player_projectiles, seeking_projectile_update, projectile_update)
+            (
+                spawn_player_projectiles,
+                seeking_projectile_update,
+                projectile_update,
+            )
                 .chain()
                 .run_if(in_state(GameState::Playing)),
         );

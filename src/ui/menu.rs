@@ -507,7 +507,10 @@ impl Default for OptionsMenuState {
     }
 }
 
-fn spawn_options_menu(mut commands: Commands, sound_settings: Res<crate::systems::audio::SoundSettings>) {
+fn spawn_options_menu(
+    mut commands: Commands,
+    sound_settings: Res<crate::systems::audio::SoundSettings>,
+) {
     commands.init_resource::<OptionsMenuState>();
 
     // Root container
@@ -555,9 +558,27 @@ fn spawn_options_menu(mut commands: Commands, sound_settings: Res<crate::systems
             ));
 
             // Volume sliders
-            spawn_volume_row(parent, "Master Volume", VolumeSetting::Master, sound_settings.master_volume, 0);
-            spawn_volume_row(parent, "Music Volume", VolumeSetting::Music, sound_settings.music_volume, 1);
-            spawn_volume_row(parent, "SFX Volume", VolumeSetting::Sfx, sound_settings.sfx_volume, 2);
+            spawn_volume_row(
+                parent,
+                "Master Volume",
+                VolumeSetting::Master,
+                sound_settings.master_volume,
+                0,
+            );
+            spawn_volume_row(
+                parent,
+                "Music Volume",
+                VolumeSetting::Music,
+                sound_settings.music_volume,
+                1,
+            );
+            spawn_volume_row(
+                parent,
+                "SFX Volume",
+                VolumeSetting::Sfx,
+                sound_settings.sfx_volume,
+                2,
+            );
 
             // Back instruction
             parent.spawn((
@@ -575,7 +596,13 @@ fn spawn_options_menu(mut commands: Commands, sound_settings: Res<crate::systems
         });
 }
 
-fn spawn_volume_row(parent: &mut ChildBuilder, label: &str, setting: VolumeSetting, value: f32, index: usize) {
+fn spawn_volume_row(
+    parent: &mut ChildBuilder,
+    label: &str,
+    setting: VolumeSetting,
+    value: f32,
+    index: usize,
+) {
     parent
         .spawn((
             Node {
@@ -608,49 +635,47 @@ fn spawn_volume_row(parent: &mut ChildBuilder, label: &str, setting: VolumeSetti
             ));
 
             // Value + bar container
-            row.spawn((
-                Node {
-                    flex_direction: FlexDirection::Row,
-                    align_items: AlignItems::Center,
-                    column_gap: Val::Px(10.0),
-                    ..default()
-                },
-            ))
-            .with_children(|value_row| {
-                // Visual bar background
-                value_row
-                    .spawn((
-                        Node {
-                            width: Val::Px(100.0),
-                            height: Val::Px(12.0),
-                            ..default()
-                        },
-                        BackgroundColor(Color::srgb(0.15, 0.15, 0.2)),
-                    ))
-                    .with_children(|bar_bg| {
-                        // Filled portion
-                        bar_bg.spawn((
-                            VolumeSlider { setting },
+            row.spawn((Node {
+                flex_direction: FlexDirection::Row,
+                align_items: AlignItems::Center,
+                column_gap: Val::Px(10.0),
+                ..default()
+            },))
+                .with_children(|value_row| {
+                    // Visual bar background
+                    value_row
+                        .spawn((
                             Node {
-                                width: Val::Percent(value * 100.0),
-                                height: Val::Percent(100.0),
+                                width: Val::Px(100.0),
+                                height: Val::Px(12.0),
                                 ..default()
                             },
-                            BackgroundColor(Color::srgb(0.3, 0.6, 0.9)),
-                        ));
-                    });
+                            BackgroundColor(Color::srgb(0.15, 0.15, 0.2)),
+                        ))
+                        .with_children(|bar_bg| {
+                            // Filled portion
+                            bar_bg.spawn((
+                                VolumeSlider { setting },
+                                Node {
+                                    width: Val::Percent(value * 100.0),
+                                    height: Val::Percent(100.0),
+                                    ..default()
+                                },
+                                BackgroundColor(Color::srgb(0.3, 0.6, 0.9)),
+                            ));
+                        });
 
-                // Percentage text
-                value_row.spawn((
-                    VolumeLabel { setting },
-                    Text::new(format!("{}%", (value * 100.0) as i32)),
-                    TextFont {
-                        font_size: 16.0,
-                        ..default()
-                    },
-                    TextColor(Color::srgb(0.7, 0.7, 0.7)),
-                ));
-            });
+                    // Percentage text
+                    value_row.spawn((
+                        VolumeLabel { setting },
+                        Text::new(format!("{}%", (value * 100.0) as i32)),
+                        TextFont {
+                            font_size: 16.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgb(0.7, 0.7, 0.7)),
+                    ));
+                });
         });
 }
 
@@ -696,15 +721,18 @@ fn options_menu_input(
             // Update the setting
             let new_value = match current_setting {
                 VolumeSetting::Master => {
-                    sound_settings.master_volume = (sound_settings.master_volume + adjust).clamp(0.0, 1.0);
+                    sound_settings.master_volume =
+                        (sound_settings.master_volume + adjust).clamp(0.0, 1.0);
                     sound_settings.master_volume
                 }
                 VolumeSetting::Music => {
-                    sound_settings.music_volume = (sound_settings.music_volume + adjust).clamp(0.0, 1.0);
+                    sound_settings.music_volume =
+                        (sound_settings.music_volume + adjust).clamp(0.0, 1.0);
                     sound_settings.music_volume
                 }
                 VolumeSetting::Sfx => {
-                    sound_settings.sfx_volume = (sound_settings.sfx_volume + adjust).clamp(0.0, 1.0);
+                    sound_settings.sfx_volume =
+                        (sound_settings.sfx_volume + adjust).clamp(0.0, 1.0);
                     sound_settings.sfx_volume
                 }
             };
