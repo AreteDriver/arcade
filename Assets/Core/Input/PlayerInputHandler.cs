@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityInputAction = UnityEngine.InputSystem.InputAction;
 
 namespace YokaiBlade.Core.Input
 {
@@ -117,29 +118,29 @@ namespace YokaiBlade.Core.Input
 
         #region Input Callbacks
 
-        private void OnMove(InputAction.CallbackContext context)
+        private void OnMove(UnityInputAction.CallbackContext context)
         {
             _moveInput = context.ReadValue<Vector2>();
             _moveInputActive = _moveInput.sqrMagnitude > 0.01f;
         }
 
-        private void OnMoveCanceled(InputAction.CallbackContext context)
+        private void OnMoveCanceled(UnityInputAction.CallbackContext context)
         {
             _moveInput = Vector2.zero;
             _moveInputActive = false;
         }
 
-        private void OnDodge(InputAction.CallbackContext context)
+        private void OnDodge(UnityInputAction.CallbackContext context)
         {
             BufferAction(Input.InputAction.Dodge);
         }
 
-        private void OnDeflect(InputAction.CallbackContext context)
+        private void OnDeflect(UnityInputAction.CallbackContext context)
         {
             BufferAction(Input.InputAction.Deflect);
         }
 
-        private void OnStrike(InputAction.CallbackContext context)
+        private void OnStrike(UnityInputAction.CallbackContext context)
         {
             BufferAction(Input.InputAction.Strike);
         }
