@@ -234,7 +234,7 @@ namespace YokaiBlade.Core.Boss.Oni
 
         public void Defeat()
         {
-            _attackRunner.Cancel();
+            _attackRunner?.Cancel();
             TransitionTo(OniState.Defeated);
             OnDefeated?.Invoke();
         }

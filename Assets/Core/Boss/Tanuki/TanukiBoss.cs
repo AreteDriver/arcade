@@ -168,7 +168,7 @@ namespace YokaiBlade.Core.Boss.Tanuki
 
         public void Defeat()
         {
-            _attackRunner.Cancel();
+            _attackRunner?.Cancel();
             TransitionTo(TanukiState.Defeated);
             OnDefeated?.Invoke();
         }

@@ -180,7 +180,7 @@ namespace YokaiBlade.Core.Boss.KasaObake
         {
             if (_state == KasaObakeState.TongueLash || _state == KasaObakeState.Spin)
             {
-                _attackRunner.Cancel();
+                _attackRunner?.Cancel();
                 TransitionTo(KasaObakeState.Taunt);
             }
         }
@@ -188,7 +188,7 @@ namespace YokaiBlade.Core.Boss.KasaObake
         public void ApplyStagger(float duration)
         {
             _staggerDuration = duration;
-            _attackRunner.Cancel();
+            _attackRunner?.Cancel();
             TransitionTo(KasaObakeState.Staggered);
         }
 
@@ -208,7 +208,7 @@ namespace YokaiBlade.Core.Boss.KasaObake
 
         public void Defeat()
         {
-            _attackRunner.Cancel();
+            _attackRunner?.Cancel();
             TransitionTo(KasaObakeState.Defeated);
             OnDefeated?.Invoke();
         }

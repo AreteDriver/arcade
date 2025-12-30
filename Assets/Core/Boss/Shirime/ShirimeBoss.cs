@@ -125,7 +125,7 @@ namespace YokaiBlade.Core.Boss.Shirime
 
         public void Defeat()
         {
-            _attackRunner.Cancel();
+            _attackRunner?.Cancel();
             TransitionTo(ShirimeState.Defeated);
             OnDefeated?.Invoke();
         }

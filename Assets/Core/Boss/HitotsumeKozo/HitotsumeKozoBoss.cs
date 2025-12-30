@@ -233,7 +233,7 @@ namespace YokaiBlade.Core.Boss.HitotsumeKozo
         public void ApplyStagger(float duration)
         {
             _staggerDuration = duration;
-            _attackRunner.Cancel();
+            _attackRunner?.Cancel();
             _pressureTimer = 0f; // Reset pressure on stagger
             TransitionTo(HitotsumeKozoState.Staggered);
         }
@@ -255,7 +255,7 @@ namespace YokaiBlade.Core.Boss.HitotsumeKozo
 
         public void Defeat()
         {
-            _attackRunner.Cancel();
+            _attackRunner?.Cancel();
             TransitionTo(HitotsumeKozoState.Defeated);
             OnDefeated?.Invoke();
         }

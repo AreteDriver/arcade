@@ -178,7 +178,7 @@ namespace YokaiBlade.Core.Boss.ChochinObake
         public void ApplyStagger(float duration)
         {
             _staggerDuration = duration;
-            _attackRunner.Cancel();
+            _attackRunner?.Cancel();
             TransitionTo(ChochinObakeState.Staggered);
         }
 
@@ -197,7 +197,7 @@ namespace YokaiBlade.Core.Boss.ChochinObake
 
         public void Defeat()
         {
-            _attackRunner.Cancel();
+            _attackRunner?.Cancel();
             TransitionTo(ChochinObakeState.Defeated);
             OnDefeated?.Invoke();
         }
