@@ -147,5 +147,83 @@ namespace YokaiBlade.Tests.EditMode
             // 8 states: Inactive, Intro, Float, TongueLash, FlameBreath, Flicker, Staggered, Defeated
             Assert.That(System.Enum.GetValues(typeof(ChochinObakeState)).Length, Is.EqualTo(8));
         }
+
+        #region Negative Path Tests
+
+        [Test]
+        public void ChochinObake_TakeDamage_WhenNotVulnerable_StillReducesHealth()
+        {
+            var go = new GameObject();
+            var boss = go.AddComponent<ChochinObakeBoss>();
+
+            boss.StartEncounter();
+            int initialHealth = boss.CurrentHealth;
+
+            Assert.That(boss.IsVulnerable, Is.False);
+            boss.TakeDamage();
+
+            // Current implementation reduces health regardless
+            Assert.That(boss.CurrentHealth, Is.EqualTo(initialHealth - 1));
+
+            Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void ChochinObake_Defeat_WhenAlreadyDefeated_DoesNotFireEventAgain()
+        {
+            var go = new GameObject();
+            var boss = go.AddComponent<ChochinObakeBoss>();
+            int defeatedCount = 0;
+            boss.OnDefeated += () => defeatedCount++;
+
+            boss.StartEncounter();
+            boss.Defeat();
+            boss.Defeat(); // Call again
+
+            Assert.That(defeatedCount, Is.EqualTo(1), "OnDefeated should only fire once");
+
+            Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void ChochinObake_ApplyStagger_WhenDefeated_DoesNotChangeState()
+        {
+            var go = new GameObject();
+            var boss = go.AddComponent<ChochinObakeBoss>();
+
+            boss.StartEncounter();
+            boss.Defeat();
+
+            // Try to stagger after defeated
+            boss.ApplyStagger(1f);
+
+            Assert.That(boss.State, Is.EqualTo(ChochinObakeState.Defeated), "Should remain defeated");
+
+            Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void ChochinObake_StartEncounter_ResetsAllState()
+        {
+            var go = new GameObject();
+            var boss = go.AddComponent<ChochinObakeBoss>();
+
+            boss.StartEncounter();
+            boss.ApplyStagger(1f);
+            boss.TakeDamage();
+
+            int healthAfterDamage = boss.CurrentHealth;
+
+            // Restart encounter
+            boss.StartEncounter();
+
+            Assert.That(boss.CurrentHealth, Is.EqualTo(2), "Health should reset");
+            Assert.That(boss.AttackCount, Is.EqualTo(0), "Attack count should reset");
+            Assert.That(boss.State, Is.EqualTo(ChochinObakeState.Intro), "State should be Intro");
+
+            Object.DestroyImmediate(go);
+        }
+
+        #endregion
     }
 }

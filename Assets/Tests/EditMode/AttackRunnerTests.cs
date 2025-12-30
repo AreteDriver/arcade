@@ -6,6 +6,8 @@ namespace YokaiBlade.Tests.EditMode
 {
     public class AttackRunnerTests
     {
+        private const float FrameDuration = 1f / 60f; // All timing is based on 60fps
+
         private AttackDefinition CreateAttack(int startup, int active, int recovery)
         {
             var attack = ScriptableObject.CreateInstance<AttackDefinition>();
@@ -18,13 +20,16 @@ namespace YokaiBlade.Tests.EditMode
             return attack;
         }
 
+        private static float FramesToSeconds(int frames) => frames * FrameDuration;
+
         [Test]
         public void AttackRunner_GetPhaseAtTime_Startup()
         {
             var attack = CreateAttack(10, 5, 10);
             var runner = new GameObject().AddComponent<AttackRunner>();
 
-            var phase = runner.GetPhaseAtTime(attack, 0.05f); // 3 frames in
+            // Check at frame 3 (within 10-frame startup)
+            var phase = runner.GetPhaseAtTime(attack, FramesToSeconds(3));
 
             Assert.That(phase, Is.EqualTo(AttackPhase.Startup));
 
@@ -38,8 +43,8 @@ namespace YokaiBlade.Tests.EditMode
             var attack = CreateAttack(10, 5, 10);
             var runner = new GameObject().AddComponent<AttackRunner>();
 
-            // 10 frames startup = 0.1667s, check at 0.18s
-            var phase = runner.GetPhaseAtTime(attack, 0.18f);
+            // Check at frame 11 (just after 10-frame startup, within 5-frame active)
+            var phase = runner.GetPhaseAtTime(attack, FramesToSeconds(11));
 
             Assert.That(phase, Is.EqualTo(AttackPhase.Active));
 
@@ -53,8 +58,8 @@ namespace YokaiBlade.Tests.EditMode
             var attack = CreateAttack(10, 5, 10);
             var runner = new GameObject().AddComponent<AttackRunner>();
 
-            // 10+5 = 15 frames = 0.25s, check at 0.3s
-            var phase = runner.GetPhaseAtTime(attack, 0.3f);
+            // Check at frame 18 (after 10+5=15 frames, within 10-frame recovery)
+            var phase = runner.GetPhaseAtTime(attack, FramesToSeconds(18));
 
             Assert.That(phase, Is.EqualTo(AttackPhase.Recovery));
 
@@ -68,10 +73,46 @@ namespace YokaiBlade.Tests.EditMode
             var attack = CreateAttack(10, 5, 10);
             var runner = new GameObject().AddComponent<AttackRunner>();
 
-            // 25 frames = 0.4167s, check at 0.5s
-            var phase = runner.GetPhaseAtTime(attack, 0.5f);
+            // Check at frame 30 (after total 25 frames)
+            var phase = runner.GetPhaseAtTime(attack, FramesToSeconds(30));
 
             Assert.That(phase, Is.EqualTo(AttackPhase.None));
+
+            Object.DestroyImmediate(runner.gameObject);
+            Object.DestroyImmediate(attack);
+        }
+
+        [Test]
+        public void AttackRunner_GetPhaseAtTime_AtStartupBoundary()
+        {
+            var attack = CreateAttack(10, 5, 10);
+            var runner = new GameObject().AddComponent<AttackRunner>();
+
+            // Exactly at frame 10 boundary - should still be Startup (0-indexed)
+            var phaseAtBoundary = runner.GetPhaseAtTime(attack, FramesToSeconds(10) - 0.0001f);
+            Assert.That(phaseAtBoundary, Is.EqualTo(AttackPhase.Startup));
+
+            // Just after boundary - should be Active
+            var phaseAfter = runner.GetPhaseAtTime(attack, FramesToSeconds(10) + 0.0001f);
+            Assert.That(phaseAfter, Is.EqualTo(AttackPhase.Active));
+
+            Object.DestroyImmediate(runner.gameObject);
+            Object.DestroyImmediate(attack);
+        }
+
+        [Test]
+        public void AttackRunner_GetPhaseAtTime_AtActiveBoundary()
+        {
+            var attack = CreateAttack(10, 5, 10);
+            var runner = new GameObject().AddComponent<AttackRunner>();
+
+            // Exactly at frame 15 boundary (10 startup + 5 active)
+            var phaseAtBoundary = runner.GetPhaseAtTime(attack, FramesToSeconds(15) - 0.0001f);
+            Assert.That(phaseAtBoundary, Is.EqualTo(AttackPhase.Active));
+
+            // Just after boundary - should be Recovery
+            var phaseAfter = runner.GetPhaseAtTime(attack, FramesToSeconds(15) + 0.0001f);
+            Assert.That(phaseAfter, Is.EqualTo(AttackPhase.Recovery));
 
             Object.DestroyImmediate(runner.gameObject);
             Object.DestroyImmediate(attack);

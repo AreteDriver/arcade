@@ -223,5 +223,31 @@ namespace YokaiBlade.Core.Boss.KasaObake
         /// UI/animation can use this to show wobble telegraph on hop 2.
         /// </summary>
         public bool IsSpinTelegraphed => _hopCount == 2 && _nextAttackIsSpin;
+
+        /// <summary>
+        /// Manually triggers a hop. Used for testing and scripted sequences.
+        /// In normal gameplay, hops occur via FixedUpdate timing.
+        /// </summary>
+        public void TriggerHop()
+        {
+            if (_state != KasaObakeState.Hopping && _state != KasaObakeState.Intro)
+                return;
+
+            _hopCount++;
+            OnHop?.Invoke(_hopCount);
+
+            if (_hopCount == 2)
+            {
+                _nextAttackIsSpin = UnityEngine.Random.value < _spinChance;
+            }
+
+            if (_hopCount >= 3)
+            {
+                if (_nextAttackIsSpin)
+                    TransitionTo(KasaObakeState.Spin);
+                else
+                    TransitionTo(KasaObakeState.TongueLash);
+            }
+        }
     }
 }

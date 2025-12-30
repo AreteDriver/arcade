@@ -1,3 +1,4 @@
+using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
 using YokaiBlade.Core.Combat;
@@ -6,11 +7,22 @@ namespace YokaiBlade.Tests.EditMode
 {
     public class DeflectSystemTests
     {
-        private DeflectSystem CreateSystem(float perfect = 0.05f, float standard = 0.15f)
+        private const float DefaultPerfectWindow = 0.05f;
+        private const float DefaultStandardWindow = 0.15f;
+
+        private DeflectSystem CreateSystem(float perfect = DefaultPerfectWindow, float standard = DefaultStandardWindow)
         {
             var go = new GameObject();
             var system = go.AddComponent<DeflectSystem>();
-            // Use serialized field defaults or set via reflection if needed
+
+            // Set serialized fields via reflection for test control
+            var type = typeof(DeflectSystem);
+            var perfectField = type.GetField("_perfectWindow", BindingFlags.NonPublic | BindingFlags.Instance);
+            var standardField = type.GetField("_standardWindow", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            perfectField?.SetValue(system, perfect);
+            standardField?.SetValue(system, standard);
+
             return system;
         }
 
@@ -100,6 +112,33 @@ namespace YokaiBlade.Tests.EditMode
             var standard = system.GetStaggerDuration(DeflectResult.Standard);
 
             Assert.That(perfect, Is.GreaterThan(standard));
+            Object.DestroyImmediate(system.gameObject);
+        }
+
+        [Test]
+        public void DeflectSystem_CustomWindows_RespectedByEvaluate()
+        {
+            // Use custom window values to verify the factory applies them
+            var system = CreateSystem(perfect: 0.1f, standard: 0.3f);
+
+            // 0.08f would be Miss with default 0.05f, but Perfect with 0.1f
+            Assert.That(system.EvaluateWindow(0.08f), Is.EqualTo(DeflectResult.Perfect));
+            // 0.2f would be Miss with default 0.15f, but Standard with 0.3f
+            Assert.That(system.EvaluateWindow(0.2f), Is.EqualTo(DeflectResult.Standard));
+            // 0.35f should be Miss even with extended windows
+            Assert.That(system.EvaluateWindow(0.35f), Is.EqualTo(DeflectResult.Miss));
+
+            Object.DestroyImmediate(system.gameObject);
+        }
+
+        [Test]
+        public void DeflectSystem_WindowProperties_MatchConfigured()
+        {
+            var system = CreateSystem(perfect: 0.08f, standard: 0.25f);
+
+            Assert.That(system.PerfectWindow, Is.EqualTo(0.08f));
+            Assert.That(system.StandardWindow, Is.EqualTo(0.25f));
+
             Object.DestroyImmediate(system.gameObject);
         }
     }

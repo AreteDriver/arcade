@@ -152,5 +152,105 @@ namespace YokaiBlade.Tests.EditMode
             // 9 states: Inactive, Intro, Flee, Taunt, Cornered, PanicSwipe, Regenerate, Staggered, Defeated
             Assert.That(System.Enum.GetValues(typeof(HitotsumeKozoState)).Length, Is.EqualTo(9));
         }
+
+        #region Negative Path Tests
+
+        [Test]
+        public void HitotsumeKozo_TakeDamage_WhenNotVulnerable_StillReducesHealth()
+        {
+            var go = new GameObject();
+            var boss = go.AddComponent<HitotsumeKozoBoss>();
+
+            boss.StartEncounter();
+            int initialHealth = boss.CurrentHealth;
+
+            Assert.That(boss.IsVulnerable, Is.False);
+            boss.TakeDamage();
+
+            // Current implementation reduces health regardless
+            Assert.That(boss.CurrentHealth, Is.EqualTo(initialHealth - 1));
+
+            Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void HitotsumeKozo_Defeat_WhenAlreadyDefeated_DoesNotFireEventAgain()
+        {
+            var go = new GameObject();
+            var boss = go.AddComponent<HitotsumeKozoBoss>();
+            int defeatedCount = 0;
+            boss.OnDefeated += () => defeatedCount++;
+
+            boss.StartEncounter();
+            boss.Defeat();
+            boss.Defeat(); // Call again
+
+            Assert.That(defeatedCount, Is.EqualTo(1), "OnDefeated should only fire once");
+
+            Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void HitotsumeKozo_ApplyStagger_WhenDefeated_DoesNotChangeState()
+        {
+            var go = new GameObject();
+            var boss = go.AddComponent<HitotsumeKozoBoss>();
+
+            boss.StartEncounter();
+            boss.Defeat();
+
+            // Try to stagger after defeated
+            boss.ApplyStagger(1f);
+
+            Assert.That(boss.State, Is.EqualTo(HitotsumeKozoState.Defeated), "Should remain defeated");
+
+            Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void HitotsumeKozo_StartEncounter_ResetsAllState()
+        {
+            var go = new GameObject();
+            var boss = go.AddComponent<HitotsumeKozoBoss>();
+
+            boss.StartEncounter();
+            boss.ApplyStagger(1f);
+            boss.TakeDamage();
+
+            // Restart encounter
+            boss.StartEncounter();
+
+            Assert.That(boss.CurrentHealth, Is.EqualTo(3), "Health should reset to max");
+            Assert.That(boss.PressureTimer, Is.EqualTo(0f), "Pressure timer should reset");
+            Assert.That(boss.State, Is.EqualTo(HitotsumeKozoState.Intro), "State should be Intro");
+
+            Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void HitotsumeKozo_TakeDamage_BelowZero_ClampsToDefeated()
+        {
+            var go = new GameObject();
+            var boss = go.AddComponent<HitotsumeKozoBoss>();
+            int defeatedCount = 0;
+            boss.OnDefeated += () => defeatedCount++;
+
+            boss.StartEncounter();
+
+            // Damage more times than health allows
+            for (int i = 0; i < 5; i++)
+            {
+                boss.ApplyStagger(1f);
+                boss.TakeDamage();
+            }
+
+            Assert.That(boss.CurrentHealth, Is.LessThanOrEqualTo(0));
+            Assert.That(boss.State, Is.EqualTo(HitotsumeKozoState.Defeated));
+            Assert.That(defeatedCount, Is.EqualTo(1), "OnDefeated should only fire once");
+
+            Object.DestroyImmediate(go);
+        }
+
+        #endregion
     }
 }
