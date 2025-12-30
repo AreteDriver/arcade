@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools;
 using YokaiBlade.Core.Telegraphs;
 
 namespace YokaiBlade.Tests.EditMode
@@ -149,9 +150,12 @@ namespace YokaiBlade.Tests.EditMode
         {
             var catalog = ScriptableObject.CreateInstance<TelegraphCatalog>();
 
+            // GetEntry logs error for missing semantics
+            LogAssert.ignoreFailingMessages = true;
             var entry = catalog.GetEntry(TelegraphSemantic.PerfectDeflectWindow);
+            LogAssert.ignoreFailingMessages = false;
 
-            // Should return null (and log error, but we can't easily test that)
+            // Should return null (error was logged but we ignore it above)
             Assert.That(entry, Is.Null);
 
             Object.DestroyImmediate(catalog);
