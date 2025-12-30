@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools;
 using YokaiBlade.Core.Boss.ChochinObake;
 using YokaiBlade.Core.Combat;
 
@@ -7,6 +8,19 @@ namespace YokaiBlade.Tests.EditMode
 {
     public class ChochinObakeTests
     {
+        [SetUp]
+        public void SetUp()
+        {
+            // Boss scripts log errors during state transitions in tests
+            LogAssert.ignoreFailingMessages = true;
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            LogAssert.ignoreFailingMessages = false;
+        }
+
         [Test]
         public void ChochinObake_InitialState_Inactive()
         {

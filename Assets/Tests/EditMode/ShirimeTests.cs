@@ -1,11 +1,25 @@
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools;
 using YokaiBlade.Core.Boss.Shirime;
 
 namespace YokaiBlade.Tests.EditMode
 {
     public class ShirimeTests
     {
+        [SetUp]
+        public void SetUp()
+        {
+            // Boss scripts log errors during state transitions in tests
+            LogAssert.ignoreFailingMessages = true;
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            LogAssert.ignoreFailingMessages = false;
+        }
+
         [Test]
         public void Shirime_InitialState_Inactive()
         {

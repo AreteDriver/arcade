@@ -1,11 +1,25 @@
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools;
 using YokaiBlade.Core.Boss.KasaObake;
 
 namespace YokaiBlade.Tests.EditMode
 {
     public class KasaObakeTests
     {
+        [SetUp]
+        public void SetUp()
+        {
+            // Boss scripts log errors during state transitions in tests
+            LogAssert.ignoreFailingMessages = true;
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            LogAssert.ignoreFailingMessages = false;
+        }
+
         [Test]
         public void KasaObake_InitialState_Inactive()
         {

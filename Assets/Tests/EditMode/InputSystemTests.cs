@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools;
 using YokaiBlade.Core.Input;
 
 namespace YokaiBlade.Tests.EditMode
@@ -19,6 +20,8 @@ namespace YokaiBlade.Tests.EditMode
         [SetUp]
         public void SetUp()
         {
+            // Input system may log errors during tests
+            LogAssert.ignoreFailingMessages = true;
             _config = ScriptableObject.CreateInstance<InputConfig>();
             _config.DeflectBufferWindow = 0.15f;
             _config.StrikeBufferWindow = 0.1f;
@@ -29,6 +32,7 @@ namespace YokaiBlade.Tests.EditMode
         [TearDown]
         public void TearDown()
         {
+            LogAssert.ignoreFailingMessages = false;
             Object.DestroyImmediate(_config);
         }
 
