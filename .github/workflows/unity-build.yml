@@ -1,11 +1,19 @@
 # YOKAI BLADE CI Pipeline
 # Uses GameCI for Unity testing and builds
 #
-# SETUP REQUIRED:
-# 1. Run the 'Unity License Activation' workflow manually
-# 2. Download the generated .alf file from artifacts
-# 3. Upload to https://license.unity3d.com/manual to get .ulf file
-# 4. Add the .ulf contents as repository secret: UNITY_LICENSE
+# SETUP REQUIRED (Personal License):
+# 1. Open Unity Hub on your local machine
+# 2. Sign in and activate Unity (this creates a .ulf file)
+# 3. Find the license file:
+#    - Windows: C:\ProgramData\Unity\Unity_lic.ulf
+#    - macOS: /Library/Application Support/Unity/Unity_lic.ulf
+#    - Linux: ~/.local/share/unity3d/Unity/Unity_lic.ulf
+# 4. Add these GitHub repository secrets (Settings > Secrets > Actions):
+#    - UNITY_LICENSE: Contents of the .ulf file
+#    - UNITY_EMAIL: Your Unity account email
+#    - UNITY_PASSWORD: Your Unity account password
+#
+# For Pro/Plus License, use UNITY_SERIAL instead of UNITY_LICENSE
 #
 # See: https://game.ci/docs/github/activation
 
@@ -16,9 +24,6 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main]
-
-env:
-  UNITY_VERSION: 2022.3.22f1
 
 jobs:
   lint:
@@ -59,6 +64,8 @@ jobs:
         id: editmode-tests
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           projectPath: .
           testMode: EditMode
@@ -78,6 +85,8 @@ jobs:
         id: playmode-tests
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           projectPath: .
           testMode: PlayMode
@@ -120,6 +129,8 @@ jobs:
         uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           projectPath: .
           targetPlatform: ${{ matrix.targetPlatform }}
