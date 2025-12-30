@@ -19,7 +19,7 @@ on:
       unity_version:
         description: 'Unity version to activate'
         required: false
-        default: '2022.3.22f1'
+        default: '2022.3.70f1'
 
 jobs:
   activate:
