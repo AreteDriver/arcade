@@ -32,6 +32,20 @@ impl Plugin for MenuPlugin {
                     .run_if(in_state(GameState::MainMenu)),
             )
             .add_systems(OnExit(GameState::MainMenu), despawn_menu::<MainMenuRoot>)
+            // Module Select
+            .add_systems(OnEnter(GameState::ModuleSelect), spawn_module_select)
+            .add_systems(
+                Update,
+                (
+                    module_select_input,
+                    update_menu_selection::<ModuleSelectRoot>,
+                )
+                    .run_if(in_state(GameState::ModuleSelect)),
+            )
+            .add_systems(
+                OnExit(GameState::ModuleSelect),
+                despawn_menu::<ModuleSelectRoot>,
+            )
             // Options Menu
             .add_systems(OnEnter(GameState::Options), spawn_options_menu)
             .add_systems(
@@ -39,15 +53,20 @@ impl Plugin for MenuPlugin {
                 options_menu_input.run_if(in_state(GameState::Options)),
             )
             .add_systems(OnExit(GameState::Options), despawn_menu::<OptionsMenuRoot>)
-            // Faction Select (unified 4-faction)
-            .add_systems(OnEnter(GameState::FactionSelect), spawn_faction_select)
+            // Faction Select (unified 4-faction) - only for Elder Fleet module
+            .add_systems(
+                OnEnter(GameState::FactionSelect),
+                spawn_faction_select.run_if(is_elder_fleet),
+            )
             .add_systems(
                 Update,
-                faction_select_input.run_if(in_state(GameState::FactionSelect)),
+                faction_select_input
+                    .run_if(in_state(GameState::FactionSelect))
+                    .run_if(is_elder_fleet),
             )
             .add_systems(
                 OnExit(GameState::FactionSelect),
-                despawn_menu::<FactionSelectRoot>,
+                despawn_menu::<FactionSelectRoot>.run_if(is_elder_fleet),
             )
             // Difficulty Select
             .add_systems(OnEnter(GameState::DifficultySelect), spawn_difficulty_menu)
@@ -139,6 +158,9 @@ struct LoadingRoot;
 
 #[derive(Component)]
 struct MainMenuRoot;
+
+#[derive(Component)]
+struct ModuleSelectRoot;
 
 #[derive(Component)]
 struct FactionSelectRoot;
@@ -448,8 +470,8 @@ fn main_menu_input(
     if is_confirm(&keyboard, &joystick) {
         match selection.index {
             0 => {
-                // PLAY - go to unified faction select
-                transitions.send(TransitionEvent::to(GameState::FactionSelect));
+                // PLAY - go to module select
+                transitions.send(TransitionEvent::to(GameState::ModuleSelect));
             }
             1 => {
                 // OPTIONS - go to options menu
@@ -465,6 +487,246 @@ fn main_menu_input(
     // Quick quit
     if keyboard.just_pressed(KeyCode::Escape) || joystick.back() {
         exit.send(AppExit::Success);
+    }
+}
+
+// ============================================================================
+// Module Select
+// ============================================================================
+
+/// Run condition: is the active module Elder Fleet (default)?
+fn is_elder_fleet(active_module: Res<ActiveModule>) -> bool {
+    active_module.is_elder_fleet()
+}
+
+fn spawn_module_select(mut commands: Commands, mut selection: ResMut<MenuSelection>) {
+    selection.index = 0;
+    selection.total = 2; // Elder Fleet, Caldari vs Gallente
+
+    commands
+        .spawn((
+            ModuleSelectRoot,
+            Node {
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                row_gap: Val::Px(20.0),
+                ..default()
+            },
+            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.5)),
+        ))
+        .with_children(|parent| {
+            // Title
+            parent.spawn((
+                Text::new("SELECT CAMPAIGN"),
+                TextFont {
+                    font_size: 48.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.8, 0.8, 0.8)),
+            ));
+
+            parent.spawn(Node {
+                height: Val::Px(20.0),
+                ..default()
+            });
+
+            // Module cards container
+            parent
+                .spawn(Node {
+                    flex_direction: FlexDirection::Row,
+                    column_gap: Val::Px(30.0),
+                    ..default()
+                })
+                .with_children(|row| {
+                    // Elder Fleet card
+                    spawn_module_card(
+                        row,
+                        0,
+                        "THE ELDER FLEET",
+                        "Minmatar Liberation",
+                        "Play as any faction against their rival.\n13 missions across 3 acts.",
+                        Color::srgb(0.8, 0.5, 0.2), // Minmatar orange
+                        "⚔",
+                    );
+
+                    // Caldari vs Gallente card
+                    spawn_module_card(
+                        row,
+                        1,
+                        "CALDARI PRIME",
+                        "Faction Warfare",
+                        "Caldari vs Gallente conflict.\n5 missions of brutal combat.",
+                        Color::srgb(0.2, 0.4, 0.7), // Caldari blue
+                        "◆",
+                    );
+                });
+
+            parent.spawn(Node {
+                height: Val::Px(30.0),
+                ..default()
+            });
+
+            // Instructions
+            parent.spawn((
+                Text::new("← → to select • SPACE/A to confirm • ESC/B to back"),
+                TextFont {
+                    font_size: 14.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.4, 0.4, 0.4)),
+            ));
+        });
+}
+
+fn spawn_module_card(
+    parent: &mut ChildBuilder,
+    index: usize,
+    title: &str,
+    subtitle: &str,
+    description: &str,
+    color: Color,
+    symbol: &str,
+) {
+    parent
+        .spawn((
+            MenuItem { index },
+            Node {
+                width: Val::Px(280.0),
+                height: Val::Px(320.0),
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                padding: UiRect::all(Val::Px(20.0)),
+                border: UiRect::all(Val::Px(3.0)),
+                row_gap: Val::Px(12.0),
+                ..default()
+            },
+            BackgroundColor(color.with_alpha(0.2)),
+            BorderColor(color.with_alpha(0.5)),
+        ))
+        .with_children(|card| {
+            // Symbol
+            card.spawn((
+                Node {
+                    width: Val::Px(80.0),
+                    height: Val::Px(80.0),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    border: UiRect::all(Val::Px(2.0)),
+                    margin: UiRect::bottom(Val::Px(10.0)),
+                    ..default()
+                },
+                BackgroundColor(color.with_alpha(0.4)),
+                BorderColor(color),
+            ))
+            .with_children(|emblem| {
+                emblem.spawn((
+                    Text::new(symbol),
+                    TextFont {
+                        font_size: 48.0,
+                        ..default()
+                    },
+                    TextColor(color),
+                ));
+            });
+
+            // Title
+            card.spawn((
+                Text::new(title),
+                TextFont {
+                    font_size: 24.0,
+                    ..default()
+                },
+                TextColor(Color::WHITE),
+            ));
+
+            // Subtitle
+            card.spawn((
+                Text::new(subtitle),
+                TextFont {
+                    font_size: 16.0,
+                    ..default()
+                },
+                TextColor(color),
+            ));
+
+            // Description
+            card.spawn((
+                Text::new(description),
+                TextFont {
+                    font_size: 14.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.6, 0.6, 0.6)),
+                Node {
+                    max_width: Val::Px(240.0),
+                    ..default()
+                },
+            ));
+        });
+}
+
+fn module_select_input(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    joystick: Res<JoystickState>,
+    mut selection: ResMut<MenuSelection>,
+    mut active_module: ResMut<ActiveModule>,
+    time: Res<Time>,
+    mut transitions: EventWriter<TransitionEvent>,
+    mut cards: Query<(&MenuItem, &mut BackgroundColor, &mut BorderColor), With<ModuleSelectRoot>>,
+) {
+    selection.cooldown -= time.delta_secs();
+
+    // Navigation
+    let nav = get_nav_input(&keyboard, &joystick);
+    if nav != 0 && selection.cooldown <= 0.0 {
+        selection.index =
+            (selection.index as i32 + nav).rem_euclid(selection.total as i32) as usize;
+        selection.cooldown = MENU_NAV_COOLDOWN;
+    }
+
+    // Update card highlights
+    let colors = [
+        Color::srgb(0.8, 0.5, 0.2), // Elder Fleet orange
+        Color::srgb(0.2, 0.4, 0.7), // Caldari blue
+    ];
+
+    for (item, mut bg, mut border) in cards.iter_mut() {
+        let color = colors[item.index];
+        let is_selected = item.index == selection.index;
+
+        if is_selected {
+            *bg = BackgroundColor(color.with_alpha(0.4));
+            *border = BorderColor(color);
+        } else {
+            *bg = BackgroundColor(color.with_alpha(0.2));
+            *border = BorderColor(color.with_alpha(0.5));
+        }
+    }
+
+    // Confirm selection
+    if is_confirm(&keyboard, &joystick) {
+        match selection.index {
+            0 => {
+                // Elder Fleet
+                active_module.set_module("elder_fleet");
+                info!("Selected Elder Fleet campaign");
+            }
+            1 => {
+                // Caldari vs Gallente
+                active_module.set_module("caldari_gallente");
+                info!("Selected Caldari vs Gallente campaign");
+            }
+            _ => {}
+        }
+        transitions.send(TransitionEvent::to(GameState::FactionSelect));
+    }
+
+    // Back to main menu
+    if keyboard.just_pressed(KeyCode::Escape) || joystick.back() {
+        transitions.send(TransitionEvent::to(GameState::MainMenu));
     }
 }
 
@@ -1150,9 +1412,9 @@ fn faction_select_input(
         next_state.set(GameState::DifficultySelect);
     }
 
-    // Back to main menu
+    // Back to module select
     if keyboard.just_pressed(KeyCode::Escape) || joystick.back() {
-        next_state.set(GameState::MainMenu);
+        next_state.set(GameState::ModuleSelect);
     }
 }
 

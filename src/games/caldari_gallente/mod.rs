@@ -3,7 +3,7 @@
 //! Caldari vs Gallente faction warfare over Caldari Prime.
 
 use super::{ActiveModule, FactionInfo, GameModuleInfo, ModuleRegistry};
-use crate::core::GameState;
+use crate::core::{Faction, GameSession, GameState};
 use crate::systems::JoystickState;
 use bevy::prelude::*;
 
@@ -20,17 +20,30 @@ impl Plugin for CaldariGallentePlugin {
         // Register module
         app.add_systems(Startup, register_module);
 
-        // Faction select screen
-        app.add_systems(OnEnter(GameState::FactionSelect), spawn_faction_select)
-            .add_systems(
-                Update,
-                faction_select_input.run_if(in_state(GameState::FactionSelect)),
-            )
-            .add_systems(OnExit(GameState::FactionSelect), despawn_faction_select);
+        // Faction select screen - only when this module is active
+        app.add_systems(
+            OnEnter(GameState::FactionSelect),
+            spawn_faction_select.run_if(is_caldari_gallente),
+        )
+        .add_systems(
+            Update,
+            faction_select_input
+                .run_if(in_state(GameState::FactionSelect))
+                .run_if(is_caldari_gallente),
+        )
+        .add_systems(
+            OnExit(GameState::FactionSelect),
+            despawn_faction_select.run_if(is_caldari_gallente),
+        );
 
         // Initialize ship pools resource
         app.init_resource::<CaldariGallenteShips>();
     }
+}
+
+/// Run condition: is the active module Caldari vs Gallente?
+fn is_caldari_gallente(active_module: Res<ActiveModule>) -> bool {
+    active_module.is_caldari_gallente()
 }
 
 fn register_module(mut registry: ResMut<ModuleRegistry>) {
@@ -414,6 +427,7 @@ fn faction_select_input(
     mut state: ResMut<FactionSelectState>,
     mut next_state: ResMut<NextState<GameState>>,
     mut active_module: ResMut<ActiveModule>,
+    mut session: ResMut<GameSession>,
     mut panels: Query<(&FactionPanel, &mut BorderColor)>,
     mut arrows: Query<(&SelectionArrow, &mut TextColor)>,
 ) {
@@ -479,20 +493,28 @@ fn faction_select_input(
         || keyboard.just_pressed(KeyCode::Enter)
         || joystick.confirm()
     {
-        let (player, enemy) = if state.selected == 0 {
-            ("caldari", "gallente")
+        let (player_faction, enemy_faction) = if state.selected == 0 {
+            (Faction::Caldari, Faction::Gallente)
         } else {
-            ("gallente", "caldari")
+            (Faction::Gallente, Faction::Caldari)
         };
 
-        active_module.set_faction(player, enemy);
+        // Set both ActiveModule and GameSession for compatibility
+        active_module.set_faction(player_faction.short_name(), enemy_faction.short_name());
+        *session = GameSession::new(player_faction, enemy_faction);
+
+        info!(
+            "Selected {} vs {}",
+            player_faction.name(),
+            enemy_faction.name()
+        );
         next_state.set(GameState::DifficultySelect);
     }
 
-    // Back to module select / main menu
+    // Back to module select
     if keyboard.just_pressed(KeyCode::Escape) || joystick.back() {
         active_module.module_id = None;
-        next_state.set(GameState::MainMenu);
+        next_state.set(GameState::ModuleSelect);
     }
 }
 
