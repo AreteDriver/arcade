@@ -8,7 +8,9 @@
 use bevy::audio::{PlaybackMode, PlaybackSettings, Volume};
 use bevy::prelude::*;
 use std::f32::consts::PI;
+#[cfg(not(target_arch = "wasm32"))]
 use std::io::Cursor;
+#[cfg(not(target_arch = "wasm32"))]
 use std::sync::Arc;
 
 use crate::core::*;
@@ -515,6 +517,7 @@ fn handle_state_music_transitions(
 // =============================================================================
 
 /// Create AudioSource from samples
+#[cfg(not(target_arch = "wasm32"))]
 fn create_audio_source(samples: &[f32], sample_rate: u32) -> Option<AudioSource> {
     let spec = hound::WavSpec {
         channels: 1,
@@ -550,4 +553,10 @@ fn create_audio_source(samples: &[f32], sample_rate: u32) -> Option<AudioSource>
     Some(AudioSource {
         bytes: Arc::from(wav_data.into_boxed_slice()),
     })
+}
+
+/// WASM stub - no procedural audio generation
+#[cfg(target_arch = "wasm32")]
+fn create_audio_source(_samples: &[f32], _sample_rate: u32) -> Option<AudioSource> {
+    None
 }

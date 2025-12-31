@@ -7,7 +7,9 @@
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+#[cfg(not(target_arch = "wasm32"))]
 use std::fs;
+#[cfg(not(target_arch = "wasm32"))]
 use std::path::PathBuf;
 
 /// Save system plugin
@@ -72,7 +74,8 @@ impl Default for GameSettings {
 }
 
 impl SaveData {
-    /// Get save file path
+    /// Get save file path (native only)
+    #[cfg(not(target_arch = "wasm32"))]
     fn save_path() -> PathBuf {
         dirs::data_dir()
             .unwrap_or_else(|| PathBuf::from("."))
@@ -80,7 +83,8 @@ impl SaveData {
             .join("save.json")
     }
 
-    /// Load from disk
+    /// Load from disk (native)
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn load() -> Self {
         let path = Self::save_path();
         if path.exists() {
@@ -99,7 +103,27 @@ impl SaveData {
         Self::default()
     }
 
-    /// Save to disk
+    /// Load from localStorage (WASM)
+    #[cfg(target_arch = "wasm32")]
+    pub fn load() -> Self {
+        use web_sys::window;
+
+        if let Some(window) = window() {
+            if let Ok(Some(storage)) = window.local_storage() {
+                if let Ok(Some(data)) = storage.get_item("eve_rebellion_save") {
+                    if let Ok(save) = serde_json::from_str(&data) {
+                        info!("Loaded save data from localStorage");
+                        return save;
+                    }
+                }
+            }
+        }
+        info!("No save data found, using defaults");
+        Self::default()
+    }
+
+    /// Save to disk (native)
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn save(&self) {
         let path = Self::save_path();
 
@@ -120,6 +144,22 @@ impl SaveData {
                 }
             }
             Err(e) => warn!("Failed to serialize save data: {}", e),
+        }
+    }
+
+    /// Save to localStorage (WASM)
+    #[cfg(target_arch = "wasm32")]
+    pub fn save(&self) {
+        use web_sys::window;
+
+        if let Some(window) = window() {
+            if let Ok(Some(storage)) = window.local_storage() {
+                if let Ok(data) = serde_json::to_string(self) {
+                    if storage.set_item("eve_rebellion_save", &data).is_ok() {
+                        info!("Saved progress to localStorage");
+                    }
+                }
+            }
         }
     }
 

@@ -1,6 +1,6 @@
 [package]
 name = "eve_rebellion"
-version = "1.1.0"
+version = "1.2.0"
 edition = "2021"
 authors = ["ARETE"]
 description = "EVE Online arcade shooter suite - Rust/Bevy rewrite"
@@ -35,6 +35,7 @@ hound = "3.5"
 wasm-bindgen = "0.2"
 console_error_panic_hook = "0.1"
 web-sys = { version = "0.3", features = ["Window", "Storage"] }
+getrandom = { version = "0.3", features = ["wasm_js"] }
 
 # Game Engine - Linux with x11/wayland
 [target.'cfg(target_os = "linux")'.dependencies]
@@ -113,12 +114,13 @@ bevy = { version = "0.15", default-features = false, features = [
     "wav",
 ] }
 
-# Game Engine - WASM (no multi-threading, no audio codecs)
+# Game Engine - WASM (no multi-threading, no vorbis/wav codecs)
 [target.'cfg(target_arch = "wasm32")'.dependencies.bevy]
 version = "0.15"
 default-features = false
 features = [
     "bevy_asset",
+    "bevy_audio",
     "bevy_color",
     "bevy_core_pipeline",
     "bevy_gizmos",

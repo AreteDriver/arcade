@@ -8,6 +8,7 @@
 use bevy::audio::{PlaybackMode, Volume};
 use bevy::prelude::*;
 use std::f32::consts::PI;
+#[cfg(not(target_arch = "wasm32"))]
 use std::io::Cursor;
 
 use crate::core::*;
@@ -342,6 +343,7 @@ fn generate_hull_hit() -> Option<AudioSource> {
 }
 
 /// Create AudioSource from f32 samples using hound for proper WAV encoding
+#[cfg(not(target_arch = "wasm32"))]
 fn create_audio_source(samples: &[f32], sample_rate: u32) -> Option<AudioSource> {
     use std::sync::Arc;
 
@@ -383,6 +385,12 @@ fn create_audio_source(samples: &[f32], sample_rate: u32) -> Option<AudioSource>
     Some(AudioSource {
         bytes: Arc::from(wav_data.into_boxed_slice()),
     })
+}
+
+/// WASM stub - no procedural audio generation
+#[cfg(target_arch = "wasm32")]
+fn create_audio_source(_samples: &[f32], _sample_rate: u32) -> Option<AudioSource> {
+    None
 }
 
 /// Play weapon firing sounds

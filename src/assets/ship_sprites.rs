@@ -98,7 +98,8 @@ const SHIPS_TO_LOAD: &[u32] = &[
     24483, // Nidhoggur (Minmatar carrier)
 ];
 
-/// Setup the sprite cache directory
+/// Setup the sprite cache directory (native only)
+#[cfg(not(target_arch = "wasm32"))]
 fn setup_sprite_cache(mut cache: ResMut<ShipSpriteCache>) {
     // Use home directory cache
     let cache_dir = dirs::cache_dir()
@@ -115,7 +116,14 @@ fn setup_sprite_cache(mut cache: ResMut<ShipSpriteCache>) {
     info!("Sprite cache directory: {:?}", cache.cache_dir);
 }
 
-/// Start loading ship sprites
+/// WASM: No cache directory needed
+#[cfg(target_arch = "wasm32")]
+fn setup_sprite_cache(_cache: ResMut<ShipSpriteCache>) {
+    info!("WASM mode: using bundled sprites only");
+}
+
+/// Start loading ship sprites (native - with cache and downloads)
+#[cfg(not(target_arch = "wasm32"))]
 fn start_loading_sprites(mut cache: ResMut<ShipSpriteCache>, mut images: ResMut<Assets<Image>>) {
     // Ensure cache_dir is set (in case setup hasn't run yet)
     if cache.cache_dir.as_os_str().is_empty() {
@@ -187,6 +195,37 @@ fn start_loading_sprites(mut cache: ResMut<ShipSpriteCache>, mut images: ResMut<
     }
 }
 
+/// Start loading ship sprites (WASM - bundled only, no downloads)
+#[cfg(target_arch = "wasm32")]
+fn start_loading_sprites(mut cache: ResMut<ShipSpriteCache>, mut images: ResMut<Assets<Image>>) {
+    info!(
+        "Loading {} ship sprites (WASM mode)...",
+        SHIPS_TO_LOAD.len()
+    );
+
+    let bundled_dir = PathBuf::from(BUNDLED_SHIPS_DIR);
+    let mut loaded = 0;
+
+    for &type_id in SHIPS_TO_LOAD {
+        let bundled_path = bundled_dir.join(format!("{}.png", type_id));
+        if bundled_path.exists() {
+            match load_image_file(&bundled_path) {
+                Ok(image) => {
+                    let handle = images.add(image);
+                    cache.sprites.insert(type_id, handle);
+                    loaded += 1;
+                }
+                Err(e) => {
+                    warn!("Failed to load sprite {}: {}", type_id, e);
+                }
+            }
+        }
+    }
+
+    info!("Loaded {} bundled sprites", loaded);
+    cache.ready = true;
+}
+
 /// Load an image file (JPEG or PNG) and convert to Bevy Image
 fn load_image_file(path: &PathBuf) -> Result<Image, String> {
     let bytes = fs::read(path).map_err(|e| e.to_string())?;
@@ -215,7 +254,8 @@ fn load_image_file(path: &PathBuf) -> Result<Image, String> {
     ))
 }
 
-/// Load an image from downloaded bytes (needs background removal)
+/// Load an image from downloaded bytes (needs background removal) - native only
+#[cfg(not(target_arch = "wasm32"))]
 fn load_downloaded_image(path: &PathBuf) -> Result<Image, String> {
     let bytes = fs::read(path).map_err(|e| e.to_string())?;
 
@@ -242,7 +282,8 @@ fn load_downloaded_image(path: &PathBuf) -> Result<Image, String> {
     ))
 }
 
-/// Remove black background from ship sprites and smooth edges
+/// Remove black background from ship sprites and smooth edges - native only
+#[cfg(not(target_arch = "wasm32"))]
 fn remove_black_background(img: &mut image::RgbaImage) {
     let (width, height) = img.dimensions();
 
@@ -271,7 +312,8 @@ fn remove_black_background(img: &mut image::RgbaImage) {
     }
 }
 
-/// Download sprites in background (blocking for now, should be async)
+/// Download sprites in background (native only)
+#[cfg(not(target_arch = "wasm32"))]
 fn download_sprites(type_ids: Vec<u32>, cache_dir: PathBuf) {
     std::thread::spawn(move || {
         for type_id in type_ids {
@@ -291,7 +333,8 @@ fn download_sprites(type_ids: Vec<u32>, cache_dir: PathBuf) {
     });
 }
 
-/// Download a single image (blocking)
+/// Download a single image (native only)
+#[cfg(not(target_arch = "wasm32"))]
 fn download_image(
     url: &str,
     path: &PathBuf,
@@ -308,7 +351,8 @@ fn download_image(
     Ok(())
 }
 
-/// Check if sprites are loaded and transition state
+/// Check if sprites are loaded and transition state (native - handles downloads)
+#[cfg(not(target_arch = "wasm32"))]
 fn check_sprite_loading(
     mut cache: ResMut<ShipSpriteCache>,
     mut images: ResMut<Assets<Image>>,
@@ -364,10 +408,25 @@ fn check_sprite_loading(
     }
 }
 
-/// Helper to get cache dir (for external use)
+/// Check if sprites are loaded and transition state (WASM - immediate)
+#[cfg(target_arch = "wasm32")]
+fn check_sprite_loading(cache: Res<ShipSpriteCache>, mut next_state: ResMut<NextState<GameState>>) {
+    if cache.ready {
+        next_state.set(GameState::MainMenu);
+    }
+}
+
+/// Helper to get cache dir (native only)
+#[cfg(not(target_arch = "wasm32"))]
 pub fn get_sprite_cache_dir() -> PathBuf {
     dirs::cache_dir()
         .unwrap_or_else(|| PathBuf::from("."))
         .join("eve_rebellion")
         .join("sprites")
+}
+
+/// WASM stub
+#[cfg(target_arch = "wasm32")]
+pub fn get_sprite_cache_dir() -> PathBuf {
+    PathBuf::new()
 }
