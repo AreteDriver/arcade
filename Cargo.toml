@@ -11,13 +11,6 @@ repository = "https://github.com/AreteDriver/EVE_Rebellion"
 # UI
 bevy_egui = "0.31"
 
-# Async/HTTP for ESI
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
-reqwest = { version = "0.12", features = ["json", "blocking"] }
-
-# Directories
-dirs = "5"
-
 # Serialization
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -25,13 +18,23 @@ serde_json = "1"
 # Utils
 rand = "0.8"
 fastrand = "2"
-libc = "0.2"
-
-# Audio generation
-hound = "3.5"
 
 # Image loading (EVE server returns JPEG despite .png extension)
 image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
+
+# Native-only dependencies (not WASM)
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+reqwest = { version = "0.12", features = ["json", "blocking"] }
+dirs = "5"
+libc = "0.2"
+hound = "3.5"
+
+# WASM dependencies
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+console_error_panic_hook = "0.1"
+web-sys = { version = "0.3", features = ["Window", "Storage"] }
 
 # Game Engine - Linux with x11/wayland
 [target.'cfg(target_os = "linux")'.dependencies]
@@ -110,6 +113,30 @@ bevy = { version = "0.15", default-features = false, features = [
     "wav",
 ] }
 
+# Game Engine - WASM (no multi-threading, no audio codecs)
+[target.'cfg(target_arch = "wasm32")'.dependencies.bevy]
+version = "0.15"
+default-features = false
+features = [
+    "bevy_asset",
+    "bevy_color",
+    "bevy_core_pipeline",
+    "bevy_gizmos",
+    "bevy_gltf",
+    "bevy_pbr",
+    "bevy_picking",
+    "bevy_render",
+    "bevy_scene",
+    "bevy_sprite",
+    "bevy_state",
+    "bevy_text",
+    "bevy_ui",
+    "bevy_winit",
+    "default_font",
+    "png",
+    "webgl2",
+]
+
 [dev-dependencies]
 bevy = { version = "0.15", default-features = false, features = ["dynamic_linking"] }
 
@@ -122,3 +149,9 @@ opt-level = 3
 [profile.release]
 lto = "thin"
 codegen-units = 1
+
+# WASM release profile - optimize for size
+[profile.wasm-release]
+inherits = "release"
+opt-level = "s"
+lto = true
