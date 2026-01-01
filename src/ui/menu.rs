@@ -448,7 +448,7 @@ fn spawn_main_menu(
             });
 
             parent.spawn((
-                Text::new("Press SPACE/ENTER or A to select"),
+                Text::new("↑↓ Navigate • A/ENTER Select • ESC Quit"),
                 TextFont {
                     font_size: 14.0,
                     ..default()
@@ -602,7 +602,7 @@ fn spawn_module_select(mut commands: Commands, mut selection: ResMut<MenuSelecti
 
             // Instructions
             parent.spawn((
-                Text::new("← → to select • SPACE/A to confirm • ESC/B to back"),
+                Text::new("← → Navigate • A/ENTER Select • B/ESC Back"),
                 TextFont {
                     font_size: 14.0,
                     ..default()
@@ -1163,7 +1163,7 @@ fn spawn_faction_select(
 
             // Instructions
             parent.spawn((
-                Text::new("← → ↑ ↓ to select • SPACE/A to confirm • ESC/B to back"),
+                Text::new("← → ↑ ↓ Navigate • A/ENTER Select • B/ESC Back"),
                 TextFont {
                     font_size: 14.0,
                     ..default()
@@ -1517,7 +1517,7 @@ fn spawn_difficulty_menu(mut commands: Commands, mut selection: ResMut<MenuSelec
             });
 
             parent.spawn((
-                Text::new("Press B/ESC to go back"),
+                Text::new("↑↓ Navigate • A/ENTER Select • B/ESC Back"),
                 TextFont {
                     font_size: 14.0,
                     ..default()
@@ -1710,7 +1710,7 @@ fn spawn_stage_select(
 
             // Instructions
             parent.spawn((
-                Text::new("← → ↑ ↓ to select • SPACE to play • ESC to back"),
+                Text::new("← → ↑ ↓ Navigate • A/ENTER Select • B/ESC Back"),
                 TextFont {
                     font_size: 14.0,
                     ..default()
@@ -2107,7 +2107,7 @@ fn spawn_ship_menu(
 
             // Navigation hint
             parent.spawn((
-                Text::new("↑↓ Navigate • Enter/A to Select • ESC/B to go back"),
+                Text::new("↑↓ Navigate • A/ENTER Select • B/ESC Back"),
                 TextFont {
                     font_size: 12.0,
                     ..default()
@@ -2648,7 +2648,7 @@ fn spawn_pause_menu(
 
             // Controls hint
             parent.spawn((
-                Text::new("↑↓ Navigate • SPACE/A Select • ESC Resume"),
+                Text::new("↑↓ Navigate • A/ENTER Select • START/ESC Resume"),
                 TextFont {
                     font_size: 12.0,
                     ..default()
@@ -3014,6 +3014,16 @@ fn spawn_death_screen(
                     ..default()
                 },
                 TextColor(Color::srgb(0.4, 0.4, 0.4)),
+            ));
+
+            // Controller hint
+            parent.spawn((
+                Text::new("← → Navigate • A/ENTER Select • B/ESC Quit"),
+                TextFont {
+                    font_size: 12.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.3, 0.3, 0.3)),
             ));
         });
 }
@@ -3383,12 +3393,12 @@ fn spawn_stage_complete(
 
             // Continue prompt
             parent.spawn((
-                Text::new("Press SPACE to continue"),
+                Text::new("A/ENTER Continue • B/ESC Quit"),
                 TextFont {
-                    font_size: 18.0,
+                    font_size: 14.0,
                     ..default()
                 },
-                TextColor(Color::srgb(0.7, 0.7, 0.7)),
+                TextColor(Color::srgb(0.5, 0.5, 0.5)),
             ));
         });
 }
@@ -3699,6 +3709,16 @@ fn spawn_victory_screen(
                     ..default()
                 },
                 TextColor(COLOR_MINMATAR),
+            ));
+
+            // Controller hint
+            parent.spawn((
+                Text::new("← → Navigate • A/ENTER Select"),
+                TextFont {
+                    font_size: 12.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.3, 0.3, 0.3)),
             ));
         });
 }

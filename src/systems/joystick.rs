@@ -201,6 +201,18 @@ impl JoystickState {
     pub fn berserk(&self) -> bool {
         self.just_pressed(3)
     }
+
+    /// Check if X button just pressed - edge triggered
+    /// Xbox: X (button 2), PlayStation: Square
+    /// Used for secondary ability (e.g., special weapon)
+    pub fn x_button(&self) -> bool {
+        self.just_pressed(2)
+    }
+
+    /// Check if left trigger is pressed (held state)
+    pub fn left_trigger_pressed(&self) -> bool {
+        self.left_trigger > 0.1
+    }
 }
 
 // Unix-specific implementation
