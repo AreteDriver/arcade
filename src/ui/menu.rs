@@ -2593,13 +2593,32 @@ struct PauseSelection {
     index: usize,
 }
 
-const PAUSE_OPTIONS: &[&str] = &["RESUME", "RESTART MISSION", "QUIT TO MENU"];
+/// Pause menu items: 0=Resume, 1=Music, 2=SFX, 3=Restart, 4=Quit
+const PAUSE_ITEM_COUNT: usize = 5;
+const PAUSE_IDX_RESUME: usize = 0;
+const PAUSE_IDX_MUSIC: usize = 1;
+const PAUSE_IDX_SFX: usize = 2;
+const PAUSE_IDX_RESTART: usize = 3;
+const PAUSE_IDX_QUIT: usize = 4;
+
+/// Marker for volume slider bar fill
+#[derive(Component)]
+struct VolumeSliderFill {
+    is_music: bool, // true = music, false = sfx
+}
+
+/// Marker for volume value text
+#[derive(Component)]
+struct VolumeValueText {
+    is_music: bool,
+}
 
 fn spawn_pause_menu(
     mut commands: Commands,
     campaign: Res<CampaignState>,
     score: Res<ScoreSystem>,
     session: Res<GameSession>,
+    sound_settings: Res<crate::systems::SoundSettings>,
 ) {
     commands.insert_resource(PauseSelection::default());
 
@@ -2619,7 +2638,7 @@ fn spawn_pause_menu(
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 flex_direction: FlexDirection::Column,
-                row_gap: Val::Px(15.0),
+                row_gap: Val::Px(12.0),
                 ..default()
             },
             BackgroundColor(Color::srgba(0.0, 0.0, 0.05, 0.85)),
@@ -2660,49 +2679,154 @@ fn spawn_pause_menu(
 
             // Spacer
             parent.spawn(Node {
-                height: Val::Px(25.0),
+                height: Val::Px(20.0),
                 ..default()
             });
 
-            // Menu options
-            for (i, option) in PAUSE_OPTIONS.iter().enumerate() {
-                parent
-                    .spawn((
-                        PauseMenuItem(i),
-                        Node {
-                            padding: UiRect::axes(Val::Px(30.0), Val::Px(12.0)),
-                            ..default()
-                        },
-                        BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.8)),
-                    ))
-                    .with_children(|btn| {
-                        btn.spawn((
-                            PauseMenuItemText(i),
-                            Text::new(*option),
-                            TextFont {
-                                font_size: 22.0,
-                                ..default()
-                            },
-                            TextColor(Color::srgb(0.7, 0.7, 0.7)),
-                        ));
-                    });
-            }
+            // Resume button
+            spawn_pause_menu_item(parent, PAUSE_IDX_RESUME, "RESUME");
+
+            // Volume sliders section
+            parent.spawn(Node {
+                height: Val::Px(8.0),
+                ..default()
+            });
+
+            // Music volume slider
+            spawn_volume_slider(parent, PAUSE_IDX_MUSIC, "MUSIC", sound_settings.music_volume, true);
+
+            // SFX volume slider
+            spawn_volume_slider(parent, PAUSE_IDX_SFX, "SFX", sound_settings.sfx_volume, false);
+
+            parent.spawn(Node {
+                height: Val::Px(8.0),
+                ..default()
+            });
+
+            // Restart button
+            spawn_pause_menu_item(parent, PAUSE_IDX_RESTART, "RESTART MISSION");
+
+            // Quit button
+            spawn_pause_menu_item(parent, PAUSE_IDX_QUIT, "QUIT TO MENU");
 
             // Spacer
             parent.spawn(Node {
-                height: Val::Px(20.0),
+                height: Val::Px(15.0),
                 ..default()
             });
 
             // Controls hint
             parent.spawn((
-                Text::new("↑↓ Navigate • A/ENTER Select • START/ESC Resume"),
+                Text::new("↑↓ Navigate • ←→ Adjust Volume • A/ENTER Select"),
                 TextFont {
                     font_size: 12.0,
                     ..default()
                 },
                 TextColor(Color::srgb(0.35, 0.35, 0.35)),
             ));
+        });
+}
+
+/// Spawn a simple pause menu button item
+fn spawn_pause_menu_item(parent: &mut ChildBuilder, index: usize, label: &str) {
+    parent
+        .spawn((
+            PauseMenuItem(index),
+            Node {
+                padding: UiRect::axes(Val::Px(30.0), Val::Px(10.0)),
+                min_width: Val::Px(280.0),
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.8)),
+        ))
+        .with_children(|btn| {
+            btn.spawn((
+                PauseMenuItemText(index),
+                Text::new(label),
+                TextFont {
+                    font_size: 20.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.7, 0.7, 0.7)),
+            ));
+        });
+}
+
+/// Spawn a volume slider row
+fn spawn_volume_slider(
+    parent: &mut ChildBuilder,
+    index: usize,
+    label: &str,
+    value: f32,
+    is_music: bool,
+) {
+    parent
+        .spawn((
+            PauseMenuItem(index),
+            Node {
+                padding: UiRect::axes(Val::Px(20.0), Val::Px(8.0)),
+                min_width: Val::Px(280.0),
+                flex_direction: FlexDirection::Row,
+                justify_content: JustifyContent::SpaceBetween,
+                align_items: AlignItems::Center,
+                column_gap: Val::Px(15.0),
+                ..default()
+            },
+            BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.8)),
+        ))
+        .with_children(|row| {
+            // Label
+            row.spawn((
+                PauseMenuItemText(index),
+                Text::new(label),
+                TextFont {
+                    font_size: 18.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.6, 0.6, 0.6)),
+            ));
+
+            // Slider container
+            row.spawn(Node {
+                flex_direction: FlexDirection::Row,
+                align_items: AlignItems::Center,
+                column_gap: Val::Px(10.0),
+                ..default()
+            })
+            .with_children(|slider_row| {
+                // Slider background bar
+                slider_row
+                    .spawn(Node {
+                        width: Val::Px(120.0),
+                        height: Val::Px(12.0),
+                        ..default()
+                    })
+                    .insert(BackgroundColor(Color::srgb(0.15, 0.15, 0.15)))
+                    .with_children(|bar| {
+                        // Slider fill
+                        bar.spawn((
+                            VolumeSliderFill { is_music },
+                            Node {
+                                width: Val::Percent(value * 100.0),
+                                height: Val::Percent(100.0),
+                                ..default()
+                            },
+                            BackgroundColor(Color::srgb(0.4, 0.6, 0.8)),
+                        ));
+                    });
+
+                // Value text
+                slider_row.spawn((
+                    VolumeValueText { is_music },
+                    Text::new(format!("{}%", (value * 100.0) as i32)),
+                    TextFont {
+                        font_size: 14.0,
+                        ..default()
+                    },
+                    TextColor(Color::srgb(0.5, 0.5, 0.5)),
+                ));
+            });
         });
 }
 
@@ -2718,19 +2842,58 @@ fn pause_menu_input(
     mut selection: ResMut<PauseSelection>,
     mut next_state: ResMut<NextState<GameState>>,
     mut transitions: EventWriter<TransitionEvent>,
+    mut sound_settings: ResMut<crate::systems::SoundSettings>,
     mut item_query: Query<(&PauseMenuItem, &mut BackgroundColor)>,
     mut text_query: Query<(&PauseMenuItemText, &mut TextColor)>,
+    mut slider_fill_query: Query<(&VolumeSliderFill, &mut Node)>,
+    mut slider_text_query: Query<(&VolumeValueText, &mut Text)>,
     time: Res<Time>,
     mut cooldown: Local<f32>,
 ) {
     *cooldown -= time.delta_secs();
 
-    // Navigation
+    // Navigation (up/down)
     let nav = get_nav_input(&keyboard, &joystick);
     if nav != 0 && *cooldown <= 0.0 {
         selection.index =
-            (selection.index as i32 + nav).rem_euclid(PAUSE_OPTIONS.len() as i32) as usize;
+            (selection.index as i32 + nav).rem_euclid(PAUSE_ITEM_COUNT as i32) as usize;
         *cooldown = MENU_NAV_COOLDOWN;
+    }
+
+    // Horizontal input for volume sliders (left/right)
+    let h_input = get_horizontal_input(&keyboard, &joystick);
+    if h_input != 0 && *cooldown <= 0.0 {
+        let volume_delta = h_input as f32 * 0.05; // 5% per press
+
+        match selection.index {
+            PAUSE_IDX_MUSIC => {
+                sound_settings.music_volume = (sound_settings.music_volume + volume_delta).clamp(0.0, 1.0);
+                *cooldown = 0.08; // Faster repeat for sliders
+            }
+            PAUSE_IDX_SFX => {
+                sound_settings.sfx_volume = (sound_settings.sfx_volume + volume_delta).clamp(0.0, 1.0);
+                *cooldown = 0.08;
+            }
+            _ => {}
+        }
+    }
+
+    // Update slider visuals
+    for (fill, mut node) in slider_fill_query.iter_mut() {
+        let volume = if fill.is_music {
+            sound_settings.music_volume
+        } else {
+            sound_settings.sfx_volume
+        };
+        node.width = Val::Percent(volume * 100.0);
+    }
+    for (text_marker, mut text) in slider_text_query.iter_mut() {
+        let volume = if text_marker.is_music {
+            sound_settings.music_volume
+        } else {
+            sound_settings.sfx_volume
+        };
+        **text = format!("{}%", (volume * 100.0) as i32);
     }
 
     // Update visual selection
@@ -2750,20 +2913,20 @@ fn pause_menu_input(
         }
     }
 
-    // Selection
+    // Selection (confirm button)
     if is_confirm(&keyboard, &joystick) {
         match selection.index {
-            0 => {
-                // Resume
+            PAUSE_IDX_RESUME => {
                 next_state.set(GameState::Playing);
             }
-            1 => {
-                // Restart Mission
+            PAUSE_IDX_RESTART => {
                 transitions.send(TransitionEvent::quick(GameState::Playing));
             }
-            2 => {
-                // Quit to Menu
+            PAUSE_IDX_QUIT => {
                 transitions.send(TransitionEvent::to(GameState::MainMenu));
+            }
+            PAUSE_IDX_MUSIC | PAUSE_IDX_SFX => {
+                // Pressing confirm on sliders does nothing (use left/right)
             }
             _ => {}
         }
@@ -2773,6 +2936,35 @@ fn pause_menu_input(
     if keyboard.just_pressed(KeyCode::Escape) || joystick.start() {
         next_state.set(GameState::Playing);
     }
+}
+
+/// Get horizontal input (-1 left, 0 none, 1 right)
+fn get_horizontal_input(keyboard: &ButtonInput<KeyCode>, joystick: &JoystickState) -> i32 {
+    let mut h = 0;
+
+    // Keyboard
+    if keyboard.pressed(KeyCode::ArrowLeft) || keyboard.pressed(KeyCode::KeyA) {
+        h -= 1;
+    }
+    if keyboard.pressed(KeyCode::ArrowRight) || keyboard.pressed(KeyCode::KeyD) {
+        h += 1;
+    }
+
+    // Joystick d-pad
+    if joystick.dpad_x < 0 {
+        h -= 1;
+    } else if joystick.dpad_x > 0 {
+        h += 1;
+    }
+
+    // Joystick left stick
+    if joystick.left_x < -0.5 {
+        h -= 1;
+    } else if joystick.left_x > 0.5 {
+        h += 1;
+    }
+
+    h.clamp(-1, 1)
 }
 
 // ============================================================================
