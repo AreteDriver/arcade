@@ -354,7 +354,7 @@ pub const MINMATAR_SHIPS: &[ShipDef] = &[
         fire_rate: 12.0,
         damage: 15.0,
         special: "Gyrostabilizer: +100% fire rate",
-        unlock_stage: 2,
+        unlock_stage: 4, // Unlocks after Act 1
     },
     ShipDef {
         type_id: 11400,
@@ -366,7 +366,7 @@ pub const MINMATAR_SHIPS: &[ShipDef] = &[
         fire_rate: 3.0,
         damage: 25.0,
         special: "Rocket Swarm: Tracking missiles",
-        unlock_stage: 3,
+        unlock_stage: 9, // Unlocks after Act 2
     },
 ];
 
@@ -454,7 +454,7 @@ pub const AMARR_SHIPS: &[ShipDef] = &[
         fire_rate: 10.0,
         damage: 8.0,
         special: "Microwarpdrive: Extreme speed",
-        unlock_stage: 2,
+        unlock_stage: 4, // Unlocks after Act 1
     },
     ShipDef {
         type_id: 11184,
@@ -466,7 +466,7 @@ pub const AMARR_SHIPS: &[ShipDef] = &[
         fire_rate: 5.0,
         damage: 15.0,
         special: "Tackle: Slow enemies on hit",
-        unlock_stage: 3,
+        unlock_stage: 9, // Unlocks after Act 2
     },
 ];
 
@@ -574,7 +574,7 @@ pub const CALDARI_SHIPS: &[ShipDef] = &[
         fire_rate: 5.0,
         damage: 20.0,
         special: "Assault Launchers: +50% damage",
-        unlock_stage: 2,
+        unlock_stage: 4, // Unlocks after Act 1
     },
     ShipDef {
         type_id: 11387,
@@ -586,7 +586,7 @@ pub const CALDARI_SHIPS: &[ShipDef] = &[
         fire_rate: 3.0,
         damage: 28.0,
         special: "Optimal Range: Bonus at distance",
-        unlock_stage: 2,
+        unlock_stage: 4, // Unlocks after Act 1
     },
     ShipDef {
         type_id: 35683,
@@ -598,7 +598,7 @@ pub const CALDARI_SHIPS: &[ShipDef] = &[
         fire_rate: 6.0,
         damage: 22.0,
         special: "Mode Switch: Defense/Speed/Sniper",
-        unlock_stage: 4,
+        unlock_stage: 9, // Unlocks after Act 2
     },
 ];
 
@@ -706,7 +706,7 @@ pub const GALLENTE_SHIPS: &[ShipDef] = &[
         fire_rate: 10.0,
         damage: 14.0,
         special: "Void: Maximum damage ammo",
-        unlock_stage: 2,
+        unlock_stage: 4, // Unlocks after Act 1
     },
     ShipDef {
         type_id: 11377,
@@ -718,7 +718,7 @@ pub const GALLENTE_SHIPS: &[ShipDef] = &[
         fire_rate: 5.0,
         damage: 10.0,
         special: "Heavy Drones: 3 strong fighters",
-        unlock_stage: 2,
+        unlock_stage: 4, // Unlocks after Act 1
     },
     ShipDef {
         type_id: 35685,
@@ -730,7 +730,7 @@ pub const GALLENTE_SHIPS: &[ShipDef] = &[
         fire_rate: 10.0,
         damage: 18.0,
         special: "Mode Switch: Defense/Speed/Sniper",
-        unlock_stage: 4,
+        unlock_stage: 9, // Unlocks after Act 2
     },
 ];
 
@@ -998,19 +998,19 @@ mod tests {
     }
 
     #[test]
-    fn wolf_requires_stage_2_unlock() {
+    fn wolf_requires_stage_4_unlock() {
         let ships = Faction::Minmatar.player_ships();
         let wolf = ships.iter().find(|s| s.name == "Wolf");
         assert!(wolf.is_some());
-        assert_eq!(wolf.unwrap().unlock_stage, 2);
+        assert_eq!(wolf.unwrap().unlock_stage, 4); // After Act 1
     }
 
     #[test]
-    fn jaguar_requires_stage_3_unlock() {
+    fn jaguar_requires_stage_9_unlock() {
         let ships = Faction::Minmatar.player_ships();
         let jaguar = ships.iter().find(|s| s.name == "Jaguar");
         assert!(jaguar.is_some());
-        assert_eq!(jaguar.unwrap().unlock_stage, 3);
+        assert_eq!(jaguar.unwrap().unlock_stage, 9); // After Act 2
     }
 
     #[test]
