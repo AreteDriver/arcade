@@ -28,6 +28,7 @@ impl Plugin for EffectsPlugin {
                     update_explosions,
                     update_screen_shake,
                     update_screen_flash,
+                    update_berserk_tint,
                     update_camera_zoom,
                     handle_explosion_events,
                     spawn_engine_trails,
@@ -507,6 +508,12 @@ impl ScreenFlash {
     pub fn large(&mut self) {
         self.white(0.5);
     }
+
+    /// Trigger red flash for berserk activation
+    pub fn berserk(&mut self) {
+        self.colored(Color::srgb(1.0, 0.2, 0.2), 0.6);
+        self.fade_speed = 3.0;
+    }
 }
 
 /// Marker component for screen flash overlay sprite
@@ -543,6 +550,47 @@ fn update_screen_flash(
         }
     } else {
         // Remove overlay when done
+        for (entity, _) in overlay_query.iter() {
+            commands.entity(entity).despawn();
+        }
+    }
+}
+
+// =============================================================================
+// BERSERK SCREEN TINT
+// =============================================================================
+
+/// Marker component for berserk tint overlay
+#[derive(Component)]
+pub struct BerserkTintOverlay;
+
+/// Berserk screen tint effect - red tint while berserk is active
+fn update_berserk_tint(
+    mut commands: Commands,
+    berserk: Res<BerserkSystem>,
+    mut overlay_query: Query<(Entity, &mut Sprite), With<BerserkTintOverlay>>,
+) {
+    if berserk.is_active {
+        // Pulse the tint based on remaining time
+        let pulse = (berserk.timer * 8.0).sin().abs() * 0.1;
+        let alpha = 0.15 + pulse;
+
+        if let Ok((_, mut sprite)) = overlay_query.get_single_mut() {
+            sprite.color = Color::srgba(1.0, 0.1, 0.1, alpha);
+        } else {
+            // Spawn tint overlay
+            commands.spawn((
+                BerserkTintOverlay,
+                Sprite {
+                    color: Color::srgba(1.0, 0.1, 0.1, alpha),
+                    custom_size: Some(Vec2::new(SCREEN_WIDTH + 100.0, SCREEN_HEIGHT + 100.0)),
+                    ..default()
+                },
+                Transform::from_xyz(0.0, 0.0, LAYER_HUD + 5.0), // Below flash, above game
+            ));
+        }
+    } else {
+        // Remove tint when berserk ends
         for (entity, _) in overlay_query.iter() {
             commands.entity(entity).despawn();
         }

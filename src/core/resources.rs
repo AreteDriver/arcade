@@ -134,102 +134,121 @@ impl StyleGrade {
     }
 }
 
-/// Berserk mode - activates after proximity kills
-/// Based on design doc: 5 proximity kills (within 80 units), 8 second duration, 2x score
+/// Berserk mode - meter fills from proximity kills, manual activation with B/Y
+/// Based on finishing guide: meter 0-100, manual activation, 5x score, 8 second duration
 #[derive(Debug, Clone, Resource)]
 pub struct BerserkSystem {
-    /// Proximity kill counter (resets on activation or timeout)
-    pub proximity_kills: u32,
-    /// Kills required to activate
-    pub kills_to_activate: u32,
-    /// Proximity range for kills to count
+    /// Berserk meter (0.0 to 100.0)
+    pub meter: f32,
+    /// Meter gained per proximity kill
+    pub meter_per_kill: f32,
+    /// Proximity range for kills to count (closer = more meter)
     pub proximity_range: f32,
-    /// Timer for kill chain (resets if no kill within window)
-    pub chain_timer: f32,
-    /// Chain window (seconds)
-    pub chain_window: f32,
+    /// Meter decay rate when not killing (per second)
+    pub decay_rate: f32,
     /// Whether berserk mode is active
     pub is_active: bool,
     /// Remaining berserk duration
     pub timer: f32,
     /// Total berserk duration
     pub duration: f32,
+    /// Score multiplier when active
+    pub score_multiplier: f32,
+    /// Flash timer for activation effect
+    pub activation_flash: f32,
 }
 
 impl Default for BerserkSystem {
     fn default() -> Self {
         Self {
-            proximity_kills: 0,
-            kills_to_activate: 5,
-            proximity_range: 80.0,
-            chain_timer: 0.0,
-            chain_window: 3.0, // 3 seconds to chain kills
+            meter: 0.0,
+            meter_per_kill: 15.0,       // ~7 close kills to fill
+            proximity_range: 120.0,      // Slightly more forgiving range
+            decay_rate: 5.0,             // Slow decay when not killing
             is_active: false,
             timer: 0.0,
-            duration: 8.0, // Design doc: 8 seconds
+            duration: 8.0,               // 8 seconds when activated
+            score_multiplier: 5.0,       // 5x score as per guide
+            activation_flash: 0.0,
         }
     }
 }
 
 impl BerserkSystem {
-    /// Register a kill. Returns true if berserk activated.
-    /// `distance` is distance from player to killed enemy.
-    pub fn on_kill_at_distance(&mut self, distance: f32) -> bool {
+    /// Register a kill at distance. Fills meter based on proximity.
+    /// Closer kills fill more meter. Returns meter gained.
+    pub fn on_kill_at_distance(&mut self, distance: f32) -> f32 {
         if self.is_active {
-            return false; // Already active
+            return 0.0; // Already active, no meter gain
         }
 
-        // Check if kill is within proximity range
-        if distance <= self.proximity_range {
-            self.proximity_kills += 1;
-            self.chain_timer = self.chain_window;
+        // Calculate meter gain based on proximity (closer = more)
+        let proximity_bonus = if distance <= self.proximity_range {
+            // Linear falloff: point-blank = 100%, max range = 50%
+            let normalized = distance / self.proximity_range;
+            1.0 - (normalized * 0.5)
+        } else {
+            // Outside range: minimal gain
+            0.25
+        };
 
-            // Check if we hit the threshold
-            if self.proximity_kills >= self.kills_to_activate {
-                self.is_active = true;
-                self.timer = self.duration;
-                self.proximity_kills = 0;
-                return true;
-            }
+        let gain = self.meter_per_kill * proximity_bonus;
+        self.meter = (self.meter + gain).min(100.0);
+        gain
+    }
+
+    /// Legacy on_kill for compatibility (assumes point-blank)
+    pub fn on_kill(&mut self) {
+        self.on_kill_at_distance(0.0);
+    }
+
+    /// Check if berserk can be activated (meter full)
+    pub fn can_activate(&self) -> bool {
+        !self.is_active && self.meter >= 100.0
+    }
+
+    /// Try to activate berserk. Returns true if activated.
+    pub fn try_activate(&mut self) -> bool {
+        if self.can_activate() {
+            self.is_active = true;
+            self.timer = self.duration;
+            self.meter = 0.0;
+            self.activation_flash = 0.5; // Half second flash
+            return true;
         }
         false
     }
 
-    /// Legacy on_kill for compatibility (assumes max distance)
-    pub fn on_kill(&mut self) {
-        // Count as proximity kill if called directly
-        self.on_kill_at_distance(0.0);
-    }
-
     /// Update berserk state (call each frame)
     pub fn update(&mut self, dt: f32) {
+        // Update activation flash
+        if self.activation_flash > 0.0 {
+            self.activation_flash = (self.activation_flash - dt).max(0.0);
+        }
+
         if self.is_active {
             self.timer -= dt;
             if self.timer <= 0.0 {
                 self.is_active = false;
             }
         } else {
-            // Decay chain timer
-            if self.chain_timer > 0.0 {
-                self.chain_timer -= dt;
-                if self.chain_timer <= 0.0 {
-                    // Chain broken, reset proximity kills
-                    self.proximity_kills = 0;
-                }
+            // Decay meter slowly when not killing
+            if self.meter > 0.0 {
+                self.meter = (self.meter - self.decay_rate * dt).max(0.0);
             }
         }
     }
 
-    /// Get score multiplier
+    /// Get score multiplier (5x when active)
     pub fn score_mult(&self) -> f32 {
         if self.is_active {
-            2.0
+            self.score_multiplier
         } else {
             1.0
         }
     }
 
-    /// Get damage multiplier
+    /// Get damage multiplier (2x when active)
     pub fn damage_mult(&self) -> f32 {
         if self.is_active {
             2.0
@@ -238,7 +257,7 @@ impl BerserkSystem {
         }
     }
 
-    /// Get speed multiplier
+    /// Get speed multiplier (1.5x when active)
     pub fn speed_mult(&self) -> f32 {
         if self.is_active {
             1.5
@@ -248,12 +267,31 @@ impl BerserkSystem {
     }
 
     /// Get progress toward berserk (0.0 - 1.0)
+    /// When active, shows remaining duration. When inactive, shows meter fill.
     pub fn progress(&self) -> f32 {
         if self.is_active {
             self.timer / self.duration
         } else {
-            self.proximity_kills as f32 / self.kills_to_activate as f32
+            self.meter / 100.0
         }
+    }
+
+    /// Get meter percentage (0.0 - 1.0)
+    pub fn meter_percent(&self) -> f32 {
+        self.meter / 100.0
+    }
+
+    /// Check if activation flash is active (for visual effects)
+    pub fn is_flashing(&self) -> bool {
+        self.activation_flash > 0.0
+    }
+
+    /// Reset berserk state (for new stage)
+    pub fn reset(&mut self) {
+        self.meter = 0.0;
+        self.is_active = false;
+        self.timer = 0.0;
+        self.activation_flash = 0.0;
     }
 }
 
@@ -840,40 +878,51 @@ mod tests {
     #[test]
     fn berserk_default_values() {
         let b = BerserkSystem::default();
-        assert_eq!(b.kills_to_activate, 5);
-        assert_eq!(b.proximity_range, 80.0);
+        assert_eq!(b.meter, 0.0);
+        assert_eq!(b.meter_per_kill, 15.0);
+        assert_eq!(b.proximity_range, 120.0);
         assert_eq!(b.duration, 8.0);
+        assert_eq!(b.score_multiplier, 5.0);
         assert!(!b.is_active);
     }
 
     #[test]
-    fn berserk_proximity_kill_within_range_counts() {
+    fn berserk_proximity_kill_fills_meter() {
         let mut b = BerserkSystem::default();
-        b.on_kill_at_distance(50.0);
-        assert_eq!(b.proximity_kills, 1);
+        let gain = b.on_kill_at_distance(0.0); // Point blank
+        assert!(gain > 0.0);
+        assert!(b.meter > 0.0);
     }
 
     #[test]
-    fn berserk_kill_outside_range_ignored() {
-        let mut b = BerserkSystem::default();
-        b.on_kill_at_distance(100.0);
-        assert_eq!(b.proximity_kills, 0);
+    fn berserk_closer_kills_give_more_meter() {
+        let mut b1 = BerserkSystem::default();
+        let mut b2 = BerserkSystem::default();
+
+        let gain_close = b1.on_kill_at_distance(0.0);
+        let gain_far = b2.on_kill_at_distance(100.0);
+
+        assert!(gain_close > gain_far, "closer kills should give more meter");
     }
 
     #[test]
-    fn berserk_activates_at_threshold() {
+    fn berserk_cannot_activate_when_meter_not_full() {
         let mut b = BerserkSystem::default();
-        for i in 0..4 {
-            assert!(
-                !b.on_kill_at_distance(50.0),
-                "kill {} shouldn't activate",
-                i
-            );
-        }
-        assert!(b.on_kill_at_distance(50.0), "5th kill should activate");
+        b.meter = 50.0;
+        assert!(!b.can_activate());
+        assert!(!b.try_activate());
+        assert!(!b.is_active);
+    }
+
+    #[test]
+    fn berserk_activates_when_meter_full_and_triggered() {
+        let mut b = BerserkSystem::default();
+        b.meter = 100.0;
+        assert!(b.can_activate());
+        assert!(b.try_activate());
         assert!(b.is_active);
         assert_eq!(b.timer, 8.0);
-        assert_eq!(b.proximity_kills, 0); // Reset after activation
+        assert_eq!(b.meter, 0.0); // Reset after activation
     }
 
     #[test]
@@ -884,11 +933,10 @@ mod tests {
         assert_eq!(b.speed_mult(), 1.0);
 
         // Activate
-        for _ in 0..5 {
-            b.on_kill_at_distance(0.0);
-        }
+        b.meter = 100.0;
+        b.try_activate();
 
-        assert_eq!(b.score_mult(), 2.0);
+        assert_eq!(b.score_mult(), 5.0);
         assert_eq!(b.damage_mult(), 2.0);
         assert_eq!(b.speed_mult(), 1.5);
     }
@@ -896,9 +944,8 @@ mod tests {
     #[test]
     fn berserk_duration_decay() {
         let mut b = BerserkSystem::default();
-        for _ in 0..5 {
-            b.on_kill_at_distance(0.0);
-        }
+        b.meter = 100.0;
+        b.try_activate();
         assert!(b.is_active);
 
         b.update(4.0);
@@ -910,16 +957,12 @@ mod tests {
     }
 
     #[test]
-    fn berserk_chain_timeout_resets_proximity_kills() {
+    fn berserk_meter_decays_when_not_killing() {
         let mut b = BerserkSystem::default();
-        b.on_kill_at_distance(50.0);
-        b.on_kill_at_distance(50.0);
-        assert_eq!(b.proximity_kills, 2);
-        assert_eq!(b.chain_timer, 3.0);
+        b.meter = 50.0;
 
-        // Let chain expire
-        b.update(3.1);
-        assert_eq!(b.proximity_kills, 0);
+        b.update(2.0); // 2 seconds at 5.0/s decay = -10
+        assert!((b.meter - 40.0).abs() < 0.1);
     }
 
     #[test]
@@ -927,18 +970,43 @@ mod tests {
         let mut b = BerserkSystem::default();
         assert_eq!(b.progress(), 0.0);
 
-        b.on_kill_at_distance(50.0);
-        b.on_kill_at_distance(50.0);
-        assert!((b.progress() - 0.4).abs() < 0.01); // 2/5
+        b.meter = 50.0;
+        assert!((b.progress() - 0.5).abs() < 0.01); // 50%
 
         // Activate
-        for _ in 0..3 {
-            b.on_kill_at_distance(0.0);
-        }
+        b.meter = 100.0;
+        b.try_activate();
         assert_eq!(b.progress(), 1.0); // Full timer
 
         b.update(4.0);
         assert!((b.progress() - 0.5).abs() < 0.01); // Half timer
+    }
+
+    #[test]
+    fn berserk_reset() {
+        let mut b = BerserkSystem::default();
+        b.meter = 75.0;
+        b.is_active = true;
+        b.timer = 3.0;
+
+        b.reset();
+
+        assert_eq!(b.meter, 0.0);
+        assert!(!b.is_active);
+        assert_eq!(b.timer, 0.0);
+    }
+
+    #[test]
+    fn berserk_activation_flash() {
+        let mut b = BerserkSystem::default();
+        b.meter = 100.0;
+        b.try_activate();
+
+        assert!(b.is_flashing());
+        assert!(b.activation_flash > 0.0);
+
+        b.update(0.6); // Wait past flash duration
+        assert!(!b.is_flashing());
     }
 
     // ==================== DifficultyLevel Tests ====================

@@ -182,11 +182,12 @@ fn player_projectile_enemy_collision(
                     let final_score = (base_score as f32 * berserk.score_mult()) as u64;
                     score.on_kill(final_score);
 
-                    // Check for berserk activation
-                    if berserk.on_kill_at_distance(player_distance) {
+                    // Fill berserk meter based on proximity (closer = more meter)
+                    let meter_gained = berserk.on_kill_at_distance(player_distance);
+                    if meter_gained > 0.0 && berserk.can_activate() {
                         info!(
-                            "BERSERK MODE ACTIVATED! {} proximity kills!",
-                            berserk.kills_to_activate
+                            "BERSERK READY! Press B to activate! (meter: {:.0}%)",
+                            berserk.meter
                         );
                     }
 

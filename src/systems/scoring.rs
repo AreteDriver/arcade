@@ -22,11 +22,14 @@ fn update_score_system(time: Res<Time>, mut score: ResMut<ScoreSystem>) {
     score.update(time.delta_secs());
 }
 
-/// Update berserk meter
+/// Update berserk meter and handle activation input
 fn update_berserk_system(
     time: Res<Time>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    joystick: Res<crate::systems::JoystickState>,
     mut berserk: ResMut<BerserkSystem>,
     mut end_events: EventWriter<BerserkEndedEvent>,
+    mut screen_flash: ResMut<crate::systems::ScreenFlash>,
 ) {
     let was_active = berserk.is_active;
     berserk.update(time.delta_secs());
@@ -36,7 +39,17 @@ fn update_berserk_system(
         end_events.send(BerserkEndedEvent);
         info!("Berserk mode ended!");
     }
+
+    // B key or gamepad Y button to activate berserk when meter is full
+    let activate_pressed = keyboard.just_pressed(KeyCode::KeyB) || joystick.berserk();
+
+    if activate_pressed && berserk.can_activate() {
+        if berserk.try_activate() {
+            info!("BERSERK MODE ACTIVATED! 5x score for 8 seconds!");
+            screen_flash.berserk(); // Red flash on activation
+        }
+    }
 }
 
-// Berserk now auto-activates on 5 proximity kills (within 80 units)
+// Berserk meter fills from proximity kills
 // See collision.rs: player_projectile_enemy_collision

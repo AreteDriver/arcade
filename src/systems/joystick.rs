@@ -195,6 +195,12 @@ impl JoystickState {
     pub fn right_bumper(&self) -> bool {
         self.just_pressed(5)
     }
+
+    /// Check if Y button just pressed (berserk activation) - edge triggered
+    /// Xbox: Y (button 3), PlayStation: Triangle
+    pub fn berserk(&self) -> bool {
+        self.just_pressed(3)
+    }
 }
 
 // Unix-specific implementation
