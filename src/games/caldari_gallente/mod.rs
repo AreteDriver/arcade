@@ -10,6 +10,7 @@ use bevy::prelude::*;
 pub mod campaign;
 pub mod ships;
 
+pub use campaign::{NightmareBoss, NightmareEvent, ShiigeruNightmare};
 pub use ships::*;
 
 /// Caldari/Gallente module plugin
@@ -36,14 +37,184 @@ impl Plugin for CaldariGallentePlugin {
             despawn_faction_select.run_if(is_caldari_gallente),
         );
 
-        // Initialize ship pools resource
+        // Initialize resources
         app.init_resource::<CaldariGallenteShips>();
+        app.init_resource::<ShiigeruNightmare>();
+
+        // Nightmare mode systems
+        app.add_systems(
+            Update,
+            (
+                update_nightmare_mode,
+                spawn_nightmare_enemies,
+                update_nightmare_hud,
+            )
+                .chain()
+                .run_if(in_state(GameState::Playing))
+                .run_if(nightmare_active),
+        );
     }
 }
 
 /// Run condition: is the active module Caldari vs Gallente?
 fn is_caldari_gallente(active_module: Res<ActiveModule>) -> bool {
     active_module.is_caldari_gallente()
+}
+
+/// Run condition: is nightmare mode active?
+fn nightmare_active(nightmare: Res<ShiigeruNightmare>) -> bool {
+    nightmare.active
+}
+
+// ============================================================================
+// Nightmare Mode Systems
+// ============================================================================
+
+/// Component to mark nightmare HUD elements
+#[derive(Component)]
+struct NightmareHud;
+
+/// Component to mark nightmare mini-boss
+#[derive(Component)]
+struct NightmareMiniBoss {
+    boss_type: NightmareBoss,
+}
+
+/// Update nightmare state timers and spawn events
+fn update_nightmare_mode(
+    time: Res<Time>,
+    mut nightmare: ResMut<ShiigeruNightmare>,
+    mut commands: Commands,
+) {
+    let event = nightmare.update(time.delta_secs());
+
+    match event {
+        NightmareEvent::SpawnWave(wave) => {
+            info!("NIGHTMARE Wave {} - {} enemies incoming!", wave, nightmare.enemies_per_wave());
+        }
+        NightmareEvent::SpawnBoss(boss) => {
+            info!("NIGHTMARE BOSS: {} - \"{}\"", boss.name(), boss.dialogue());
+            // Boss spawning handled in spawn_nightmare_enemies
+        }
+        NightmareEvent::None => {}
+    }
+
+    // Spawn the wave or boss marker for the spawning system
+    if let NightmareEvent::SpawnWave(_) = event {
+        commands.spawn(NightmareSpawnRequest::Wave);
+    } else if let NightmareEvent::SpawnBoss(boss) = event {
+        commands.spawn(NightmareSpawnRequest::Boss(boss));
+    }
+}
+
+/// Marker for spawn requests
+#[derive(Component)]
+enum NightmareSpawnRequest {
+    Wave,
+    Boss(NightmareBoss),
+}
+
+/// Spawn enemies based on nightmare mode state
+fn spawn_nightmare_enemies(
+    mut commands: Commands,
+    nightmare: Res<ShiigeruNightmare>,
+    session: Res<GameSession>,
+    spawn_requests: Query<(Entity, &NightmareSpawnRequest)>,
+) {
+    use crate::entities::enemy::{spawn_enemy, EnemyBehavior};
+
+    // Get enemy type IDs based on faction
+    let enemy_types: Vec<u32> = match session.enemy_faction {
+        Faction::Caldari => vec![601, 602, 603], // Condor, Merlin, Kestrel
+        Faction::Gallente => vec![607, 608, 609], // Atron, Incursus, Tristan
+        Faction::Amarr => vec![597, 589, 590], // Punisher, Executioner, Tormentor
+        Faction::Minmatar => vec![584, 585, 587], // Rifter, Slasher, Breacher
+    };
+
+    for (entity, request) in spawn_requests.iter() {
+        // Despawn the request marker
+        commands.entity(entity).despawn();
+
+        match request {
+            NightmareSpawnRequest::Wave => {
+                // Spawn wave enemies
+                let count = nightmare.enemies_per_wave();
+
+                for i in 0..count {
+                    // Spread spawn positions across top of screen
+                    let x = -300.0 + (i as f32 * 600.0 / count.max(1) as f32);
+                    let y = 300.0 + fastrand::f32() * 50.0;
+
+                    // Random enemy type and behavior
+                    let type_id = enemy_types[fastrand::usize(..enemy_types.len())];
+                    let behavior = match fastrand::u32(0..4) {
+                        0 => EnemyBehavior::Linear,
+                        1 => EnemyBehavior::Zigzag,
+                        2 => EnemyBehavior::Homing,
+                        _ => EnemyBehavior::Weaver,
+                    };
+
+                    spawn_enemy(
+                        &mut commands,
+                        type_id,
+                        Vec2::new(x, y),
+                        behavior,
+                        None,
+                        None,
+                    );
+                }
+            }
+            NightmareSpawnRequest::Boss(boss_type) => {
+                // Spawn mini-boss at top center
+                let type_id = enemy_types[0]; // Use first type as "elite"
+
+                spawn_enemy(
+                    &mut commands,
+                    type_id,
+                    Vec2::new(0.0, 320.0),
+                    EnemyBehavior::Homing, // Bosses track player
+                    None,
+                    None,
+                );
+
+                info!("Mini-boss {} spawned!", boss_type.name());
+            }
+        }
+    }
+}
+
+/// Update nightmare HUD elements
+fn update_nightmare_hud(
+    nightmare: Res<ShiigeruNightmare>,
+    mut hud_query: Query<(&mut Text, &NightmareHudElement)>,
+) {
+    for (mut text, element) in hud_query.iter_mut() {
+        match element {
+            NightmareHudElement::Wave => {
+                **text = format!("WAVE {}", nightmare.wave);
+            }
+            NightmareHudElement::Time => {
+                let mins = (nightmare.time_survived / 60.0) as u32;
+                let secs = (nightmare.time_survived % 60.0) as u32;
+                **text = format!("{:02}:{:02}", mins, secs);
+            }
+            NightmareHudElement::Kills => {
+                **text = format!("KILLS: {}", nightmare.kills);
+            }
+            NightmareHudElement::Hull => {
+                **text = format!("HULL: {:.0}%", nightmare.hull_integrity);
+            }
+        }
+    }
+}
+
+/// HUD element types for nightmare mode
+#[derive(Component)]
+enum NightmareHudElement {
+    Wave,
+    Time,
+    Kills,
+    Hull,
 }
 
 fn register_module(mut registry: ResMut<ModuleRegistry>) {
