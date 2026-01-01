@@ -4,6 +4,7 @@
 
 use super::{ActiveModule, FactionInfo, GameModuleInfo, ModuleRegistry};
 use crate::core::{Difficulty, Faction, GameSession, GameState};
+use crate::entities::projectile::ProjectilePhysics;
 use crate::systems::JoystickState;
 use bevy::prelude::*;
 use bevy::ecs::schedule::common_conditions::not;
@@ -1038,6 +1039,7 @@ fn spawn_cg_boss(
     mut cg_campaign: ResMut<CGCampaignState>,
     session: Res<GameSession>,
     difficulty: Res<Difficulty>,
+    sprite_cache: Res<crate::assets::ShipSpriteCache>,
 ) {
     let Some(mission) = cg_campaign.current_mission() else {
         return;
@@ -1057,18 +1059,49 @@ fn spawn_cg_boss(
     // Scale fire rate by difficulty (lower = faster attacks)
     let fire_rate = 1.2 / difficulty.enemy_fire_rate_mult();
 
-    // Boss color based on enemy faction
-    let boss_color = match session.enemy_faction {
-        Faction::Caldari => Color::srgb(0.4, 0.6, 0.9),   // Blue-ish for Caldari
-        Faction::Gallente => Color::srgb(0.4, 0.9, 0.5), // Green-ish for Gallente
-        _ => Color::srgb(1.0, 0.5, 0.5),
+    // Get boss type_id based on enemy faction
+    let type_id = boss_type.type_id(session.enemy_faction);
+    let size = 100.0; // Boss size
+
+    // Get sprite from cache or fallback to colored square
+    let sprite = if type_id > 0 {
+        if let Some(texture) = sprite_cache.get(type_id) {
+            Sprite {
+                image: texture,
+                custom_size: Some(Vec2::splat(size)),
+                ..default()
+            }
+        } else {
+            // Fallback color based on enemy faction
+            let boss_color = match session.enemy_faction {
+                Faction::Caldari => Color::srgb(0.4, 0.6, 0.9),
+                Faction::Gallente => Color::srgb(0.4, 0.9, 0.5),
+                _ => Color::srgb(1.0, 0.5, 0.5),
+            };
+            Sprite {
+                color: boss_color,
+                custom_size: Some(Vec2::splat(size)),
+                ..default()
+            }
+        }
+    } else {
+        let boss_color = match session.enemy_faction {
+            Faction::Caldari => Color::srgb(0.4, 0.6, 0.9),
+            Faction::Gallente => Color::srgb(0.4, 0.9, 0.5),
+            _ => Color::srgb(1.0, 0.5, 0.5),
+        };
+        Sprite {
+            color: boss_color,
+            custom_size: Some(Vec2::splat(size)),
+            ..default()
+        }
     };
 
     // Spawn the boss entity with Enemy + EnemyStats for collision system compatibility
     commands.spawn((
         crate::entities::Enemy,
         crate::entities::EnemyStats {
-            type_id: 0, // CG boss uses custom type
+            type_id,
             name: boss_type.name().to_string(),
             health,
             max_health: health,
@@ -1092,12 +1125,10 @@ fn spawn_cg_boss(
             fire_timer: 0.0,
             fire_rate, // Scaled by difficulty
         },
-        Sprite {
-            color: boss_color,
-            custom_size: Some(Vec2::new(80.0, 80.0)), // Larger for boss
-            ..default()
-        },
-        Transform::from_xyz(0.0, 400.0, 10.0),
+        sprite,
+        // Rotate 180° to face down (EVE ships face up by default)
+        Transform::from_xyz(0.0, 400.0, 10.0)
+            .with_rotation(Quat::from_rotation_z(std::f32::consts::PI)),
     ));
 
     cg_campaign.boss_spawned = true;
@@ -1344,10 +1375,9 @@ fn update_cg_boss(
                     crit_chance: 0.08,
                     crit_multiplier: 1.5,
                 },
-                crate::entities::Movement {
+                ProjectilePhysics {
                     velocity: dir * projectile_speed,
-                    max_speed: projectile_speed,
-                    ..default()
+                    lifetime: 4.0,
                 },
                 Sprite {
                     color: Color::srgb(1.0, 0.8, 0.2),

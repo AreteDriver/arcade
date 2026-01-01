@@ -74,6 +74,25 @@ impl CGBossType {
             CGBossType::FleetAdmiral => "This ends now. For Caldari Prime. For the State!",
         }
     }
+
+    /// Get the ship type_id for this boss based on enemy faction
+    pub fn type_id(&self, enemy_faction: crate::core::Faction) -> u32 {
+        use crate::core::Faction;
+        match (self, enemy_faction) {
+            // Caldari bosses (player is Gallente, fighting Caldari)
+            (CGBossType::PatrolCommander, Faction::Caldari) => 621,  // Caracal
+            (CGBossType::FleetCommander, Faction::Caldari) => 24696, // Drake
+            (CGBossType::EliteSquadron, Faction::Caldari) => 24688,  // Ferox
+            (CGBossType::FleetAdmiral, Faction::Caldari) => 638,     // Raven
+            // Gallente bosses (player is Caldari, fighting Gallente)
+            (CGBossType::PatrolCommander, Faction::Gallente) => 627, // Thorax
+            (CGBossType::FleetCommander, Faction::Gallente) => 24690, // Myrmidon
+            (CGBossType::EliteSquadron, Faction::Gallente) => 24688, // Brutix
+            (CGBossType::FleetAdmiral, Faction::Gallente) => 641,    // Megathron
+            // Fallback
+            _ => 0,
+        }
+    }
 }
 
 /// All missions in the Caldari/Gallente campaign
