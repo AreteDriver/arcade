@@ -97,6 +97,27 @@ pub struct DamageBoostIndicator;
 #[derive(Component)]
 pub struct InvulnIndicator;
 
+/// Timer bar for powerup effects (depletes over time)
+#[derive(Component)]
+pub struct PowerupTimerBar {
+    /// Which powerup this bar is for
+    pub powerup_type: PowerupType,
+}
+
+/// Powerup type for status bar tracking
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum PowerupType {
+    Overdrive,
+    DamageBoost,
+    Invulnerability,
+}
+
+/// Container for a single powerup status box
+#[derive(Component)]
+pub struct PowerupStatusBox {
+    pub powerup_type: PowerupType,
+}
+
 /// Boss health bar container
 #[derive(Component)]
 pub struct BossHealthContainer;
@@ -310,52 +331,45 @@ fn spawn_hud(mut commands: Commands) {
                         });
                 });
 
-            // === POWERUP INDICATORS (positioned next to capacitor wheel at bottom center-right) ===
+            // === POWERUP STATUS BAR (right side, vertical stack) ===
             parent
                 .spawn((
                     PowerupIndicator,
                     Node {
                         position_type: PositionType::Absolute,
-                        bottom: Val::Px(50.0), // Align with capacitor wheel height
-                        left: Val::Percent(50.0), // Start at center
-                        margin: UiRect::left(Val::Px(100.0)), // Offset to right of capacitor wheel
+                        top: Val::Px(100.0),
+                        right: Val::Px(10.0),
                         flex_direction: FlexDirection::Column,
-                        row_gap: Val::Px(4.0),
-                        align_items: AlignItems::FlexStart,
+                        row_gap: Val::Px(8.0),
+                        align_items: AlignItems::FlexEnd,
                         ..default()
                     },
                 ))
                 .with_children(|indicators| {
-                    // Overdrive indicator (cyan)
-                    indicators.spawn((
-                        OverdriveIndicator,
-                        Text::new(""),
-                        TextFont {
-                            font_size: 14.0,
-                            ..default()
-                        },
-                        TextColor(Color::srgb(0.3, 0.9, 1.0)),
-                    ));
-                    // Damage boost indicator (red)
-                    indicators.spawn((
-                        DamageBoostIndicator,
-                        Text::new(""),
-                        TextFont {
-                            font_size: 14.0,
-                            ..default()
-                        },
-                        TextColor(Color::srgb(1.0, 0.3, 0.3)),
-                    ));
-                    // Invuln indicator (white/gold)
-                    indicators.spawn((
-                        InvulnIndicator,
-                        Text::new(""),
-                        TextFont {
-                            font_size: 14.0,
-                            ..default()
-                        },
-                        TextColor(Color::srgb(1.0, 0.9, 0.5)),
-                    ));
+                    // Overdrive status box (cyan)
+                    spawn_powerup_status_box(
+                        indicators,
+                        PowerupType::Overdrive,
+                        "OVERDRIVE",
+                        Color::srgb(0.3, 0.9, 1.0),
+                        5.0, // max duration
+                    );
+                    // Damage boost status box (red/orange)
+                    spawn_powerup_status_box(
+                        indicators,
+                        PowerupType::DamageBoost,
+                        "DAMAGE x2",
+                        Color::srgb(1.0, 0.4, 0.2),
+                        10.0, // max duration
+                    );
+                    // Invulnerability status box (gold/white)
+                    spawn_powerup_status_box(
+                        indicators,
+                        PowerupType::Invulnerability,
+                        "INVULN",
+                        Color::srgb(1.0, 0.9, 0.4),
+                        3.0, // max duration
+                    );
                 });
 
             // === BOTTOM BAR: Meters only (health is shown in capacitor wheel) ===
@@ -575,6 +589,108 @@ fn spawn_health_bar<M: Component>(parent: &mut ChildBuilder, marker: M, color: C
         });
 }
 
+/// Spawn a powerup status box with icon, label, timer bar, and countdown
+fn spawn_powerup_status_box(
+    parent: &mut ChildBuilder,
+    powerup_type: PowerupType,
+    label: &str,
+    color: Color,
+    _max_duration: f32,
+) {
+    // Get the appropriate marker component based on type
+    let (marker_overdrive, marker_damage, marker_invuln) = match powerup_type {
+        PowerupType::Overdrive => (Some(OverdriveIndicator), None, None),
+        PowerupType::DamageBoost => (None, Some(DamageBoostIndicator), None),
+        PowerupType::Invulnerability => (None, None, Some(InvulnIndicator)),
+    };
+
+    // Main container - hidden by default
+    let mut container = parent.spawn((
+        PowerupStatusBox { powerup_type },
+        Node {
+            width: Val::Px(140.0),
+            height: Val::Px(36.0),
+            flex_direction: FlexDirection::Row,
+            align_items: AlignItems::Center,
+            padding: UiRect::all(Val::Px(4.0)),
+            column_gap: Val::Px(6.0),
+            display: Display::None, // Hidden until powerup is active
+            ..default()
+        },
+        BackgroundColor(Color::srgba(0.1, 0.1, 0.15, 0.9)),
+        BorderRadius::all(Val::Px(4.0)),
+    ));
+
+    // Add type-specific marker
+    if marker_overdrive.is_some() {
+        container.insert(OverdriveIndicator);
+    }
+    if marker_damage.is_some() {
+        container.insert(DamageBoostIndicator);
+    }
+    if marker_invuln.is_some() {
+        container.insert(InvulnIndicator);
+    }
+
+    container.with_children(|box_parent| {
+        // Left: Icon placeholder (colored square)
+        box_parent.spawn((
+            Node {
+                width: Val::Px(24.0),
+                height: Val::Px(24.0),
+                ..default()
+            },
+            BackgroundColor(color),
+            BorderRadius::all(Val::Px(3.0)),
+        ));
+
+        // Right: Label and timer bar
+        box_parent
+            .spawn(Node {
+                flex_direction: FlexDirection::Column,
+                flex_grow: 1.0,
+                row_gap: Val::Px(2.0),
+                ..default()
+            })
+            .with_children(|right| {
+                // Label text
+                right.spawn((
+                    Text::new(label),
+                    TextFont {
+                        font_size: 11.0,
+                        ..default()
+                    },
+                    TextColor(color),
+                ));
+
+                // Timer bar background
+                right
+                    .spawn((
+                        Node {
+                            width: Val::Percent(100.0),
+                            height: Val::Px(6.0),
+                            ..default()
+                        },
+                        BackgroundColor(Color::srgba(0.2, 0.2, 0.2, 0.8)),
+                        BorderRadius::all(Val::Px(2.0)),
+                    ))
+                    .with_children(|bar| {
+                        // Timer bar fill
+                        bar.spawn((
+                            PowerupTimerBar { powerup_type },
+                            Node {
+                                width: Val::Percent(100.0),
+                                height: Val::Percent(100.0),
+                                ..default()
+                            },
+                            BackgroundColor(color),
+                            BorderRadius::all(Val::Px(2.0)),
+                        ));
+                    });
+            });
+    });
+}
+
 fn update_score_display(score: Res<ScoreSystem>, mut query: Query<&mut Text, With<ScoreText>>) {
     for mut text in query.iter_mut() {
         **text = format!("SCORE: {}", score.score);
@@ -749,59 +865,66 @@ fn update_mission_display(
     }
 }
 
-/// Update powerup effect indicators
+/// Update powerup effect indicators - show/hide boxes and update timer bars
 fn update_powerup_indicators(
+    time: Res<Time>,
     player_query: Query<&PowerupEffects, With<Player>>,
-    mut overdrive_query: Query<
-        &mut Text,
-        (
-            With<OverdriveIndicator>,
-            Without<DamageBoostIndicator>,
-            Without<InvulnIndicator>,
-        ),
-    >,
-    mut damage_query: Query<
-        &mut Text,
-        (
-            With<DamageBoostIndicator>,
-            Without<OverdriveIndicator>,
-            Without<InvulnIndicator>,
-        ),
-    >,
-    mut invuln_query: Query<
-        &mut Text,
-        (
-            With<InvulnIndicator>,
-            Without<OverdriveIndicator>,
-            Without<DamageBoostIndicator>,
-        ),
+    mut status_box_query: Query<(&PowerupStatusBox, &mut Node, &mut BackgroundColor)>,
+    mut timer_bar_query: Query<
+        (&PowerupTimerBar, &mut Node, &mut BackgroundColor),
+        Without<PowerupStatusBox>,
     >,
 ) {
     let Ok(effects) = player_query.get_single() else {
         return;
     };
 
-    for mut text in overdrive_query.iter_mut() {
-        if effects.overdrive_timer > 0.0 {
-            **text = format!("OVERDRIVE {:.1}s", effects.overdrive_timer);
+    // Max durations for each powerup type
+    const OVERDRIVE_MAX: f32 = 5.0;
+    const DAMAGE_BOOST_MAX: f32 = 10.0;
+    const INVULN_MAX: f32 = 3.0;
+
+    // Get current timer values
+    let get_timer = |powerup_type: PowerupType| -> (f32, f32) {
+        match powerup_type {
+            PowerupType::Overdrive => (effects.overdrive_timer, OVERDRIVE_MAX),
+            PowerupType::DamageBoost => (effects.damage_boost_timer, DAMAGE_BOOST_MAX),
+            PowerupType::Invulnerability => (effects.invuln_timer, INVULN_MAX),
+        }
+    };
+
+    // Update status box visibility and pulsing
+    for (status_box, mut node, mut bg_color) in status_box_query.iter_mut() {
+        let (timer, _max) = get_timer(status_box.powerup_type);
+
+        if timer > 0.0 {
+            node.display = Display::Flex;
+
+            // Pulse background when timer is low (< 1.5 seconds)
+            if timer < 1.5 {
+                let pulse = (time.elapsed_secs() * 8.0).sin() * 0.5 + 0.5;
+                bg_color.0 = Color::srgba(0.3 + pulse * 0.2, 0.1, 0.1, 0.95);
+            } else {
+                bg_color.0 = Color::srgba(0.1, 0.1, 0.15, 0.9);
+            }
         } else {
-            **text = String::new();
+            node.display = Display::None;
         }
     }
 
-    for mut text in damage_query.iter_mut() {
-        if effects.damage_boost_timer > 0.0 {
-            **text = format!("DAMAGE x2 {:.1}s", effects.damage_boost_timer);
-        } else {
-            **text = String::new();
-        }
-    }
+    // Update timer bar widths
+    for (timer_bar, mut node, mut bg_color) in timer_bar_query.iter_mut() {
+        let (timer, max) = get_timer(timer_bar.powerup_type);
 
-    for mut text in invuln_query.iter_mut() {
-        if effects.invuln_timer > 0.0 {
-            **text = format!("INVULNERABLE {:.1}s", effects.invuln_timer);
-        } else {
-            **text = String::new();
+        if timer > 0.0 {
+            let percent = (timer / max * 100.0).clamp(0.0, 100.0);
+            node.width = Val::Percent(percent);
+
+            // Color changes when timer is low
+            if timer < 1.5 {
+                let pulse = (time.elapsed_secs() * 8.0).sin() * 0.5 + 0.5;
+                bg_color.0 = Color::srgb(1.0, 0.3 + pulse * 0.3, 0.2);
+            }
         }
     }
 }
