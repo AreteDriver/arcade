@@ -11,7 +11,7 @@ use std::f32::consts::PI;
 #[cfg(not(target_arch = "wasm32"))]
 use std::io::Cursor;
 
-use crate::core::*;
+use crate::core::{*, WaveCompleteEvent, BossSpawnEvent};
 
 /// Audio plugin
 pub struct AudioPlugin;
@@ -30,6 +30,8 @@ impl Plugin for AudioPlugin {
                     play_pickup_sounds,
                     play_damage_sounds,
                     play_health_warnings,
+                    play_wave_complete_sound,
+                    play_boss_spawn_sound,
                 )
                     .run_if(in_state(GameState::Playing)),
             );
@@ -61,6 +63,7 @@ impl Default for SoundSettings {
 pub struct SoundAssets {
     pub autocannon: Option<Handle<AudioSource>>,
     pub laser: Option<Handle<AudioSource>>,
+    pub missile: Option<Handle<AudioSource>>,
     pub explosion_small: Option<Handle<AudioSource>>,
     pub explosion_medium: Option<Handle<AudioSource>>,
     pub explosion_large: Option<Handle<AudioSource>>,
@@ -72,6 +75,17 @@ pub struct SoundAssets {
     pub shield_warning: Option<Handle<AudioSource>>,
     pub armor_warning: Option<Handle<AudioSource>>,
     pub hull_warning: Option<Handle<AudioSource>>,
+    // Game events
+    pub wave_complete: Option<Handle<AudioSource>>,
+    pub boss_spawn: Option<Handle<AudioSource>>,
+    // Powerup-specific sounds
+    pub powerup_overdrive: Option<Handle<AudioSource>>,
+    pub powerup_damage: Option<Handle<AudioSource>>,
+    pub powerup_invuln: Option<Handle<AudioSource>>,
+    pub powerup_health: Option<Handle<AudioSource>>,
+    // Menu sounds
+    pub menu_select: Option<Handle<AudioSource>>,
+    pub menu_confirm: Option<Handle<AudioSource>>,
 }
 
 /// Tracks when warnings should play (to avoid spamming)
@@ -111,6 +125,11 @@ fn generate_sounds(
         sounds.laser = Some(audio_sources.add(source));
     }
 
+    // Missile launch - whoosh
+    if let Some(source) = generate_missile() {
+        sounds.missile = Some(audio_sources.add(source));
+    }
+
     // Explosions - various sizes
     if let Some(source) = generate_explosion(0.15, 300.0) {
         sounds.explosion_small = Some(audio_sources.add(source));
@@ -147,6 +166,36 @@ fn generate_sounds(
     }
     if let Some(source) = generate_hull_warning() {
         sounds.hull_warning = Some(audio_sources.add(source));
+    }
+
+    // Game event sounds
+    if let Some(source) = generate_wave_complete() {
+        sounds.wave_complete = Some(audio_sources.add(source));
+    }
+    if let Some(source) = generate_boss_spawn() {
+        sounds.boss_spawn = Some(audio_sources.add(source));
+    }
+
+    // Powerup-specific sounds
+    if let Some(source) = generate_powerup_overdrive() {
+        sounds.powerup_overdrive = Some(audio_sources.add(source));
+    }
+    if let Some(source) = generate_powerup_damage() {
+        sounds.powerup_damage = Some(audio_sources.add(source));
+    }
+    if let Some(source) = generate_powerup_invuln() {
+        sounds.powerup_invuln = Some(audio_sources.add(source));
+    }
+    if let Some(source) = generate_powerup_health() {
+        sounds.powerup_health = Some(audio_sources.add(source));
+    }
+
+    // Menu sounds
+    if let Some(source) = generate_menu_select() {
+        sounds.menu_select = Some(audio_sources.add(source));
+    }
+    if let Some(source) = generate_menu_confirm() {
+        sounds.menu_confirm = Some(audio_sources.add(source));
     }
 
     info!("Sound effects generated!");
@@ -409,7 +458,8 @@ fn play_weapon_sounds(
         let sound = match event.weapon_type {
             WeaponType::Autocannon | WeaponType::Artillery => sounds.autocannon.clone(),
             WeaponType::Laser | WeaponType::Railgun => sounds.laser.clone(),
-            _ => sounds.autocannon.clone(),
+            WeaponType::MissileLauncher => sounds.missile.clone(),
+            WeaponType::Drone => sounds.laser.clone(), // Drones use laser-like sound
         };
 
         if let Some(source) = sound {
@@ -457,7 +507,7 @@ fn play_explosion_sounds(
     }
 }
 
-/// Play pickup sounds
+/// Play pickup sounds with different sounds for different powerup types
 fn play_pickup_sounds(
     mut commands: Commands,
     mut pickup_events: EventReader<CollectiblePickedUpEvent>,
@@ -469,8 +519,19 @@ fn play_pickup_sounds(
         return;
     }
 
-    for _event in pickup_events.read() {
-        if let Some(source) = sounds.pickup.clone() {
+    for event in pickup_events.read() {
+        // Choose sound based on collectible type
+        let sound = match event.collectible_type {
+            CollectibleType::Overdrive => sounds.powerup_overdrive.clone(),
+            CollectibleType::DamageBoost => sounds.powerup_damage.clone(),
+            CollectibleType::Invulnerability => sounds.powerup_invuln.clone(),
+            CollectibleType::ShieldBoost | CollectibleType::ArmorRepair | CollectibleType::HullRepair => {
+                sounds.powerup_health.clone()
+            }
+            _ => sounds.pickup.clone(), // Credits, souls, etc use generic pickup
+        };
+
+        if let Some(source) = sound.or(sounds.pickup.clone()) {
             commands.spawn((
                 AudioPlayer(source),
                 PlaybackSettings {
@@ -703,4 +764,314 @@ fn generate_hull_warning() -> Option<AudioSource> {
     }
 
     create_audio_source(&samples, sample_rate)
+}
+
+// =============================================================================
+// NEW SOUND GENERATORS
+// =============================================================================
+
+/// Generate missile launch sound - whooshing rocket
+fn generate_missile() -> Option<AudioSource> {
+    let sample_rate = 44100u32;
+    let duration = 0.2;
+    let num_samples = (sample_rate as f32 * duration) as usize;
+    let mut samples = Vec::with_capacity(num_samples);
+
+    for i in 0..num_samples {
+        let t = i as f32 / sample_rate as f32;
+
+        // Whoosh noise
+        let noise = (fastrand::f32() * 2.0 - 1.0) * 0.5;
+
+        // Rising frequency for ignition
+        let freq = 150.0 + t * 400.0;
+        let rumble = (2.0 * PI * freq * t).sin() * 0.4;
+
+        // High hiss
+        let hiss = (2.0 * PI * 2000.0 * t).sin() * 0.15 * (-t * 20.0).exp();
+
+        let env = (1.0 - (-t * 30.0).exp()) * (-t * 8.0).exp();
+
+        let sample = ((noise + rumble + hiss) * env * 0.7).clamp(-1.0, 1.0);
+        samples.push(sample);
+    }
+
+    create_audio_source(&samples, sample_rate)
+}
+
+/// Generate wave complete sound - triumphant ascending chime
+fn generate_wave_complete() -> Option<AudioSource> {
+    let sample_rate = 44100u32;
+    let duration = 0.5;
+    let num_samples = (sample_rate as f32 * duration) as usize;
+    let mut samples = Vec::with_capacity(num_samples);
+
+    for i in 0..num_samples {
+        let t = i as f32 / sample_rate as f32;
+
+        // Three ascending notes
+        let note1 = if t < 0.15 {
+            (2.0 * PI * 523.25 * t).sin() * (1.0 - t / 0.15).powf(0.5) // C5
+        } else {
+            0.0
+        };
+
+        let note2 = if t >= 0.12 && t < 0.3 {
+            let nt = t - 0.12;
+            (2.0 * PI * 659.25 * t).sin() * (1.0 - nt / 0.18).powf(0.5) // E5
+        } else {
+            0.0
+        };
+
+        let note3 = if t >= 0.25 {
+            let nt = t - 0.25;
+            (2.0 * PI * 783.99 * t).sin() * (-nt * 6.0).exp() // G5
+        } else {
+            0.0
+        };
+
+        let sample = ((note1 + note2 + note3) * 0.5).clamp(-1.0, 1.0);
+        samples.push(sample);
+    }
+
+    create_audio_source(&samples, sample_rate)
+}
+
+/// Generate boss spawn sound - dramatic low impact
+fn generate_boss_spawn() -> Option<AudioSource> {
+    let sample_rate = 44100u32;
+    let duration = 0.8;
+    let num_samples = (sample_rate as f32 * duration) as usize;
+    let mut samples = Vec::with_capacity(num_samples);
+
+    for i in 0..num_samples {
+        let t = i as f32 / sample_rate as f32;
+
+        // Deep impact
+        let bass = (2.0 * PI * 60.0 * t).sin() * 0.6;
+
+        // Ominous drone
+        let drone = (2.0 * PI * 100.0 * t).sin() * 0.3;
+        let drone2 = (2.0 * PI * 150.0 * t).sin() * 0.2;
+
+        // Metallic ring
+        let ring = (2.0 * PI * 300.0 * t).sin() * (-t * 4.0).exp() * 0.3;
+
+        // Rumble
+        let rumble = (fastrand::f32() * 2.0 - 1.0) * 0.2 * (-t * 3.0).exp();
+
+        let env = (1.0 - (-t * 10.0).exp()) * (-t * 2.5).exp();
+
+        let sample = ((bass + drone + drone2 + ring + rumble) * env * 0.7).clamp(-1.0, 1.0);
+        samples.push(sample);
+    }
+
+    create_audio_source(&samples, sample_rate)
+}
+
+/// Generate overdrive powerup sound - engine rev
+fn generate_powerup_overdrive() -> Option<AudioSource> {
+    let sample_rate = 44100u32;
+    let duration = 0.3;
+    let num_samples = (sample_rate as f32 * duration) as usize;
+    let mut samples = Vec::with_capacity(num_samples);
+
+    for i in 0..num_samples {
+        let t = i as f32 / sample_rate as f32;
+
+        // Rising engine freq
+        let freq = 200.0 + t * 600.0;
+        let engine = (2.0 * PI * freq * t).sin() * 0.5;
+
+        // Turbo whoosh
+        let whoosh = (fastrand::f32() * 2.0 - 1.0) * 0.3 * (t * 4.0).min(1.0);
+
+        let env = (1.0 - (-t * 20.0).exp()) * (1.0 - (t / duration).powf(2.0));
+
+        let sample = ((engine + whoosh) * env * 0.6).clamp(-1.0, 1.0);
+        samples.push(sample);
+    }
+
+    create_audio_source(&samples, sample_rate)
+}
+
+/// Generate damage boost powerup sound - power surge
+fn generate_powerup_damage() -> Option<AudioSource> {
+    let sample_rate = 44100u32;
+    let duration = 0.25;
+    let num_samples = (sample_rate as f32 * duration) as usize;
+    let mut samples = Vec::with_capacity(num_samples);
+
+    for i in 0..num_samples {
+        let t = i as f32 / sample_rate as f32;
+
+        // Power charge
+        let charge = (2.0 * PI * (400.0 + t * 800.0) * t).sin() * 0.5;
+
+        // Electric crackle
+        let crackle = if fastrand::f32() < 0.15 {
+            (fastrand::f32() * 2.0 - 1.0) * 0.4
+        } else {
+            0.0
+        };
+
+        let env = (1.0 - (-t * 30.0).exp()) * (-t * 6.0).exp();
+
+        let sample = ((charge + crackle) * env * 0.6).clamp(-1.0, 1.0);
+        samples.push(sample);
+    }
+
+    create_audio_source(&samples, sample_rate)
+}
+
+/// Generate invulnerability powerup sound - shield activation
+fn generate_powerup_invuln() -> Option<AudioSource> {
+    let sample_rate = 44100u32;
+    let duration = 0.35;
+    let num_samples = (sample_rate as f32 * duration) as usize;
+    let mut samples = Vec::with_capacity(num_samples);
+
+    for i in 0..num_samples {
+        let t = i as f32 / sample_rate as f32;
+
+        // Shield hum
+        let hum = (2.0 * PI * 300.0 * t).sin() * 0.3;
+
+        // Shimmer
+        let shimmer = (2.0 * PI * 1200.0 * t).sin() * 0.2 * (t * 8.0).sin().abs();
+
+        // Bass impact
+        let bass = (2.0 * PI * 80.0 * t).sin() * 0.4 * (-t * 15.0).exp();
+
+        let env = (1.0 - (-t * 20.0).exp()) * (1.0 - (t / duration).powf(3.0));
+
+        let sample = ((hum + shimmer + bass) * env * 0.6).clamp(-1.0, 1.0);
+        samples.push(sample);
+    }
+
+    create_audio_source(&samples, sample_rate)
+}
+
+/// Generate health restore powerup sound - healing chime
+fn generate_powerup_health() -> Option<AudioSource> {
+    let sample_rate = 44100u32;
+    let duration = 0.2;
+    let num_samples = (sample_rate as f32 * duration) as usize;
+    let mut samples = Vec::with_capacity(num_samples);
+
+    for i in 0..num_samples {
+        let t = i as f32 / sample_rate as f32;
+
+        // Gentle ascending tone
+        let freq = 600.0 + t * 400.0;
+        let tone = (2.0 * PI * freq * t).sin() * 0.4;
+
+        // Soft shimmer
+        let shimmer = (2.0 * PI * freq * 2.0 * t).sin() * 0.15;
+
+        let env = (1.0 - (-t * 30.0).exp()) * (-t * 8.0).exp();
+
+        let sample = ((tone + shimmer) * env * 0.5).clamp(-1.0, 1.0);
+        samples.push(sample);
+    }
+
+    create_audio_source(&samples, sample_rate)
+}
+
+/// Generate menu navigation sound - soft blip
+fn generate_menu_select() -> Option<AudioSource> {
+    let sample_rate = 44100u32;
+    let duration = 0.05;
+    let num_samples = (sample_rate as f32 * duration) as usize;
+    let mut samples = Vec::with_capacity(num_samples);
+
+    for i in 0..num_samples {
+        let t = i as f32 / sample_rate as f32;
+
+        let wave = (2.0 * PI * 800.0 * t).sin();
+        let env = (-t * 60.0).exp();
+
+        let sample = (wave * env * 0.4).clamp(-1.0, 1.0);
+        samples.push(sample);
+    }
+
+    create_audio_source(&samples, sample_rate)
+}
+
+/// Generate menu confirm sound - satisfying click
+fn generate_menu_confirm() -> Option<AudioSource> {
+    let sample_rate = 44100u32;
+    let duration = 0.1;
+    let num_samples = (sample_rate as f32 * duration) as usize;
+    let mut samples = Vec::with_capacity(num_samples);
+
+    for i in 0..num_samples {
+        let t = i as f32 / sample_rate as f32;
+
+        let wave1 = (2.0 * PI * 600.0 * t).sin() * 0.4;
+        let wave2 = (2.0 * PI * 900.0 * t).sin() * 0.3;
+
+        let env = (-t * 30.0).exp();
+
+        let sample = ((wave1 + wave2) * env * 0.5).clamp(-1.0, 1.0);
+        samples.push(sample);
+    }
+
+    create_audio_source(&samples, sample_rate)
+}
+
+// =============================================================================
+// NEW PLAYBACK SYSTEMS
+// =============================================================================
+
+/// Play wave complete sound
+fn play_wave_complete_sound(
+    mut commands: Commands,
+    mut wave_events: EventReader<WaveCompleteEvent>,
+    sounds: Res<SoundAssets>,
+    settings: Res<SoundSettings>,
+) {
+    if !settings.enabled {
+        wave_events.clear();
+        return;
+    }
+
+    for _event in wave_events.read() {
+        if let Some(source) = sounds.wave_complete.clone() {
+            commands.spawn((
+                AudioPlayer(source),
+                PlaybackSettings {
+                    mode: PlaybackMode::Despawn,
+                    volume: Volume::new(settings.sfx_volume * settings.master_volume * 0.8),
+                    ..default()
+                },
+            ));
+        }
+    }
+}
+
+/// Play boss spawn sound
+fn play_boss_spawn_sound(
+    mut commands: Commands,
+    mut boss_events: EventReader<BossSpawnEvent>,
+    sounds: Res<SoundAssets>,
+    settings: Res<SoundSettings>,
+) {
+    if !settings.enabled {
+        boss_events.clear();
+        return;
+    }
+
+    for _event in boss_events.read() {
+        if let Some(source) = sounds.boss_spawn.clone() {
+            commands.spawn((
+                AudioPlayer(source),
+                PlaybackSettings {
+                    mode: PlaybackMode::Despawn,
+                    volume: Volume::new(settings.sfx_volume * settings.master_volume * 0.9),
+                    ..default()
+                },
+            ));
+        }
+    }
 }
