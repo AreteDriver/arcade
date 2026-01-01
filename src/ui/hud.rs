@@ -24,6 +24,7 @@ impl Plugin for HudPlugin {
                     update_combo_display,
                     update_heat_display,
                     update_combo_kills,
+                    update_combo_timer_bar,
                     update_powerup_indicators,
                     update_wave_display,
                     update_mission_display,
@@ -64,6 +65,14 @@ pub struct HeatBar;
 /// Combo kill count text
 #[derive(Component)]
 pub struct ComboKillsText;
+
+/// Combo timer bar container (for show/hide)
+#[derive(Component)]
+pub struct ComboTimerContainer;
+
+/// Combo timer bar fill (shows time remaining to keep combo)
+#[derive(Component)]
+pub struct ComboTimerBar;
 
 /// Wave display text
 #[derive(Component)]
@@ -236,10 +245,11 @@ fn spawn_hud(mut commands: Commands) {
                         ));
                     });
 
-                    // Center: Combo kills and tier
+                    // Center: Combo kills and tier with timer bar
                     top.spawn(Node {
                         flex_direction: FlexDirection::Column,
                         align_items: AlignItems::Center,
+                        row_gap: Val::Px(4.0),
                         ..default()
                     })
                     .with_children(|center| {
@@ -252,6 +262,31 @@ fn spawn_hud(mut commands: Commands) {
                             },
                             TextColor(Color::srgb(1.0, 0.8, 0.2)),
                         ));
+                        // Combo timer bar (hidden when no combo)
+                        center
+                            .spawn((
+                                ComboTimerContainer,
+                                Node {
+                                    width: Val::Px(120.0),
+                                    height: Val::Px(6.0),
+                                    display: Display::None, // Hidden initially
+                                    ..default()
+                                },
+                                BackgroundColor(Color::srgba(0.2, 0.2, 0.2, 0.8)),
+                                BorderRadius::all(Val::Px(2.0)),
+                            ))
+                            .with_children(|bar| {
+                                bar.spawn((
+                                    ComboTimerBar,
+                                    Node {
+                                        width: Val::Percent(100.0),
+                                        height: Val::Percent(100.0),
+                                        ..default()
+                                    },
+                                    BackgroundColor(Color::srgb(1.0, 0.8, 0.2)),
+                                    BorderRadius::all(Val::Px(2.0)),
+                                ));
+                            });
                     });
 
                     // Right: Multiplier and Grade
@@ -766,6 +801,42 @@ fn update_combo_kills(
         } else {
             **text = String::new();
         }
+    }
+}
+
+/// Update combo timer bar (shows time remaining to keep combo)
+fn update_combo_timer_bar(
+    heat_system: Res<ComboHeatSystem>,
+    mut container_query: Query<&mut Node, With<ComboTimerContainer>>,
+    mut fill_query: Query<
+        (&mut Node, &mut BackgroundColor),
+        (With<ComboTimerBar>, Without<ComboTimerContainer>),
+    >,
+) {
+    let has_combo = heat_system.combo_count > 0;
+    let timer_percent = heat_system.combo_timer_percent();
+
+    // Show/hide container
+    for mut node in container_query.iter_mut() {
+        node.display = if has_combo {
+            Display::Flex
+        } else {
+            Display::None
+        };
+    }
+
+    // Update fill width and color
+    for (mut node, mut bg) in fill_query.iter_mut() {
+        node.width = Val::Percent(timer_percent * 100.0);
+
+        // Color changes as timer runs low
+        bg.0 = if timer_percent < 0.3 {
+            Color::srgb(1.0, 0.3, 0.2) // Red when low
+        } else if timer_percent < 0.5 {
+            Color::srgb(1.0, 0.6, 0.2) // Orange when getting low
+        } else {
+            Color::srgb(1.0, 0.8, 0.2) // Gold when healthy
+        };
     }
 }
 
