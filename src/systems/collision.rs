@@ -152,8 +152,16 @@ fn player_projectile_enemy_collision(
                     continue;
                 };
 
+                // Roll for critical hit
+                let is_crit = fastrand::f32() < proj_damage.crit_chance;
+                let final_damage = if is_crit {
+                    proj_damage.damage * proj_damage.crit_multiplier
+                } else {
+                    proj_damage.damage
+                };
+
                 // Apply damage
-                enemy_stats.health -= proj_damage.damage;
+                enemy_stats.health -= final_damage;
 
                 // Boss low health callout (once per boss)
                 if enemy_stats.is_boss && !*boss_callout_sent {
@@ -178,8 +186,8 @@ fn player_projectile_enemy_collision(
                 super::effects::spawn_damage_number(
                     &mut commands,
                     enemy_pos,
-                    proj_damage.damage,
-                    false, // TODO: implement crits
+                    final_damage,
+                    is_crit,
                 );
 
                 // Despawn projectile

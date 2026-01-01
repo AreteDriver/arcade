@@ -305,6 +305,8 @@ fn update_boss_behavior(
                 crate::entities::ProjectileDamage {
                     damage: 20.0 + (data.current_phase as f32 * 5.0),
                     damage_type: DamageType::EM,
+                    crit_chance: 0.08,     // 8% crit for boss
+                    crit_multiplier: 1.5,
                 },
                 crate::entities::Movement {
                     velocity: dir * projectile_speed,
