@@ -243,11 +243,24 @@ fn update_explosions(
 // =============================================================================
 
 /// Screen shake state
-#[derive(Resource, Default)]
+#[derive(Resource)]
 pub struct ScreenShake {
     pub intensity: f32,
     pub duration: f32,
     pub timer: f32,
+    /// Global multiplier for shake intensity (0.0 = disabled, 1.0 = full)
+    pub multiplier: f32,
+}
+
+impl Default for ScreenShake {
+    fn default() -> Self {
+        Self {
+            intensity: 0.0,
+            duration: 0.0,
+            timer: 0.0,
+            multiplier: 1.0, // Full intensity by default
+        }
+    }
 }
 
 impl ScreenShake {
@@ -303,7 +316,8 @@ fn update_screen_shake(
         shake.timer -= dt;
 
         let progress = shake.timer / shake.duration;
-        let current_intensity = shake.intensity * progress;
+        // Apply global multiplier to shake intensity
+        let current_intensity = shake.intensity * progress * shake.multiplier;
 
         if let Ok(mut transform) = camera_query.get_single_mut() {
             let offset_x = (fastrand::f32() - 0.5) * 2.0 * current_intensity;

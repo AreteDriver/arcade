@@ -2593,24 +2593,35 @@ struct PauseSelection {
     index: usize,
 }
 
-/// Pause menu items: 0=Resume, 1=Music, 2=SFX, 3=Restart, 4=Quit
-const PAUSE_ITEM_COUNT: usize = 5;
+/// Pause menu items
+const PAUSE_ITEM_COUNT: usize = 7;
 const PAUSE_IDX_RESUME: usize = 0;
-const PAUSE_IDX_MUSIC: usize = 1;
-const PAUSE_IDX_SFX: usize = 2;
-const PAUSE_IDX_RESTART: usize = 3;
-const PAUSE_IDX_QUIT: usize = 4;
+const PAUSE_IDX_MASTER: usize = 1;
+const PAUSE_IDX_MUSIC: usize = 2;
+const PAUSE_IDX_SFX: usize = 3;
+const PAUSE_IDX_SHAKE: usize = 4;
+const PAUSE_IDX_RESTART: usize = 5;
+const PAUSE_IDX_QUIT: usize = 6;
 
-/// Marker for volume slider bar fill
-#[derive(Component)]
-struct VolumeSliderFill {
-    is_music: bool, // true = music, false = sfx
+/// Slider type for identifying which setting to adjust
+#[derive(Clone, Copy, PartialEq)]
+enum SliderType {
+    MasterVolume,
+    MusicVolume,
+    SfxVolume,
+    ScreenShake,
 }
 
-/// Marker for volume value text
+/// Marker for slider bar fill
 #[derive(Component)]
-struct VolumeValueText {
-    is_music: bool,
+struct SliderFill {
+    slider_type: SliderType,
+}
+
+/// Marker for slider value text
+#[derive(Component)]
+struct SliderValueText {
+    slider_type: SliderType,
 }
 
 fn spawn_pause_menu(
@@ -2619,6 +2630,7 @@ fn spawn_pause_menu(
     score: Res<ScoreSystem>,
     session: Res<GameSession>,
     sound_settings: Res<crate::systems::SoundSettings>,
+    screen_shake: Res<crate::systems::ScreenShake>,
 ) {
     commands.insert_resource(PauseSelection::default());
 
@@ -2638,7 +2650,7 @@ fn spawn_pause_menu(
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 flex_direction: FlexDirection::Column,
-                row_gap: Val::Px(12.0),
+                row_gap: Val::Px(8.0),
                 ..default()
             },
             BackgroundColor(Color::srgba(0.0, 0.0, 0.05, 0.85)),
@@ -2648,7 +2660,7 @@ fn spawn_pause_menu(
             parent.spawn((
                 Text::new("PAUSED"),
                 TextFont {
-                    font_size: 56.0,
+                    font_size: 48.0,
                     ..default()
                 },
                 TextColor(faction_color),
@@ -2658,7 +2670,7 @@ fn spawn_pause_menu(
             parent.spawn((
                 Text::new(mission_name),
                 TextFont {
-                    font_size: 18.0,
+                    font_size: 16.0,
                     ..default()
                 },
                 TextColor(Color::srgb(0.5, 0.5, 0.5)),
@@ -2671,7 +2683,7 @@ fn spawn_pause_menu(
                     score.score, campaign.mission_souls
                 )),
                 TextFont {
-                    font_size: 14.0,
+                    font_size: 12.0,
                     ..default()
                 },
                 TextColor(Color::srgb(0.4, 0.6, 0.8)),
@@ -2679,27 +2691,33 @@ fn spawn_pause_menu(
 
             // Spacer
             parent.spawn(Node {
-                height: Val::Px(20.0),
+                height: Val::Px(12.0),
                 ..default()
             });
 
             // Resume button
             spawn_pause_menu_item(parent, PAUSE_IDX_RESUME, "RESUME");
 
-            // Volume sliders section
+            // Audio sliders section
             parent.spawn(Node {
-                height: Val::Px(8.0),
+                height: Val::Px(4.0),
                 ..default()
             });
 
+            // Master volume slider
+            spawn_settings_slider(parent, PAUSE_IDX_MASTER, "MASTER", sound_settings.master_volume, SliderType::MasterVolume);
+
             // Music volume slider
-            spawn_volume_slider(parent, PAUSE_IDX_MUSIC, "MUSIC", sound_settings.music_volume, true);
+            spawn_settings_slider(parent, PAUSE_IDX_MUSIC, "MUSIC", sound_settings.music_volume, SliderType::MusicVolume);
 
             // SFX volume slider
-            spawn_volume_slider(parent, PAUSE_IDX_SFX, "SFX", sound_settings.sfx_volume, false);
+            spawn_settings_slider(parent, PAUSE_IDX_SFX, "SFX", sound_settings.sfx_volume, SliderType::SfxVolume);
+
+            // Screen shake slider
+            spawn_settings_slider(parent, PAUSE_IDX_SHAKE, "SHAKE", screen_shake.multiplier, SliderType::ScreenShake);
 
             parent.spawn(Node {
-                height: Val::Px(8.0),
+                height: Val::Px(4.0),
                 ..default()
             });
 
@@ -2717,9 +2735,9 @@ fn spawn_pause_menu(
 
             // Controls hint
             parent.spawn((
-                Text::new("↑↓ Navigate • ←→ Adjust Volume • A/ENTER Select"),
+                Text::new("↑↓ Navigate • ←→ Adjust • A/ENTER Select"),
                 TextFont {
-                    font_size: 12.0,
+                    font_size: 11.0,
                     ..default()
                 },
                 TextColor(Color::srgb(0.35, 0.35, 0.35)),
@@ -2733,8 +2751,8 @@ fn spawn_pause_menu_item(parent: &mut ChildBuilder, index: usize, label: &str) {
         .spawn((
             PauseMenuItem(index),
             Node {
-                padding: UiRect::axes(Val::Px(30.0), Val::Px(10.0)),
-                min_width: Val::Px(280.0),
+                padding: UiRect::axes(Val::Px(25.0), Val::Px(8.0)),
+                min_width: Val::Px(260.0),
                 justify_content: JustifyContent::Center,
                 ..default()
             },
@@ -2745,7 +2763,7 @@ fn spawn_pause_menu_item(parent: &mut ChildBuilder, index: usize, label: &str) {
                 PauseMenuItemText(index),
                 Text::new(label),
                 TextFont {
-                    font_size: 20.0,
+                    font_size: 18.0,
                     ..default()
                 },
                 TextColor(Color::srgb(0.7, 0.7, 0.7)),
@@ -2753,24 +2771,24 @@ fn spawn_pause_menu_item(parent: &mut ChildBuilder, index: usize, label: &str) {
         });
 }
 
-/// Spawn a volume slider row
-fn spawn_volume_slider(
+/// Spawn a settings slider row
+fn spawn_settings_slider(
     parent: &mut ChildBuilder,
     index: usize,
     label: &str,
     value: f32,
-    is_music: bool,
+    slider_type: SliderType,
 ) {
     parent
         .spawn((
             PauseMenuItem(index),
             Node {
-                padding: UiRect::axes(Val::Px(20.0), Val::Px(8.0)),
-                min_width: Val::Px(280.0),
+                padding: UiRect::axes(Val::Px(15.0), Val::Px(6.0)),
+                min_width: Val::Px(260.0),
                 flex_direction: FlexDirection::Row,
                 justify_content: JustifyContent::SpaceBetween,
                 align_items: AlignItems::Center,
-                column_gap: Val::Px(15.0),
+                column_gap: Val::Px(12.0),
                 ..default()
             },
             BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.8)),
@@ -2781,7 +2799,7 @@ fn spawn_volume_slider(
                 PauseMenuItemText(index),
                 Text::new(label),
                 TextFont {
-                    font_size: 18.0,
+                    font_size: 16.0,
                     ..default()
                 },
                 TextColor(Color::srgb(0.6, 0.6, 0.6)),
@@ -2791,22 +2809,22 @@ fn spawn_volume_slider(
             row.spawn(Node {
                 flex_direction: FlexDirection::Row,
                 align_items: AlignItems::Center,
-                column_gap: Val::Px(10.0),
+                column_gap: Val::Px(8.0),
                 ..default()
             })
             .with_children(|slider_row| {
                 // Slider background bar
                 slider_row
                     .spawn(Node {
-                        width: Val::Px(120.0),
-                        height: Val::Px(12.0),
+                        width: Val::Px(100.0),
+                        height: Val::Px(10.0),
                         ..default()
                     })
                     .insert(BackgroundColor(Color::srgb(0.15, 0.15, 0.15)))
                     .with_children(|bar| {
                         // Slider fill
                         bar.spawn((
-                            VolumeSliderFill { is_music },
+                            SliderFill { slider_type },
                             Node {
                                 width: Val::Percent(value * 100.0),
                                 height: Val::Percent(100.0),
@@ -2818,10 +2836,10 @@ fn spawn_volume_slider(
 
                 // Value text
                 slider_row.spawn((
-                    VolumeValueText { is_music },
+                    SliderValueText { slider_type },
                     Text::new(format!("{}%", (value * 100.0) as i32)),
                     TextFont {
-                        font_size: 14.0,
+                        font_size: 12.0,
                         ..default()
                     },
                     TextColor(Color::srgb(0.5, 0.5, 0.5)),
@@ -2843,10 +2861,11 @@ fn pause_menu_input(
     mut next_state: ResMut<NextState<GameState>>,
     mut transitions: EventWriter<TransitionEvent>,
     mut sound_settings: ResMut<crate::systems::SoundSettings>,
+    mut screen_shake: ResMut<crate::systems::ScreenShake>,
     mut item_query: Query<(&PauseMenuItem, &mut BackgroundColor)>,
     mut text_query: Query<(&PauseMenuItemText, &mut TextColor)>,
-    mut slider_fill_query: Query<(&VolumeSliderFill, &mut Node)>,
-    mut slider_text_query: Query<(&VolumeValueText, &mut Text)>,
+    mut slider_fill_query: Query<(&SliderFill, &mut Node)>,
+    mut slider_text_query: Query<(&SliderValueText, &mut Text)>,
     time: Res<Time>,
     mut cooldown: Local<f32>,
 ) {
@@ -2860,18 +2879,26 @@ fn pause_menu_input(
         *cooldown = MENU_NAV_COOLDOWN;
     }
 
-    // Horizontal input for volume sliders (left/right)
+    // Horizontal input for sliders (left/right)
     let h_input = get_horizontal_input(&keyboard, &joystick);
     if h_input != 0 && *cooldown <= 0.0 {
-        let volume_delta = h_input as f32 * 0.05; // 5% per press
+        let delta = h_input as f32 * 0.05; // 5% per press
 
         match selection.index {
+            PAUSE_IDX_MASTER => {
+                sound_settings.master_volume = (sound_settings.master_volume + delta).clamp(0.0, 1.0);
+                *cooldown = 0.08;
+            }
             PAUSE_IDX_MUSIC => {
-                sound_settings.music_volume = (sound_settings.music_volume + volume_delta).clamp(0.0, 1.0);
-                *cooldown = 0.08; // Faster repeat for sliders
+                sound_settings.music_volume = (sound_settings.music_volume + delta).clamp(0.0, 1.0);
+                *cooldown = 0.08;
             }
             PAUSE_IDX_SFX => {
-                sound_settings.sfx_volume = (sound_settings.sfx_volume + volume_delta).clamp(0.0, 1.0);
+                sound_settings.sfx_volume = (sound_settings.sfx_volume + delta).clamp(0.0, 1.0);
+                *cooldown = 0.08;
+            }
+            PAUSE_IDX_SHAKE => {
+                screen_shake.multiplier = (screen_shake.multiplier + delta).clamp(0.0, 1.0);
                 *cooldown = 0.08;
             }
             _ => {}
@@ -2880,20 +2907,22 @@ fn pause_menu_input(
 
     // Update slider visuals
     for (fill, mut node) in slider_fill_query.iter_mut() {
-        let volume = if fill.is_music {
-            sound_settings.music_volume
-        } else {
-            sound_settings.sfx_volume
+        let value = match fill.slider_type {
+            SliderType::MasterVolume => sound_settings.master_volume,
+            SliderType::MusicVolume => sound_settings.music_volume,
+            SliderType::SfxVolume => sound_settings.sfx_volume,
+            SliderType::ScreenShake => screen_shake.multiplier,
         };
-        node.width = Val::Percent(volume * 100.0);
+        node.width = Val::Percent(value * 100.0);
     }
     for (text_marker, mut text) in slider_text_query.iter_mut() {
-        let volume = if text_marker.is_music {
-            sound_settings.music_volume
-        } else {
-            sound_settings.sfx_volume
+        let value = match text_marker.slider_type {
+            SliderType::MasterVolume => sound_settings.master_volume,
+            SliderType::MusicVolume => sound_settings.music_volume,
+            SliderType::SfxVolume => sound_settings.sfx_volume,
+            SliderType::ScreenShake => screen_shake.multiplier,
         };
-        **text = format!("{}%", (volume * 100.0) as i32);
+        **text = format!("{}%", (value * 100.0) as i32);
     }
 
     // Update visual selection
@@ -2925,7 +2954,7 @@ fn pause_menu_input(
             PAUSE_IDX_QUIT => {
                 transitions.send(TransitionEvent::to(GameState::MainMenu));
             }
-            PAUSE_IDX_MUSIC | PAUSE_IDX_SFX => {
+            PAUSE_IDX_MASTER | PAUSE_IDX_MUSIC | PAUSE_IDX_SFX | PAUSE_IDX_SHAKE => {
                 // Pressing confirm on sliders does nothing (use left/right)
             }
             _ => {}
