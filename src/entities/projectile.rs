@@ -5,6 +5,7 @@
 #![allow(dead_code)]
 
 use crate::core::*;
+use crate::systems::effects::BulletTrail;
 use bevy::prelude::*;
 
 /// Marker for player projectiles
@@ -172,6 +173,7 @@ fn spawn_player_projectiles(
                     damage: missile_damage,
                     damage_type,
                 },
+                BulletTrail::new(Color::srgb(1.0, 0.6, 0.2)), // Orange trail for missiles
                 Sprite {
                     color,
                     custom_size: Some(Vec2::new(6.0, 14.0)), // Larger missile sprite
@@ -180,7 +182,7 @@ fn spawn_player_projectiles(
                 Transform::from_xyz(event.position.x, event.position.y, LAYER_PLAYER_BULLETS),
             ));
         } else {
-            // Standard projectile
+            // Standard projectile with bullet trail
             commands.spawn((
                 PlayerProjectile,
                 ProjectilePhysics {
@@ -191,6 +193,7 @@ fn spawn_player_projectiles(
                     damage: event.damage * damage_mult,
                     damage_type,
                 },
+                BulletTrail::new(color.with_alpha(0.5)),
                 Sprite {
                     color,
                     custom_size: Some(Vec2::new(4.0, 12.0)),

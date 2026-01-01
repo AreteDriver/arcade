@@ -6,6 +6,7 @@
 
 use crate::core::*;
 use bevy::prelude::*;
+use bevy::text::{Text2d, TextColor, TextFont};
 
 /// Maximum particles to prevent slowdown during intense combat
 const MAX_EXPLOSION_PARTICLES: usize = 500;
@@ -18,6 +19,7 @@ impl Plugin for EffectsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<ScreenShake>()
             .init_resource::<ScreenFlash>()
+            .init_resource::<CameraZoom>()
             .add_systems(OnEnter(GameState::Playing), spawn_starfield)
             .add_systems(
                 Update,
@@ -26,10 +28,14 @@ impl Plugin for EffectsPlugin {
                     update_explosions,
                     update_screen_shake,
                     update_screen_flash,
+                    update_camera_zoom,
                     handle_explosion_events,
                     spawn_engine_trails,
                     update_engine_particles,
+                    spawn_bullet_trails,
+                    update_bullet_trails,
                     update_hit_flash,
+                    update_damage_numbers,
                 )
                     .run_if(in_state(GameState::Playing)),
             )
@@ -302,6 +308,96 @@ fn update_screen_shake(
 }
 
 // =============================================================================
+// DAMAGE NUMBERS
+// =============================================================================
+
+/// Floating damage number that rises and fades
+#[derive(Component)]
+pub struct DamageNumber {
+    /// Upward velocity
+    pub velocity: Vec2,
+    /// Time remaining
+    pub lifetime: f32,
+    /// Max lifetime for fade calculation
+    pub max_lifetime: f32,
+}
+
+impl DamageNumber {
+    pub fn new() -> Self {
+        Self {
+            velocity: Vec2::new(
+                (fastrand::f32() - 0.5) * 30.0, // Random horizontal drift
+                80.0,                            // Rise upward
+            ),
+            lifetime: 0.8,
+            max_lifetime: 0.8,
+        }
+    }
+}
+
+impl Default for DamageNumber {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Spawn a floating damage number at position
+pub fn spawn_damage_number(commands: &mut Commands, position: Vec2, damage: f32, is_crit: bool) {
+    let text = format!("{:.0}", damage);
+    let (color, size) = if is_crit {
+        (Color::srgb(1.0, 0.9, 0.2), 18.0) // Yellow, larger for crits
+    } else if damage >= 20.0 {
+        (Color::srgb(1.0, 0.5, 0.2), 16.0) // Orange for heavy hits
+    } else {
+        (Color::srgb(1.0, 1.0, 1.0), 14.0) // White for normal
+    };
+
+    commands.spawn((
+        DamageNumber::new(),
+        Text2d::new(text),
+        TextFont {
+            font_size: size,
+            ..default()
+        },
+        TextColor(color),
+        Transform::from_xyz(position.x, position.y + 20.0, LAYER_EFFECTS + 5.0),
+    ));
+}
+
+/// Update damage number positions and fade
+fn update_damage_numbers(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(Entity, &mut Transform, &mut DamageNumber, &mut TextColor)>,
+) {
+    let dt = time.delta_secs();
+
+    for (entity, mut transform, mut dmg, mut color) in query.iter_mut() {
+        // Move upward
+        transform.translation.x += dmg.velocity.x * dt;
+        transform.translation.y += dmg.velocity.y * dt;
+
+        // Slow down horizontal drift
+        dmg.velocity.x *= 1.0 - 3.0 * dt;
+
+        // Update lifetime
+        dmg.lifetime -= dt;
+        let alpha = (dmg.lifetime / dmg.max_lifetime).max(0.0);
+
+        // Fade out
+        color.0 = color.0.with_alpha(alpha);
+
+        // Scale up slightly as it rises
+        let scale = 1.0 + (1.0 - alpha) * 0.3;
+        transform.scale = Vec3::splat(scale);
+
+        if dmg.lifetime <= 0.0 {
+            commands.entity(entity).despawn();
+        }
+    }
+}
+
+// =============================================================================
 // HIT FLASH
 // =============================================================================
 
@@ -449,6 +545,183 @@ fn update_screen_flash(
         // Remove overlay when done
         for (entity, _) in overlay_query.iter() {
             commands.entity(entity).despawn();
+        }
+    }
+}
+
+// =============================================================================
+// CAMERA ZOOM PULSE
+// =============================================================================
+
+/// Camera zoom pulse for dramatic moments (boss kills)
+#[derive(Resource)]
+pub struct CameraZoom {
+    /// Target scale (1.0 = normal, 1.1 = 10% zoom in)
+    pub target_scale: f32,
+    /// Current scale
+    pub current_scale: f32,
+    /// Return speed (how fast to return to normal)
+    pub return_speed: f32,
+}
+
+impl Default for CameraZoom {
+    fn default() -> Self {
+        Self {
+            target_scale: 1.0,
+            current_scale: 1.0,
+            return_speed: 3.0,
+        }
+    }
+}
+
+impl CameraZoom {
+    /// Trigger a zoom pulse (zoom in then out)
+    pub fn pulse(&mut self, intensity: f32) {
+        self.target_scale = 1.0 + intensity;
+        self.return_speed = 3.0;
+    }
+
+    /// Quick dramatic zoom for boss kills
+    pub fn boss_kill(&mut self) {
+        self.pulse(0.08); // 8% zoom in
+        self.return_speed = 2.0; // Slower return for drama
+    }
+
+    /// Small zoom for regular kills
+    pub fn small(&mut self) {
+        self.pulse(0.02);
+        self.return_speed = 5.0;
+    }
+}
+
+/// Update camera zoom effect
+fn update_camera_zoom(
+    time: Res<Time>,
+    mut zoom: ResMut<CameraZoom>,
+    mut camera_query: Query<&mut OrthographicProjection, With<Camera2d>>,
+) {
+    let dt = time.delta_secs();
+
+    // Move current scale toward target
+    if zoom.current_scale != zoom.target_scale {
+        let diff = zoom.target_scale - zoom.current_scale;
+        zoom.current_scale += diff * 8.0 * dt; // Fast zoom in
+
+        // Apply to camera
+        if let Ok(mut projection) = camera_query.get_single_mut() {
+            projection.scale = zoom.current_scale;
+        }
+    }
+
+    // Return target to 1.0 over time
+    if zoom.target_scale > 1.0 {
+        zoom.target_scale = (zoom.target_scale - zoom.return_speed * dt).max(1.0);
+    }
+
+    // Snap to 1.0 when close
+    if (zoom.current_scale - 1.0).abs() < 0.001 && zoom.target_scale == 1.0 {
+        zoom.current_scale = 1.0;
+        if let Ok(mut projection) = camera_query.get_single_mut() {
+            projection.scale = 1.0;
+        }
+    }
+}
+
+// =============================================================================
+// BULLET TRAILS
+// =============================================================================
+
+/// Component for projectiles that emit trails
+#[derive(Component)]
+pub struct BulletTrail {
+    /// Trail color
+    pub color: Color,
+    /// Spawn rate (particles per second)
+    pub spawn_rate: f32,
+    /// Timer for spawning
+    pub spawn_timer: f32,
+}
+
+impl BulletTrail {
+    pub fn new(color: Color) -> Self {
+        Self {
+            color,
+            spawn_rate: 40.0,
+            spawn_timer: 0.0,
+        }
+    }
+}
+
+/// Bullet trail particle
+#[derive(Component)]
+pub struct BulletTrailParticle {
+    pub lifetime: f32,
+    pub max_lifetime: f32,
+}
+
+/// Spawn bullet trail particles from projectiles
+fn spawn_bullet_trails(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(&Transform, &mut BulletTrail)>,
+    particle_count: Query<&BulletTrailParticle>,
+) {
+    // Cap trail particles to avoid performance issues
+    const MAX_TRAIL_PARTICLES: usize = 300;
+    if particle_count.iter().count() >= MAX_TRAIL_PARTICLES {
+        return;
+    }
+
+    let dt = time.delta_secs();
+
+    for (transform, mut trail) in query.iter_mut() {
+        trail.spawn_timer += dt;
+        let spawn_interval = 1.0 / trail.spawn_rate;
+
+        while trail.spawn_timer >= spawn_interval {
+            trail.spawn_timer -= spawn_interval;
+
+            let pos = transform.translation.truncate();
+            let lifetime = 0.15;
+
+            // Spawn fading particle
+            commands.spawn((
+                BulletTrailParticle {
+                    lifetime,
+                    max_lifetime: lifetime,
+                },
+                Sprite {
+                    color: trail.color.with_alpha(0.6),
+                    custom_size: Some(Vec2::new(3.0, 3.0)),
+                    ..default()
+                },
+                Transform::from_xyz(pos.x, pos.y, LAYER_EFFECTS - 2.0),
+            ));
+        }
+    }
+}
+
+/// Update bullet trail particles (fade and despawn)
+fn update_bullet_trails(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(Entity, &mut BulletTrailParticle, &mut Sprite)>,
+) {
+    let dt = time.delta_secs();
+
+    for (entity, mut particle, mut sprite) in query.iter_mut() {
+        particle.lifetime -= dt;
+
+        if particle.lifetime <= 0.0 {
+            commands.entity(entity).despawn();
+        } else {
+            // Fade out and shrink
+            let alpha = (particle.lifetime / particle.max_lifetime) * 0.6;
+            sprite.color = sprite.color.with_alpha(alpha);
+
+            if let Some(size) = sprite.custom_size {
+                sprite.custom_size = Some(size * (1.0 - dt * 4.0));
+            }
         }
     }
 }
@@ -643,6 +916,8 @@ fn cleanup_effects(
     explosion_particles: Query<Entity, With<ExplosionParticle>>,
     engine_particles: Query<Entity, With<EngineParticle>>,
     flash_overlays: Query<Entity, With<ScreenFlashOverlay>>,
+    damage_numbers: Query<Entity, With<DamageNumber>>,
+    bullet_trail_particles: Query<Entity, With<BulletTrailParticle>>,
 ) {
     for entity in stars.iter() {
         commands.entity(entity).despawn();
@@ -654,6 +929,12 @@ fn cleanup_effects(
         commands.entity(entity).despawn();
     }
     for entity in flash_overlays.iter() {
+        commands.entity(entity).despawn();
+    }
+    for entity in damage_numbers.iter() {
+        commands.entity(entity).despawn();
+    }
+    for entity in bullet_trail_particles.iter() {
         commands.entity(entity).despawn();
     }
 }

@@ -119,6 +119,7 @@ fn player_projectile_enemy_collision(
     mut explosion_events: EventWriter<ExplosionEvent>,
     mut screen_shake: ResMut<super::effects::ScreenShake>,
     mut screen_flash: ResMut<super::effects::ScreenFlash>,
+    mut camera_zoom: ResMut<super::effects::CameraZoom>,
     icon_cache: Res<crate::assets::PowerupIconCache>,
 ) {
     // Get player position and health for proximity check and smart powerups
@@ -160,6 +161,14 @@ fn player_projectile_enemy_collision(
                     super::effects::HitFlash::new(original_color)
                 );
 
+                // Spawn floating damage number
+                super::effects::spawn_damage_number(
+                    &mut commands,
+                    enemy_pos,
+                    proj_damage.damage,
+                    false, // TODO: implement crits
+                );
+
                 // Despawn projectile
                 commands.entity(proj_entity).despawn_recursive();
 
@@ -199,10 +208,11 @@ fn player_projectile_enemy_collision(
                         color: Color::srgb(1.0, 0.5, 0.2),
                     });
 
-                    // Screen shake and flash on kill
+                    // Screen shake, flash, and zoom on kill
                     if enemy_stats.is_boss {
                         screen_shake.massive();
                         screen_flash.massive(); // Big white flash for boss kills
+                        camera_zoom.boss_kill(); // Dramatic zoom pulse
                     } else {
                         screen_shake.trigger(3.0, 0.1); // Small shake for regular enemies
                     }
