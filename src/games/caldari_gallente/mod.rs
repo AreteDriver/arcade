@@ -101,6 +101,8 @@ impl Plugin for CaldariGallentePlugin {
                 update_nightmare_mode,
                 spawn_nightmare_enemies,
                 update_nightmare_hud,
+                update_wave_announcements,
+                update_miniboss_intros,
             )
                 .chain()
                 .run_if(in_state(GameState::Playing))
@@ -410,6 +412,235 @@ struct NightmareMiniBoss {
     boss_type: NightmareBoss,
 }
 
+// ============================================================================
+// Nightmare Wave/Boss Announcements
+// ============================================================================
+
+/// Root marker for wave announcement overlay
+#[derive(Component)]
+struct NightmareWaveAnnouncement {
+    timer: f32,
+    max_time: f32,
+}
+
+/// Root marker for mini-boss intro overlay
+#[derive(Component)]
+struct NightmareMiniBossIntro {
+    timer: f32,
+    max_time: f32,
+    boss_type: NightmareBoss,
+    spawned: bool,
+}
+
+/// Pulse animation for warning text
+#[derive(Component)]
+struct NightmareWarningPulse {
+    timer: f32,
+}
+
+/// Typewriter effect for dialogue
+#[derive(Component)]
+struct NightmareDialogue {
+    full_text: String,
+    timer: f32,
+}
+
+/// Spawn wave announcement overlay
+fn spawn_wave_announcement(commands: &mut Commands, wave: u32) {
+    // Only show announcement every 5th wave or wave 1
+    if wave != 1 && wave % 5 != 0 {
+        return;
+    }
+
+    commands
+        .spawn((
+            NightmareWaveAnnouncement {
+                timer: 0.0,
+                max_time: 1.5,
+            },
+            Node {
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                flex_direction: FlexDirection::Column,
+                ..default()
+            },
+            BackgroundColor(Color::NONE),
+        ))
+        .with_children(|parent| {
+            parent.spawn((
+                Text::new(format!("WAVE {}", wave)),
+                TextFont {
+                    font_size: 72.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(1.0, 0.2, 0.2)),
+                NightmareWarningPulse { timer: 0.0 },
+            ));
+
+            if wave >= 20 {
+                parent.spawn((
+                    Text::new("EXTREME DANGER"),
+                    TextFont {
+                        font_size: 24.0,
+                        ..default()
+                    },
+                    TextColor(Color::srgb(1.0, 0.4, 0.4)),
+                ));
+            } else if wave >= 10 {
+                parent.spawn((
+                    Text::new("DANGER INCREASING"),
+                    TextFont {
+                        font_size: 24.0,
+                        ..default()
+                    },
+                    TextColor(Color::srgb(1.0, 0.6, 0.3)),
+                ));
+            }
+        });
+}
+
+/// Spawn mini-boss intro overlay
+fn spawn_miniboss_intro(commands: &mut Commands, boss: NightmareBoss) {
+    commands
+        .spawn((
+            NightmareMiniBossIntro {
+                timer: 0.0,
+                max_time: 2.5,
+                boss_type: boss,
+                spawned: false,
+            },
+            Node {
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                flex_direction: FlexDirection::Column,
+                row_gap: Val::Px(10.0),
+                ..default()
+            },
+            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.7)),
+        ))
+        .with_children(|parent| {
+            // Warning
+            parent.spawn((
+                Text::new("⚠ MINI-BOSS ⚠"),
+                TextFont {
+                    font_size: 28.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(1.0, 0.2, 0.2)),
+                NightmareWarningPulse { timer: 0.0 },
+            ));
+
+            parent.spawn(Node {
+                height: Val::Px(10.0),
+                ..default()
+            });
+
+            // Boss name
+            parent.spawn((
+                Text::new(boss.name()),
+                TextFont {
+                    font_size: 56.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(1.0, 0.4, 0.2)), // Orange-red
+            ));
+
+            parent.spawn(Node {
+                height: Val::Px(15.0),
+                ..default()
+            });
+
+            // Dialogue (typewriter)
+            parent.spawn((
+                Text::new(""),
+                TextFont {
+                    font_size: 18.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.8, 0.8, 0.8)),
+                NightmareDialogue {
+                    full_text: format!("\"{}\"", boss.dialogue()),
+                    timer: 0.0,
+                },
+            ));
+        });
+}
+
+/// Update wave announcements (fade out and despawn)
+fn update_wave_announcements(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut query: Query<(Entity, &mut NightmareWaveAnnouncement, &mut BackgroundColor)>,
+    mut text_query: Query<(&mut TextColor, &mut NightmareWarningPulse)>,
+) {
+    let dt = time.delta_secs();
+
+    for (entity, mut announcement, mut bg) in query.iter_mut() {
+        announcement.timer += dt;
+
+        // Fade in/out background
+        let progress = announcement.timer / announcement.max_time;
+        let alpha = if progress < 0.2 {
+            progress / 0.2 * 0.3
+        } else if progress > 0.7 {
+            (1.0 - progress) / 0.3 * 0.3
+        } else {
+            0.3
+        };
+        *bg = BackgroundColor(Color::srgba(0.0, 0.0, 0.0, alpha));
+
+        if announcement.timer >= announcement.max_time {
+            commands.entity(entity).despawn_recursive();
+        }
+    }
+
+    // Pulse warning text
+    for (mut color, mut pulse) in text_query.iter_mut() {
+        pulse.timer += dt * 6.0;
+        let intensity = (pulse.timer.sin() * 0.3 + 0.7).clamp(0.4, 1.0);
+        *color = TextColor(Color::srgb(1.0, 0.2 * intensity, 0.2 * intensity));
+    }
+}
+
+/// Update mini-boss intros (typewriter, spawn boss, despawn)
+fn update_miniboss_intros(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut query: Query<(Entity, &mut NightmareMiniBossIntro)>,
+    mut dialogue_query: Query<(&mut Text, &mut NightmareDialogue)>,
+) {
+    let dt = time.delta_secs();
+
+    for (entity, mut intro) in query.iter_mut() {
+        intro.timer += dt;
+
+        // Spawn boss after 1.5 seconds
+        if intro.timer >= 1.5 && !intro.spawned {
+            intro.spawned = true;
+            commands.spawn(NightmareSpawnRequest::Boss(intro.boss_type));
+        }
+
+        // Despawn overlay after max time
+        if intro.timer >= intro.max_time {
+            commands.entity(entity).despawn_recursive();
+        }
+    }
+
+    // Typewriter effect for dialogue
+    for (mut text, mut dialogue) in dialogue_query.iter_mut() {
+        dialogue.timer += dt;
+        let chars_to_show = ((dialogue.timer - 0.3) * 35.0) as usize; // 35 chars/sec
+        let chars_to_show = chars_to_show.min(dialogue.full_text.len());
+        if chars_to_show > 0 {
+            **text = dialogue.full_text[..chars_to_show].to_string();
+        }
+    }
+}
+
 /// Update nightmare state timers and spawn events
 fn update_nightmare_mode(
     time: Res<Time>,
@@ -421,19 +652,18 @@ fn update_nightmare_mode(
     match event {
         NightmareEvent::SpawnWave(wave) => {
             info!("NIGHTMARE Wave {} - {} enemies incoming!", wave, nightmare.enemies_per_wave());
+            // Spawn wave announcement overlay (shows every 5th wave and wave 1)
+            spawn_wave_announcement(&mut commands, wave);
+            // Spawn the wave immediately
+            commands.spawn(NightmareSpawnRequest::Wave);
         }
         NightmareEvent::SpawnBoss(boss) => {
             info!("NIGHTMARE BOSS: {} - \"{}\"", boss.name(), boss.dialogue());
-            // Boss spawning handled in spawn_nightmare_enemies
+            // Spawn mini-boss intro overlay (will spawn boss after delay)
+            spawn_miniboss_intro(&mut commands, boss);
+            // Note: Boss spawn request is now created by update_miniboss_intros after delay
         }
         NightmareEvent::None => {}
-    }
-
-    // Spawn the wave or boss marker for the spawning system
-    if let NightmareEvent::SpawnWave(_) = event {
-        commands.spawn(NightmareSpawnRequest::Wave);
-    } else if let NightmareEvent::SpawnBoss(boss) = event {
-        commands.spawn(NightmareSpawnRequest::Boss(boss));
     }
 }
 
