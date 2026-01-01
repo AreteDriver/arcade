@@ -481,9 +481,9 @@ pub fn get_ship_rotation_correction(type_id: u32) -> f32 {
         // 589 (Executioner) - faces up
 
         // === MINMATAR ===
-        587 => FRAC_PI_2, // Rifter - faces right
-        585 => FRAC_PI_2, // Slasher - faces right
-        // 598 (Breacher) - faces up
+        587 => std::f32::consts::PI, // Rifter - faces down, flip 180°
+        585 => std::f32::consts::PI, // Slasher - faces down, flip 180°
+        // 598 (Breacher) - faces up, no rotation needed
 
         // === CARRIERS ===
         24483 => std::f32::consts::PI, // Nidhoggur (Minmatar) - needs 180° flip

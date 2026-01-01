@@ -685,10 +685,10 @@ fn spawn_nightmare_enemies(
 
     // Get enemy type IDs based on faction
     let enemy_types: Vec<u32> = match session.enemy_faction {
-        Faction::Caldari => vec![601, 602, 603], // Condor, Merlin, Kestrel
-        Faction::Gallente => vec![607, 608, 609], // Atron, Incursus, Tristan
-        Faction::Amarr => vec![597, 589, 590], // Punisher, Executioner, Tormentor
-        Faction::Minmatar => vec![584, 585, 587], // Rifter, Slasher, Breacher
+        Faction::Caldari => vec![583, 602, 603], // Condor, Kestrel, Merlin
+        Faction::Gallente => vec![608, 594, 593], // Atron, Incursus, Tristan
+        Faction::Amarr => vec![597, 589, 591], // Punisher, Executioner, Tormentor
+        Faction::Minmatar => vec![587, 585, 598], // Rifter, Slasher, Breacher
     };
 
     for (entity, request) in spawn_requests.iter() {
@@ -1008,10 +1008,10 @@ fn spawn_cg_wave(
 
     // Get enemy type IDs based on enemy faction
     let enemy_types: Vec<u32> = match session.enemy_faction {
-        Faction::Caldari => vec![601, 602, 603], // Condor, Merlin, Kestrel
-        Faction::Gallente => vec![607, 608, 609], // Atron, Incursus, Tristan
-        Faction::Amarr => vec![597, 589, 590],
-        Faction::Minmatar => vec![584, 585, 587],
+        Faction::Caldari => vec![583, 602, 603], // Condor, Kestrel, Merlin
+        Faction::Gallente => vec![608, 594, 593], // Atron, Incursus, Tristan
+        Faction::Amarr => vec![597, 589, 591], // Punisher, Executioner, Tormentor
+        Faction::Minmatar => vec![587, 585, 598], // Rifter, Slasher, Breacher
     };
 
     for i in 0..count {
