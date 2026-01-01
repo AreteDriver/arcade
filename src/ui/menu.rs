@@ -126,18 +126,26 @@ impl Plugin for MenuPlugin {
                     .run_if(is_elder_fleet),
             )
             .add_systems(OnExit(GameState::BossIntro), despawn_menu::<BossIntroRoot>)
-            // Stage Complete
-            .add_systems(OnEnter(GameState::StageComplete), spawn_stage_complete)
+            // Stage Complete (Elder Fleet only - CG has its own)
+            .add_systems(
+                OnEnter(GameState::StageComplete),
+                spawn_stage_complete.run_if(is_elder_fleet),
+            )
             .add_systems(
                 Update,
-                stage_complete_input.run_if(in_state(GameState::StageComplete)),
+                stage_complete_input
+                    .run_if(in_state(GameState::StageComplete))
+                    .run_if(is_elder_fleet),
             )
             .add_systems(
                 OnExit(GameState::StageComplete),
-                despawn_menu::<StageCompleteRoot>,
+                despawn_menu::<StageCompleteRoot>.run_if(is_elder_fleet),
             )
-            // Victory (Campaign Complete)
-            .add_systems(OnEnter(GameState::Victory), spawn_victory_screen)
+            // Victory (Elder Fleet only - CG has its own)
+            .add_systems(
+                OnEnter(GameState::Victory),
+                spawn_victory_screen.run_if(is_elder_fleet),
+            )
             .add_systems(
                 Update,
                 (
@@ -145,9 +153,13 @@ impl Plugin for MenuPlugin {
                     update_victory_particles,
                     update_victory_buttons,
                 )
-                    .run_if(in_state(GameState::Victory)),
+                    .run_if(in_state(GameState::Victory))
+                    .run_if(is_elder_fleet),
             )
-            .add_systems(OnExit(GameState::Victory), despawn_victory_screen)
+            .add_systems(
+                OnExit(GameState::Victory),
+                despawn_victory_screen.run_if(is_elder_fleet),
+            )
             // Init menu selection resource
             .init_resource::<MenuSelection>();
     }
