@@ -4,6 +4,7 @@
 
 #![allow(dead_code)]
 
+use crate::systems::{ScreenShake, SoundSettings};
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -19,7 +20,9 @@ impl Plugin for SavePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<SaveData>()
             .add_systems(Startup, load_save_data)
-            .add_systems(Update, auto_save.run_if(resource_changed::<SaveData>));
+            .add_systems(PostStartup, apply_saved_settings)
+            .add_systems(Update, auto_save.run_if(resource_changed::<SaveData>))
+            .add_systems(Update, sync_settings_to_save);
     }
 }
 
@@ -59,7 +62,13 @@ pub struct GameSettings {
     pub master_volume: f32,
     pub sfx_volume: f32,
     pub music_volume: f32,
-    pub screen_shake: bool,
+    /// Screen shake intensity (0.0 = off, 1.0 = full)
+    #[serde(default = "default_shake_intensity")]
+    pub screen_shake_intensity: f32,
+}
+
+fn default_shake_intensity() -> f32 {
+    1.0
 }
 
 impl Default for GameSettings {
@@ -68,7 +77,7 @@ impl Default for GameSettings {
             master_volume: 0.7,
             sfx_volume: 0.8,
             music_volume: 0.5,
-            screen_shake: true,
+            screen_shake_intensity: 1.0,
         }
     }
 }
@@ -285,6 +294,74 @@ fn auto_save(save: Res<SaveData>) {
     save.save();
 }
 
+/// Apply saved settings to runtime resources (runs after all plugins init)
+fn apply_saved_settings(
+    save: Res<SaveData>,
+    mut sound: ResMut<SoundSettings>,
+    mut shake: ResMut<ScreenShake>,
+) {
+    let settings = &save.settings;
+
+    // Apply audio settings
+    sound.master_volume = settings.master_volume;
+    sound.sfx_volume = settings.sfx_volume;
+    sound.music_volume = settings.music_volume;
+
+    // Apply screen shake intensity
+    shake.multiplier = settings.screen_shake_intensity;
+
+    info!(
+        "Applied saved settings: master={:.0}%, sfx={:.0}%, music={:.0}%, shake={:.0}%",
+        settings.master_volume * 100.0,
+        settings.sfx_volume * 100.0,
+        settings.music_volume * 100.0,
+        settings.screen_shake_intensity * 100.0
+    );
+}
+
+/// Sync runtime settings changes back to SaveData
+/// Only runs when SoundSettings or ScreenShake resources change
+fn sync_settings_to_save(
+    sound: Res<SoundSettings>,
+    shake: Res<ScreenShake>,
+    mut save: ResMut<SaveData>,
+) {
+    // Only process if either resource changed this frame
+    if !sound.is_changed() && !shake.is_changed() {
+        return;
+    }
+
+    // Check if settings actually differ from saved values
+    let settings = &save.settings;
+    let sound_changed = (settings.master_volume - sound.master_volume).abs() > 0.001
+        || (settings.sfx_volume - sound.sfx_volume).abs() > 0.001
+        || (settings.music_volume - sound.music_volume).abs() > 0.001;
+    let shake_changed = (settings.screen_shake_intensity - shake.multiplier).abs() > 0.001;
+
+    if !sound_changed && !shake_changed {
+        return;
+    }
+
+    // Update settings
+    let settings = &mut save.settings;
+    if sound_changed {
+        settings.master_volume = sound.master_volume;
+        settings.sfx_volume = sound.sfx_volume;
+        settings.music_volume = sound.music_volume;
+    }
+    if shake_changed {
+        settings.screen_shake_intensity = shake.multiplier;
+    }
+
+    info!(
+        "Settings synced to save: master={:.0}%, sfx={:.0}%, music={:.0}%, shake={:.0}%",
+        settings.master_volume * 100.0,
+        settings.sfx_volume * 100.0,
+        settings.music_volume * 100.0,
+        settings.screen_shake_intensity * 100.0
+    );
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -429,7 +506,7 @@ mod tests {
         assert_eq!(settings.master_volume, 0.7);
         assert_eq!(settings.sfx_volume, 0.8);
         assert_eq!(settings.music_volume, 0.5);
-        assert!(settings.screen_shake);
+        assert_eq!(settings.screen_shake_intensity, 1.0);
     }
 
     // ==================== Serialization Tests ====================
