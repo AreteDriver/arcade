@@ -1,6 +1,7 @@
 # YOKAI BLADE
 
 [![CI](https://github.com/AreteDriver/YokaiBlade/actions/workflows/unity-build.yml/badge.svg)](https://github.com/AreteDriver/YokaiBlade/actions/workflows/unity-build.yml)
+[![codecov](https://codecov.io/gh/AreteDriver/YokaiBlade/branch/main/graph/badge.svg)](https://codecov.io/gh/AreteDriver/YokaiBlade)
 [![Unity](https://img.shields.io/badge/Unity-2022.3%20LTS-blue.svg)](https://unity.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
