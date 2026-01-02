@@ -1,5 +1,9 @@
 # YOKAI BLADE
 
+[![CI](https://github.com/AreteDriver/YokaiBlade/actions/workflows/unity-build.yml/badge.svg)](https://github.com/AreteDriver/YokaiBlade/actions/workflows/unity-build.yml)
+[![Unity](https://img.shields.io/badge/Unity-2022.3%20LTS-blue.svg)](https://unity.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A folklore-true Japanese action game where even the jokes can kill you.
 
 ## Vision
@@ -58,9 +62,17 @@ tools/            # Build and dev tools
 
 ## Documentation
 
+### Design
 - [System Invariants](docs/INVARIANTS.md) — non-negotiable contracts
 - [Project Plan](docs/PROJECT_PLAN.md) — build order and gates
 - [Telegraph Semantics](docs/TELEGRAPH_SEMANTICS.md) — global signal language
+
+### Implementation Specs
+- [Player Prefab](docs/PLAYER_PREFAB_SPEC.md) — player setup and components
+- [Boot Scene](docs/BOOT_SCENE_SPEC.md) — entry point and managers
+- [Shirime Arena](docs/SHIRIME_ARENA_SPEC.md) — first boss (patience)
+- [Tanuki Arena](docs/TANUKI_ARENA_SPEC.md) — second boss (observation)
+- [Oni Arena](docs/ONI_ARENA_SPEC.md) — final boss (mastery)
 
 ## Core Principles
 
@@ -76,4 +88,4 @@ tools/            # Build and dev tools
 
 ## License
 
-[TBD]
+MIT License - see [LICENSE](LICENSE) for details.
