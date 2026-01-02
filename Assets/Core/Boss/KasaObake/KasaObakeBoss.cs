@@ -187,6 +187,8 @@ namespace YokaiBlade.Core.Boss.KasaObake
 
         public void ApplyStagger(float duration)
         {
+            if (_state == KasaObakeState.Defeated) return;
+
             _staggerDuration = duration;
             _attackRunner?.Cancel();
             TransitionTo(KasaObakeState.Staggered);
@@ -194,6 +196,8 @@ namespace YokaiBlade.Core.Boss.KasaObake
 
         public void TakeDamage()
         {
+            if (_state == KasaObakeState.Defeated) return;
+
             _currentHealth--;
             if (_currentHealth <= 0)
             {
@@ -208,6 +212,8 @@ namespace YokaiBlade.Core.Boss.KasaObake
 
         public void Defeat()
         {
+            if (_state == KasaObakeState.Defeated) return;
+
             _attackRunner?.Cancel();
             TransitionTo(KasaObakeState.Defeated);
             OnDefeated?.Invoke();

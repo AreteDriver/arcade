@@ -150,11 +150,15 @@ namespace YokaiBlade.Core.Boss.Tanuki
 
         public void ApplyStagger(float duration)
         {
+            if (_state == TanukiState.Defeated) return;
+
             TransitionTo(TanukiState.Staggered);
         }
 
         public void TakeDamage()
         {
+            if (_state == TanukiState.Defeated) return;
+
             _currentHealth--;
             if (_currentHealth <= 0)
             {
@@ -168,6 +172,8 @@ namespace YokaiBlade.Core.Boss.Tanuki
 
         public void Defeat()
         {
+            if (_state == TanukiState.Defeated) return;
+
             _attackRunner?.Cancel();
             TransitionTo(TanukiState.Defeated);
             OnDefeated?.Invoke();

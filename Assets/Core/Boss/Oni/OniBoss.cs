@@ -188,11 +188,15 @@ namespace YokaiBlade.Core.Boss.Oni
 
         public void ApplyStagger(float duration)
         {
+            if (_state == OniState.Defeated) return;
+
             TransitionTo(OniState.Staggered);
         }
 
         public void TakeDamage()
         {
+            if (_state == OniState.Defeated) return;
+
             _currentHealth--;
 
             if (_currentHealth <= 0)
@@ -234,6 +238,8 @@ namespace YokaiBlade.Core.Boss.Oni
 
         public void Defeat()
         {
+            if (_state == OniState.Defeated) return;
+
             _attackRunner?.Cancel();
             TransitionTo(OniState.Defeated);
             OnDefeated?.Invoke();

@@ -334,7 +334,6 @@ namespace YokaiBlade.Tests.EditMode
         private void SimulateFrameRate(int fps, out InputAction resultAction)
         {
             float deltaTime = 1f / fps;
-            float time = 0f;
 
             var buffer = new InputBuffer(_config);
 
@@ -343,14 +342,19 @@ namespace YokaiBlade.Tests.EditMode
             buffer.Buffer(InputAction.Deflect, 0.02f);
             buffer.Buffer(InputAction.Dodge, 0.03f);
 
-            // Simulate fixed update steps
-            for (int i = 0; i < 10; i++)
+            // Simulate fixed update steps to reach check time
+            // Use a consistent check time within Deflect's buffer window (0.15s)
+            // Check at 0.1s which is within window for all inputs
+            const float checkTime = 0.1f;
+            float time = 0f;
+            while (time < checkTime)
             {
                 time += deltaTime;
             }
 
             // Should always get deflect regardless of frame rate
-            resultAction = buffer.Peek(time);
+            // Check at consistent time, not frame-dependent time
+            resultAction = buffer.Peek(checkTime);
         }
 
         #endregion

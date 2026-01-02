@@ -119,12 +119,16 @@ namespace YokaiBlade.Core.Boss.Shirime
 
         public void ApplyStagger(float duration)
         {
+            if (_state == ShirimeState.Defeated) return;
+
             _staggerDuration = duration;
             TransitionTo(ShirimeState.Staggered);
         }
 
         public void Defeat()
         {
+            if (_state == ShirimeState.Defeated) return;
+
             _attackRunner?.Cancel();
             TransitionTo(ShirimeState.Defeated);
             OnDefeated?.Invoke();
