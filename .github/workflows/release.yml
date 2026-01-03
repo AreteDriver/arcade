@@ -132,7 +132,101 @@ jobs:
             | Linux x64 | `${{ github.event.repository.name }}-linux-x64.tar.gz` |
             | Windows x64 | `${{ github.event.repository.name }}-windows-x64.zip` |
             | macOS x64 | `${{ github.event.repository.name }}-macos-x64.tar.gz` |
+            | Web (itch.io) | [Play in browser](https://aretedriver.itch.io/eve-rebellion) |
           draft: false
           prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-wasm:
+    name: Build Web (WASM)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-bindgen-cli
+        run: cargo install wasm-bindgen-cli
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build WASM
+        run: cargo build --release --target wasm32-unknown-unknown
+
+      - name: Generate JS bindings
+        run: |
+          wasm-bindgen --out-dir web --out-name eve_rebellion --target web \
+            target/wasm32-unknown-unknown/release/eve_rebellion.wasm
+
+      - name: Copy assets
+        run: cp -r assets web/
+
+      - name: Copy index.html
+        run: cp web/index.html web/ 2>/dev/null || echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>EVE Rebellion</title><style>body{margin:0;background:#000;display:flex;justify-content:center;align-items:center;height:100vh}canvas{max-width:100%;max-height:100%}</style></head><body><script type="module">import init from "./eve_rebellion.js";init();</script></body></html>' > web/index.html
+
+      - name: Upload WASM artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: web-wasm
+          path: web/
+          retention-days: 7
+
+  deploy-itch:
+    name: Deploy to itch.io
+    runs-on: ubuntu-latest
+    needs: [build-release, build-wasm]
+    steps:
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-x64
+          path: linux
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-x64
+          path: windows
+
+      - name: Download WASM artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: web-wasm
+          path: web
+
+      - name: Extract Linux build
+        run: |
+          mkdir linux-extracted
+          tar -xzf linux/*.tar.gz -C linux-extracted
+
+      - name: Extract Windows build
+        run: |
+          mkdir windows-extracted
+          unzip windows/*.zip -d windows-extracted
+
+      - name: Install butler
+        run: |
+          curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
+          unzip butler.zip
+          chmod +x butler
+          ./butler -V
+
+      - name: Push to itch.io (Linux)
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: ./butler push linux-extracted aretedriver/eve-rebellion:linux --userversion ${{ github.ref_name }}
+
+      - name: Push to itch.io (Windows)
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: ./butler push windows-extracted aretedriver/eve-rebellion:windows --userversion ${{ github.ref_name }}
+
+      - name: Push to itch.io (Web)
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: ./butler push web aretedriver/eve-rebellion:html5 --userversion ${{ github.ref_name }}
