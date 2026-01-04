@@ -303,7 +303,7 @@ fn wingman_shooting(
                 ProjectileDamage {
                     damage: weapon.damage,
                     damage_type: DamageType::Kinetic,
-                    crit_chance: 0.1,      // 10% crit for wingman
+                    crit_chance: 0.1, // 10% crit for wingman
                     crit_multiplier: 1.5,
                 },
                 Sprite {

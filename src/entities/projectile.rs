@@ -52,8 +52,8 @@ impl Default for ProjectileDamage {
         Self {
             damage: 10.0,
             damage_type: DamageType::Kinetic,
-            crit_chance: 0.1,      // 10% base crit chance
-            crit_multiplier: 1.5,  // 1.5x crit damage
+            crit_chance: 0.1,     // 10% base crit chance
+            crit_multiplier: 1.5, // 1.5x crit damage
         }
     }
 }
@@ -79,7 +79,7 @@ impl Default for PlayerProjectileBundle {
             damage: ProjectileDamage {
                 damage: PLAYER_BULLET_DAMAGE,
                 damage_type: DamageType::Kinetic,
-                crit_chance: 0.1,      // 10% crit for autocannons
+                crit_chance: 0.1, // 10% crit for autocannons
                 crit_multiplier: 1.5,
             },
             sprite: Sprite {
@@ -213,7 +213,7 @@ fn spawn_player_projectiles(
                 ProjectileDamage {
                     damage: event.damage * damage_mult,
                     damage_type,
-                    crit_chance: 0.1,      // 10% crit for autocannons
+                    crit_chance: 0.1, // 10% crit for autocannons
                     crit_multiplier: 1.5,
                 },
                 BulletTrail::new(color.with_alpha(0.5)),
@@ -335,7 +335,7 @@ pub fn spawn_enemy_projectile(
         damage: ProjectileDamage {
             damage,
             damage_type: DamageType::EM,
-            crit_chance: 0.05,     // 5% crit for enemies
+            crit_chance: 0.05, // 5% crit for enemies
             crit_multiplier: 1.25,
         },
         transform: Transform::from_xyz(position.x, position.y, LAYER_ENEMY_BULLETS)
@@ -394,7 +394,7 @@ pub fn spawn_enemy_projectile_typed(
         ProjectileDamage {
             damage,
             damage_type,
-            crit_chance: 0.05,     // 5% crit for enemies
+            crit_chance: 0.05, // 5% crit for enemies
             crit_multiplier: 1.25,
         },
         Sprite {

@@ -175,12 +175,10 @@ fn player_projectile_enemy_collision(
                 }
 
                 // Add hit flash effect (white flash when damaged)
-                let original_color = sprite
-                    .map(|s| s.color)
-                    .unwrap_or(Color::WHITE);
-                commands.entity(enemy_entity).insert(
-                    super::effects::HitFlash::new(original_color)
-                );
+                let original_color = sprite.map(|s| s.color).unwrap_or(Color::WHITE);
+                commands
+                    .entity(enemy_entity)
+                    .insert(super::effects::HitFlash::new(original_color));
 
                 // Spawn floating damage number
                 super::effects::spawn_damage_number(
@@ -319,9 +317,12 @@ fn enemy_projectile_player_collision(
 
             // Add hit flash effect to player (red-white flash when hit)
             let original_color = sprite.map(|s| s.color).unwrap_or(Color::WHITE);
-            commands.entity(player_entity).insert(
-                super::effects::HitFlash::with_duration(original_color, 0.15)
-            );
+            commands
+                .entity(player_entity)
+                .insert(super::effects::HitFlash::with_duration(
+                    original_color,
+                    0.15,
+                ));
 
             // Lost no-damage bonus
             score.no_damage_bonus = false;
@@ -342,7 +343,8 @@ fn enemy_projectile_player_collision(
             // Health callouts (with 8 second cooldown)
             if *last_callout > 8.0 {
                 let total_hp = player_stats.shield + player_stats.armor + player_stats.hull;
-                let max_hp = player_stats.max_shield + player_stats.max_armor + player_stats.max_hull;
+                let max_hp =
+                    player_stats.max_shield + player_stats.max_armor + player_stats.max_hull;
                 let health_pct = total_hp / max_hp;
                 if health_pct < 0.2 {
                     dialogue_events.send(super::DialogueEvent::combat_callout(

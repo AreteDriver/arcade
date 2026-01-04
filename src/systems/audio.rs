@@ -11,7 +11,7 @@ use std::f32::consts::PI;
 #[cfg(not(target_arch = "wasm32"))]
 use std::io::Cursor;
 
-use crate::core::{*, WaveCompleteEvent, BossSpawnEvent};
+use crate::core::{BossSpawnEvent, WaveCompleteEvent, *};
 
 /// Audio plugin
 pub struct AudioPlugin;
@@ -525,9 +525,9 @@ fn play_pickup_sounds(
             CollectibleType::Overdrive => sounds.powerup_overdrive.clone(),
             CollectibleType::DamageBoost => sounds.powerup_damage.clone(),
             CollectibleType::Invulnerability => sounds.powerup_invuln.clone(),
-            CollectibleType::ShieldBoost | CollectibleType::ArmorRepair | CollectibleType::HullRepair => {
-                sounds.powerup_health.clone()
-            }
+            CollectibleType::ShieldBoost
+            | CollectibleType::ArmorRepair
+            | CollectibleType::HullRepair => sounds.powerup_health.clone(),
             _ => sounds.pickup.clone(), // Credits, souls, etc use generic pickup
         };
 

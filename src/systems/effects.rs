@@ -354,7 +354,7 @@ impl DamageNumber {
         Self {
             velocity: Vec2::new(
                 (fastrand::f32() - 0.5) * 30.0, // Random horizontal drift
-                80.0,                            // Rise upward
+                80.0,                           // Rise upward
             ),
             lifetime: 0.8,
             max_lifetime: 0.8,
@@ -477,12 +477,10 @@ fn update_hit_flash(
             let original = flash.original_color;
 
             // Simple lerp between white and original
-            let r = white.to_srgba().red * (1.0 - progress)
-                + original.to_srgba().red * progress;
-            let g = white.to_srgba().green * (1.0 - progress)
-                + original.to_srgba().green * progress;
-            let b = white.to_srgba().blue * (1.0 - progress)
-                + original.to_srgba().blue * progress;
+            let r = white.to_srgba().red * (1.0 - progress) + original.to_srgba().red * progress;
+            let g =
+                white.to_srgba().green * (1.0 - progress) + original.to_srgba().green * progress;
+            let b = white.to_srgba().blue * (1.0 - progress) + original.to_srgba().blue * progress;
             let a = original.to_srgba().alpha;
 
             sprite.color = Color::srgba(r, g, b, a);

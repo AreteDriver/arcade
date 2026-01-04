@@ -162,13 +162,13 @@ impl Default for BerserkSystem {
     fn default() -> Self {
         Self {
             meter: 0.0,
-            meter_per_kill: 15.0,       // ~7 close kills to fill
-            proximity_range: 120.0,      // Slightly more forgiving range
-            decay_rate: 5.0,             // Slow decay when not killing
+            meter_per_kill: 15.0,   // ~7 close kills to fill
+            proximity_range: 120.0, // Slightly more forgiving range
+            decay_rate: 5.0,        // Slow decay when not killing
             is_active: false,
             timer: 0.0,
-            duration: 8.0,               // 8 seconds when activated
-            score_multiplier: 5.0,       // 5x score as per guide
+            duration: 8.0,         // 8 seconds when activated
+            score_multiplier: 5.0, // 5x score as per guide
             activation_flash: 0.0,
         }
     }

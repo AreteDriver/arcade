@@ -6,8 +6,8 @@ use super::{ActiveModule, FactionInfo, GameModuleInfo, ModuleRegistry};
 use crate::core::{Difficulty, Faction, GameSession, GameState};
 use crate::entities::projectile::ProjectilePhysics;
 use crate::systems::JoystickState;
-use bevy::prelude::*;
 use bevy::ecs::schedule::common_conditions::not;
+use bevy::prelude::*;
 
 pub mod campaign;
 pub mod ships;
@@ -64,11 +64,7 @@ impl Plugin for CaldariGallentePlugin {
         )
         .add_systems(
             Update,
-            (
-                update_cg_mission,
-                check_cg_wave_complete,
-                spawn_cg_wave,
-            )
+            (update_cg_mission, check_cg_wave_complete, spawn_cg_wave)
                 .chain()
                 .run_if(in_state(GameState::Playing))
                 .run_if(is_caldari_gallente)
@@ -652,7 +648,11 @@ fn update_nightmare_mode(
 
     match event {
         NightmareEvent::SpawnWave(wave) => {
-            info!("NIGHTMARE Wave {} - {} enemies incoming!", wave, nightmare.enemies_per_wave());
+            info!(
+                "NIGHTMARE Wave {} - {} enemies incoming!",
+                wave,
+                nightmare.enemies_per_wave()
+            );
             // Spawn wave announcement overlay (shows every 5th wave and wave 1)
             spawn_wave_announcement(&mut commands, wave);
             // Spawn the wave immediately
@@ -688,7 +688,7 @@ fn spawn_nightmare_enemies(
     let enemy_types: Vec<u32> = match session.enemy_faction {
         Faction::Caldari => vec![583, 602, 603], // Condor, Kestrel, Merlin
         Faction::Gallente => vec![608, 594, 593], // Atron, Incursus, Tristan
-        Faction::Amarr => vec![597, 589, 591], // Punisher, Executioner, Tormentor
+        Faction::Amarr => vec![597, 589, 591],   // Punisher, Executioner, Tormentor
         Faction::Minmatar => vec![587, 585, 598], // Rifter, Slasher, Breacher
     };
 
@@ -1011,7 +1011,7 @@ fn spawn_cg_wave(
     let enemy_types: Vec<u32> = match session.enemy_faction {
         Faction::Caldari => vec![583, 602, 603], // Condor, Kestrel, Merlin
         Faction::Gallente => vec![608, 594, 593], // Atron, Incursus, Tristan
-        Faction::Amarr => vec![597, 589, 591], // Punisher, Executioner, Tormentor
+        Faction::Amarr => vec![597, 589, 591],   // Punisher, Executioner, Tormentor
         Faction::Minmatar => vec![587, 585, 598], // Rifter, Slasher, Breacher
     };
 
@@ -1027,7 +1027,14 @@ fn spawn_cg_wave(
             _ => EnemyBehavior::Weaver,
         };
 
-        spawn_enemy(&mut commands, type_id, Vec2::new(x, y), behavior, None, None);
+        spawn_enemy(
+            &mut commands,
+            type_id,
+            Vec2::new(x, y),
+            behavior,
+            None,
+            None,
+        );
     }
 
     cg_campaign.current_wave += 1;
@@ -1049,7 +1056,11 @@ fn spawn_cg_boss(
         return;
     };
 
-    info!("Spawning CG Boss: {} (difficulty: {:?})", boss_type.name(), *difficulty);
+    info!(
+        "Spawning CG Boss: {} (difficulty: {:?})",
+        boss_type.name(),
+        *difficulty
+    );
 
     // Scale health by difficulty
     let base_health = boss_type.health();
@@ -1614,8 +1625,8 @@ fn spawn_cg_victory_screen(
                 "\"The Caldari way is the only way.\"",
                 "— Caldari Navy Command",
                 "FOR THE STATE",
-                Color::srgb(0.2, 0.6, 1.0),  // Caldari blue
-                Color::srgb(0.4, 0.8, 0.9),  // Light cyan
+                Color::srgb(0.2, 0.6, 1.0), // Caldari blue
+                Color::srgb(0.4, 0.8, 0.9), // Light cyan
             ),
             Faction::Gallente => (
                 "CALDARI PRIME LIBERATED",
@@ -1623,8 +1634,8 @@ fn spawn_cg_victory_screen(
                 "\"Liberty must be defended, at any cost.\"",
                 "— Federation High Command",
                 "LIBERTÉ POUR TOUS",
-                Color::srgb(0.3, 0.9, 0.4),  // Gallente green
-                Color::srgb(0.5, 0.8, 0.3),  // Olive
+                Color::srgb(0.3, 0.9, 0.4), // Gallente green
+                Color::srgb(0.5, 0.8, 0.3), // Olive
             ),
             _ => (
                 "CAMPAIGN COMPLETE",
@@ -1775,7 +1786,10 @@ fn spawn_cg_victory_screen(
                     ));
 
                     stats.spawn((
-                        Text::new(format!("Missions Completed: {}/5", cg_campaign.mission_index + 1)),
+                        Text::new(format!(
+                            "Missions Completed: {}/5",
+                            cg_campaign.mission_index + 1
+                        )),
                         TextFont {
                             font_size: 20.0,
                             ..default()

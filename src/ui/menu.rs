@@ -98,7 +98,11 @@ impl Plugin for MenuPlugin {
             .add_systems(OnEnter(GameState::ShipSelect), spawn_ship_menu)
             .add_systems(
                 Update,
-                (ship_menu_input, update_menu_selection::<ShipMenuRoot>, update_ship_detail_panel)
+                (
+                    ship_menu_input,
+                    update_menu_selection::<ShipMenuRoot>,
+                    update_ship_detail_panel,
+                )
                     .run_if(in_state(GameState::ShipSelect)),
             )
             .add_systems(OnExit(GameState::ShipSelect), despawn_menu::<ShipMenuRoot>)
@@ -1662,21 +1666,99 @@ struct StageInfo {
 
 const STAGES: [StageInfo; 13] = [
     // Act 1: The Call
-    StageInfo { stage: 1, name: "Border Patrol", act: 1, boss_name: "Bestower", waves: 5 },
-    StageInfo { stage: 2, name: "Slave Convoy", act: 1, boss_name: "Navy Omen", waves: 6 },
-    StageInfo { stage: 3, name: "Outpost Assault", act: 1, boss_name: "Platform", waves: 7 },
-    StageInfo { stage: 4, name: "Holder's Guard", act: 1, boss_name: "Mixed Fleet", waves: 8 },
+    StageInfo {
+        stage: 1,
+        name: "Border Patrol",
+        act: 1,
+        boss_name: "Bestower",
+        waves: 5,
+    },
+    StageInfo {
+        stage: 2,
+        name: "Slave Convoy",
+        act: 1,
+        boss_name: "Navy Omen",
+        waves: 6,
+    },
+    StageInfo {
+        stage: 3,
+        name: "Outpost Assault",
+        act: 1,
+        boss_name: "Platform",
+        waves: 7,
+    },
+    StageInfo {
+        stage: 4,
+        name: "Holder's Guard",
+        act: 1,
+        boss_name: "Mixed Fleet",
+        waves: 8,
+    },
     // Act 2: The Storm
-    StageInfo { stage: 5, name: "Deep Patrol", act: 2, boss_name: "Prophecy", waves: 8 },
-    StageInfo { stage: 6, name: "Inquisitor", act: 2, boss_name: "Prophecy", waves: 9 },
-    StageInfo { stage: 7, name: "Strike Group", act: 2, boss_name: "Harbinger", waves: 10 },
-    StageInfo { stage: 8, name: "Gate Defense", act: 2, boss_name: "Stargate", waves: 10 },
-    StageInfo { stage: 9, name: "Station Core", act: 2, boss_name: "Station", waves: 12 },
+    StageInfo {
+        stage: 5,
+        name: "Deep Patrol",
+        act: 2,
+        boss_name: "Prophecy",
+        waves: 8,
+    },
+    StageInfo {
+        stage: 6,
+        name: "Inquisitor",
+        act: 2,
+        boss_name: "Prophecy",
+        waves: 9,
+    },
+    StageInfo {
+        stage: 7,
+        name: "Strike Group",
+        act: 2,
+        boss_name: "Harbinger",
+        waves: 10,
+    },
+    StageInfo {
+        stage: 8,
+        name: "Gate Defense",
+        act: 2,
+        boss_name: "Stargate",
+        waves: 10,
+    },
+    StageInfo {
+        stage: 9,
+        name: "Station Core",
+        act: 2,
+        boss_name: "Station",
+        waves: 12,
+    },
     // Act 3: Liberation
-    StageInfo { stage: 10, name: "Admiral's Ship", act: 3, boss_name: "Armageddon", waves: 12 },
-    StageInfo { stage: 11, name: "Divine Carrier", act: 3, boss_name: "Archon", waves: 14 },
-    StageInfo { stage: 12, name: "Lord Admiral", act: 3, boss_name: "Apocalypse", waves: 15 },
-    StageInfo { stage: 13, name: "Avatar Titan", act: 3, boss_name: "AVATAR", waves: 20 },
+    StageInfo {
+        stage: 10,
+        name: "Admiral's Ship",
+        act: 3,
+        boss_name: "Armageddon",
+        waves: 12,
+    },
+    StageInfo {
+        stage: 11,
+        name: "Divine Carrier",
+        act: 3,
+        boss_name: "Archon",
+        waves: 14,
+    },
+    StageInfo {
+        stage: 12,
+        name: "Lord Admiral",
+        act: 3,
+        boss_name: "Apocalypse",
+        waves: 15,
+    },
+    StageInfo {
+        stage: 13,
+        name: "Avatar Titan",
+        act: 3,
+        boss_name: "AVATAR",
+        waves: 20,
+    },
 ];
 
 fn spawn_stage_select(
@@ -1807,12 +1889,7 @@ fn spawn_act_row(
         });
 }
 
-fn spawn_stage_card(
-    parent: &mut ChildBuilder,
-    stage: &StageInfo,
-    locked: bool,
-    act_color: Color,
-) {
+fn spawn_stage_card(parent: &mut ChildBuilder, stage: &StageInfo, locked: bool, act_color: Color) {
     let bg_color = if locked {
         Color::srgba(0.2, 0.2, 0.2, 0.8)
     } else {
@@ -1833,8 +1910,13 @@ fn spawn_stage_card(
 
     parent
         .spawn((
-            MenuItem { index: (stage.stage - 1) as usize },
-            StageCard { stage: stage.stage, locked },
+            MenuItem {
+                index: (stage.stage - 1) as usize,
+            },
+            StageCard {
+                stage: stage.stage,
+                locked,
+            },
             Node {
                 width: Val::Px(130.0),
                 height: Val::Px(100.0),
@@ -1857,7 +1939,11 @@ fn spawn_stage_card(
                     font_size: 14.0,
                     ..default()
                 },
-                TextColor(if locked { Color::srgb(0.5, 0.5, 0.5) } else { act_color }),
+                TextColor(if locked {
+                    Color::srgb(0.5, 0.5, 0.5)
+                } else {
+                    act_color
+                }),
             ));
 
             // Stage name
@@ -1902,7 +1988,12 @@ fn stage_select_input(
     save_data: Res<crate::core::SaveData>,
     time: Res<Time>,
     mut next_state: ResMut<NextState<GameState>>,
-    mut cards: Query<(&MenuItem, &StageCard, &mut BackgroundColor, &mut BorderColor)>,
+    mut cards: Query<(
+        &MenuItem,
+        &StageCard,
+        &mut BackgroundColor,
+        &mut BorderColor,
+    )>,
 ) {
     selection.cooldown -= time.delta_secs();
 
@@ -1934,9 +2025,9 @@ fn stage_select_input(
             let new_idx = if nav_v < 0 {
                 // Up
                 match current {
-                    0..=3 => current,           // Act 1, stay
-                    4..=8 => current - 4,       // Act 2 -> Act 1
-                    9..=12 => current - 5,      // Act 3 -> Act 2
+                    0..=3 => current,      // Act 1, stay
+                    4..=8 => current - 4,  // Act 2 -> Act 1
+                    9..=12 => current - 5, // Act 3 -> Act 2
                     _ => current,
                 }
             } else {
@@ -1961,7 +2052,13 @@ fn stage_select_input(
     ];
 
     for (item, card, mut bg, mut border) in cards.iter_mut() {
-        let act_idx = if card.stage <= 4 { 0 } else if card.stage <= 9 { 1 } else { 2 };
+        let act_idx = if card.stage <= 4 {
+            0
+        } else if card.stage <= 9 {
+            1
+        } else {
+            2
+        };
         let act_color = act_colors[act_idx];
         let is_selected = item.index == selection.index;
 
@@ -2006,7 +2103,12 @@ fn stage_select_input(
             campaign.act = act;
             campaign.mission_index = mission_idx;
 
-            info!("Selected Stage {} (Act {:?}, Mission {})", stage, act, mission_idx + 1);
+            info!(
+                "Selected Stage {} (Act {:?}, Mission {})",
+                stage,
+                act,
+                mission_idx + 1
+            );
             next_state.set(GameState::ShipSelect);
         }
     }
@@ -2122,7 +2224,15 @@ fn spawn_ship_menu(
                 })
                 .with_children(|content| {
                     // Left: Selected ship detail panel
-                    spawn_ship_detail_panel(content, &ships[0], faction_color, max_speed, max_damage, max_health, max_fire_rate);
+                    spawn_ship_detail_panel(
+                        content,
+                        &ships[0],
+                        faction_color,
+                        max_speed,
+                        max_damage,
+                        max_health,
+                        max_fire_rate,
+                    );
 
                     // Right: Ship list
                     content
@@ -2246,10 +2356,38 @@ fn spawn_ship_detail_panel(
                     ..default()
                 })
                 .with_children(|stats| {
-                    spawn_stat_bar(stats, "SPEED", ship.speed, max_speed, Color::srgb(0.3, 0.8, 0.3), StatType::Speed);
-                    spawn_stat_bar(stats, "DAMAGE", ship.damage, max_damage, Color::srgb(0.9, 0.3, 0.3), StatType::Damage);
-                    spawn_stat_bar(stats, "HEALTH", ship.health, max_health, Color::srgb(0.3, 0.6, 0.9), StatType::Health);
-                    spawn_stat_bar(stats, "FIRE RATE", ship.fire_rate, max_fire_rate, Color::srgb(0.9, 0.7, 0.3), StatType::FireRate);
+                    spawn_stat_bar(
+                        stats,
+                        "SPEED",
+                        ship.speed,
+                        max_speed,
+                        Color::srgb(0.3, 0.8, 0.3),
+                        StatType::Speed,
+                    );
+                    spawn_stat_bar(
+                        stats,
+                        "DAMAGE",
+                        ship.damage,
+                        max_damage,
+                        Color::srgb(0.9, 0.3, 0.3),
+                        StatType::Damage,
+                    );
+                    spawn_stat_bar(
+                        stats,
+                        "HEALTH",
+                        ship.health,
+                        max_health,
+                        Color::srgb(0.3, 0.6, 0.9),
+                        StatType::Health,
+                    );
+                    spawn_stat_bar(
+                        stats,
+                        "FIRE RATE",
+                        ship.fire_rate,
+                        max_fire_rate,
+                        Color::srgb(0.9, 0.7, 0.3),
+                        StatType::FireRate,
+                    );
                 });
 
             // Divider
@@ -2475,10 +2613,42 @@ fn spawn_ship_list_item(
 fn update_ship_detail_panel(
     selection: Res<MenuSelection>,
     session: Res<GameSession>,
-    mut name_query: Query<&mut Text, (With<ShipDetailName>, Without<ShipDetailClass>, Without<ShipDetailRole>, Without<ShipDetailSpecial>)>,
-    mut class_query: Query<&mut Text, (With<ShipDetailClass>, Without<ShipDetailName>, Without<ShipDetailRole>, Without<ShipDetailSpecial>)>,
-    mut role_query: Query<&mut Text, (With<ShipDetailRole>, Without<ShipDetailName>, Without<ShipDetailClass>, Without<ShipDetailSpecial>)>,
-    mut special_query: Query<&mut Text, (With<ShipDetailSpecial>, Without<ShipDetailName>, Without<ShipDetailClass>, Without<ShipDetailRole>)>,
+    mut name_query: Query<
+        &mut Text,
+        (
+            With<ShipDetailName>,
+            Without<ShipDetailClass>,
+            Without<ShipDetailRole>,
+            Without<ShipDetailSpecial>,
+        ),
+    >,
+    mut class_query: Query<
+        &mut Text,
+        (
+            With<ShipDetailClass>,
+            Without<ShipDetailName>,
+            Without<ShipDetailRole>,
+            Without<ShipDetailSpecial>,
+        ),
+    >,
+    mut role_query: Query<
+        &mut Text,
+        (
+            With<ShipDetailRole>,
+            Without<ShipDetailName>,
+            Without<ShipDetailClass>,
+            Without<ShipDetailSpecial>,
+        ),
+    >,
+    mut special_query: Query<
+        &mut Text,
+        (
+            With<ShipDetailSpecial>,
+            Without<ShipDetailName>,
+            Without<ShipDetailClass>,
+            Without<ShipDetailRole>,
+        ),
+    >,
     mut stat_bars: Query<(&StatBarFill, &mut Node)>,
 ) {
     if !selection.is_changed() {
@@ -2699,19 +2869,49 @@ fn spawn_pause_menu(
             });
 
             // Master volume slider
-            spawn_settings_slider(parent, PAUSE_IDX_MASTER, "MASTER", sound_settings.master_volume, SliderType::MasterVolume);
+            spawn_settings_slider(
+                parent,
+                PAUSE_IDX_MASTER,
+                "MASTER",
+                sound_settings.master_volume,
+                SliderType::MasterVolume,
+            );
 
             // Music volume slider
-            spawn_settings_slider(parent, PAUSE_IDX_MUSIC, "MUSIC", sound_settings.music_volume, SliderType::MusicVolume);
+            spawn_settings_slider(
+                parent,
+                PAUSE_IDX_MUSIC,
+                "MUSIC",
+                sound_settings.music_volume,
+                SliderType::MusicVolume,
+            );
 
             // SFX volume slider
-            spawn_settings_slider(parent, PAUSE_IDX_SFX, "SFX", sound_settings.sfx_volume, SliderType::SfxVolume);
+            spawn_settings_slider(
+                parent,
+                PAUSE_IDX_SFX,
+                "SFX",
+                sound_settings.sfx_volume,
+                SliderType::SfxVolume,
+            );
 
             // Screen shake slider
-            spawn_settings_slider(parent, PAUSE_IDX_SHAKE, "SHAKE", screen_shake.multiplier, SliderType::ScreenShake);
+            spawn_settings_slider(
+                parent,
+                PAUSE_IDX_SHAKE,
+                "SHAKE",
+                screen_shake.multiplier,
+                SliderType::ScreenShake,
+            );
 
             // Rumble slider
-            spawn_settings_slider(parent, PAUSE_IDX_RUMBLE, "RUMBLE", rumble_settings.intensity, SliderType::Rumble);
+            spawn_settings_slider(
+                parent,
+                PAUSE_IDX_RUMBLE,
+                "RUMBLE",
+                rumble_settings.intensity,
+                SliderType::Rumble,
+            );
 
             parent.spawn(Node {
                 height: Val::Px(4.0),
@@ -2884,7 +3084,8 @@ fn pause_menu_input(
 
         match selection.index {
             PAUSE_IDX_MASTER => {
-                sound_settings.master_volume = (sound_settings.master_volume + delta).clamp(0.0, 1.0);
+                sound_settings.master_volume =
+                    (sound_settings.master_volume + delta).clamp(0.0, 1.0);
                 *cooldown = 0.08;
             }
             PAUSE_IDX_MUSIC => {
@@ -2958,7 +3159,8 @@ fn pause_menu_input(
             PAUSE_IDX_QUIT => {
                 transitions.send(TransitionEvent::to(GameState::MainMenu));
             }
-            PAUSE_IDX_MASTER | PAUSE_IDX_MUSIC | PAUSE_IDX_SFX | PAUSE_IDX_SHAKE | PAUSE_IDX_RUMBLE => {
+            PAUSE_IDX_MASTER | PAUSE_IDX_MUSIC | PAUSE_IDX_SFX | PAUSE_IDX_SHAKE
+            | PAUSE_IDX_RUMBLE => {
                 // Pressing confirm on sliders does nothing (use left/right)
             }
             _ => {}

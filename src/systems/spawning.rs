@@ -273,8 +273,10 @@ fn wave_spawning(
             endless.mini_bosses_defeated += 1;
             manager.wave_delay = 2.0;
             manager.in_delay = true;
-            info!("ENDLESS: Mini-boss {} defeated! {} total",
-                event.boss_name, endless.mini_bosses_defeated);
+            info!(
+                "ENDLESS: Mini-boss {} defeated! {} total",
+                event.boss_name, endless.mini_bosses_defeated
+            );
             continue;
         }
 
@@ -360,8 +362,10 @@ fn wave_spawning(
                     enemy_types: vec!["endless".to_string()],
                 });
 
-                info!("ENDLESS Wave {}: {} enemies ({}x escalation)",
-                    endless.wave, enemy_count, endless.escalation);
+                info!(
+                    "ENDLESS Wave {}: {} enemies ({}x escalation)",
+                    endless.wave, enemy_count, endless.escalation
+                );
                 return;
             }
 

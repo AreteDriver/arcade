@@ -45,15 +45,14 @@ fn update_berserk_system(
     // B key or gamepad Y button to activate berserk when meter is full
     let activate_pressed = keyboard.just_pressed(KeyCode::KeyB) || joystick.berserk();
 
-    if activate_pressed && berserk.can_activate()
-        && berserk.try_activate() {
-            info!("BERSERK MODE ACTIVATED! 5x score for 8 seconds!");
-            screen_flash.berserk(); // Red flash on activation
-            rumble_events.send(super::RumbleRequest::berserk()); // Controller rumble
-            dialogue_events.send(super::DialogueEvent::combat_callout(
-                super::CombatCalloutType::BerserkActive,
-            ));
-        }
+    if activate_pressed && berserk.can_activate() && berserk.try_activate() {
+        info!("BERSERK MODE ACTIVATED! 5x score for 8 seconds!");
+        screen_flash.berserk(); // Red flash on activation
+        rumble_events.send(super::RumbleRequest::berserk()); // Controller rumble
+        dialogue_events.send(super::DialogueEvent::combat_callout(
+            super::CombatCalloutType::BerserkActive,
+        ));
+    }
 }
 
 // Berserk meter fills from proximity kills

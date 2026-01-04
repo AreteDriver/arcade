@@ -583,8 +583,8 @@ fn spawn_boss_projectile_styled(
         ProjectileDamage {
             damage,
             damage_type,
-            crit_chance: 0.08,     // 8% crit for boss attacks
-            crit_multiplier: 1.5,  // Higher crit damage from bosses
+            crit_chance: 0.08,    // 8% crit for boss attacks
+            crit_multiplier: 1.5, // Higher crit damage from bosses
         },
         Sprite {
             color,
