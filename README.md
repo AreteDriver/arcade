@@ -7,24 +7,38 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows%20%7C%20Web-purple.svg)]()
 
-**EVE Rebellion** puts you in the cockpit during the Minmatar's greatest hour - the Elder Fleet invasion of YC110. Rise from a rookie pilot in a rusty Rifter to an ace liberator in a Jaguar, freeing your people from centuries of Amarr slavery.
+**EVE Rebellion** is a collection of arcade shooters set in the EVE Online universe. Experience pivotal moments in New Eden's history through fast-paced vertical shooter gameplay.
 
-## The Story
+## Campaigns
 
-In YC110, the Elder Fleet emerged from decades of hiding to liberate the Minmatar people still enslaved in Amarr space. You are a young pilot who answers their call, joining the greatest liberation in New Eden's history.
+### Elder Fleet Invasion (YC110)
+*Minmatar vs Amarr — 13 stages*
 
-Guided by a tribal Elder who speaks for all seven tribes, you'll fight through Amarr patrols, break slave colony defenses, and face increasingly powerful warships - culminating in a desperate assault on an Avatar-class Titan.
+Rise from a rookie pilot in a rusty Rifter to an ace liberator in a Jaguar. Join the Elder Fleet as they emerge from decades of hiding to free the Minmatar people from centuries of Amarr slavery.
 
-**Every soul you liberate matters. Every chain you break echoes through history.**
+### Battle of Caldari Prime (YC115)
+*Caldari vs Gallente — 5 missions + Endless Mode*
+
+Choose your side in the battle that changed Caldari Prime forever. Fight as Caldari State defending Shiigeru, or Gallente Federation liberating the planet. Includes **Shiigeru Nightmare** — an endless survival mode aboard the dying Titan.
+
+### Triglavian Invasion *(Coming Soon)*
+*EDENCOM vs Triglavian Collective*
+
+Defend New Eden from the Triglavian invasion, or embrace the Flow and fight for Pochven.
+
+---
 
 ## Features
 
-- **Vertical Shooter Action** - Fast-paced shmup gameplay with EVE Online ships and lore
-- **Liberation Campaign** - 13 stages across 3 acts telling the Elder Fleet story
-- **Heat & Combo System** - Push your weapons to the limit for score multipliers
-- **Berserk Mode** - Fill your rage meter to unleash devastating power
-- **Ship Progression** - Earn your way from Rifter to Wolf to Jaguar
-- **Authentic EVE Visuals** - Ships rendered from official EVE Online assets
+- **Vertical Shooter Action** — Fast-paced shmup gameplay with EVE Online ships and lore
+- **Multiple Campaigns** — Story-driven missions across different eras of New Eden
+- **Four Factions** — Minmatar, Amarr, Caldari, Gallente (Triglavian coming soon)
+- **Heat & Combo System** — Push your weapons to the limit for score multipliers
+- **Berserk Mode** — Fill your rage meter to unleash devastating power
+- **Ship Progression** — Unlock faction ships as you advance
+- **Endless Mode** — High-score survival with escalating difficulty
+- **Authentic EVE Visuals** — Ships rendered from official EVE Online assets
+- **Procedural Audio** — Dynamic soundtrack generated at runtime
 
 ## Controls
 
@@ -79,4 +93,4 @@ This project is licensed under the MIT License.
 
 ---
 
-*"We are the storm that breaks the chains. We are the Minmatar."*
+*"History is written by those who fly into the fire."*
