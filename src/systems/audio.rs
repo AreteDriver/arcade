@@ -816,7 +816,7 @@ fn generate_wave_complete() -> Option<AudioSource> {
             0.0
         };
 
-        let note2 = if t >= 0.12 && t < 0.3 {
+        let note2 = if (0.12..0.3).contains(&t) {
             let nt = t - 0.12;
             (2.0 * PI * 659.25 * t).sin() * (1.0 - nt / 0.18).powf(0.5) // E5
         } else {

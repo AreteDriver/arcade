@@ -391,7 +391,7 @@ fn wave_spawning(
             });
 
             // Wave incoming callout on significant waves (every 5th or last before boss)
-            if manager.wave % 5 == 0 || manager.wave == manager.waves_per_stage {
+            if manager.wave.is_multiple_of(5) || manager.wave == manager.waves_per_stage {
                 dialogue_events.send(DialogueEvent::combat_callout(
                     super::CombatCalloutType::WaveIncoming,
                 ));
