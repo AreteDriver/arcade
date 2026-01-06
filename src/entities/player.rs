@@ -271,9 +271,18 @@ impl Plugin for PlayerPlugin {
             .add_systems(
                 Update,
                 (player_movement, player_shooting, update_player_stats)
-                    .run_if(in_state(GameState::Playing)),
+                    .run_if(in_state(GameState::Playing))
+                    .run_if(not_last_stand),
             )
             .add_systems(OnExit(GameState::Playing), despawn_player);
+    }
+}
+
+/// Run condition: NOT in Last Stand mode
+fn not_last_stand(last_stand: Option<Res<crate::games::caldari_gallente::LastStandState>>) -> bool {
+    match last_stand {
+        Some(ls) => !ls.active,
+        None => true,
     }
 }
 
@@ -282,7 +291,16 @@ fn spawn_player(
     mut commands: Commands,
     session: Res<GameSession>,
     sprite_cache: Res<crate::assets::ShipSpriteCache>,
+    last_stand: Option<Res<crate::games::caldari_gallente::LastStandState>>,
 ) {
+    // Skip player spawn in Last Stand mode (titan is spawned instead)
+    if let Some(ls) = &last_stand {
+        if ls.active {
+            info!("Skipping player spawn - Last Stand mode active");
+            return;
+        }
+    }
+
     let ship_def = session.selected_ship();
     let faction = session.player_faction;
     let type_id = ship_def.type_id;

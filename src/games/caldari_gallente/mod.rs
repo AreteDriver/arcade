@@ -59,11 +59,13 @@ impl Plugin for CaldariGallentePlugin {
         app.init_resource::<LastStandState>();
 
         // CG Campaign systems - run instead of main campaign when CG module is active
+        // Skip when nightmare mode or Last Stand mode is active
         app.add_systems(
             OnEnter(GameState::Playing),
             start_cg_mission
                 .run_if(is_caldari_gallente)
-                .run_if(not(nightmare_active)),
+                .run_if(not(nightmare_active))
+                .run_if(not(last_stand_active)),
         )
         .add_systems(
             Update,
@@ -71,7 +73,8 @@ impl Plugin for CaldariGallentePlugin {
                 .chain()
                 .run_if(in_state(GameState::Playing))
                 .run_if(is_caldari_gallente)
-                .run_if(not(nightmare_active)),
+                .run_if(not(nightmare_active))
+                .run_if(not(last_stand_active)),
         )
         .add_systems(
             OnEnter(GameState::BossIntro),

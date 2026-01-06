@@ -15,7 +15,7 @@ pub struct HudPlugin;
 
 impl Plugin for HudPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::Playing), spawn_hud)
+        app.add_systems(OnEnter(GameState::Playing), spawn_hud.run_if(not_last_stand))
             .add_systems(
                 Update,
                 (
@@ -33,9 +33,20 @@ impl Plugin for HudPlugin {
                     update_wingman_gauge,
                     update_ability_indicator,
                 )
-                    .run_if(in_state(GameState::Playing)),
+                    .run_if(in_state(GameState::Playing))
+                    .run_if(not_last_stand),
             )
             .add_systems(OnExit(GameState::Playing), despawn_hud);
+    }
+}
+
+/// Run condition: NOT in Last Stand mode
+fn not_last_stand(
+    last_stand: Option<Res<crate::games::caldari_gallente::LastStandState>>,
+) -> bool {
+    match last_stand {
+        Some(ls) => !ls.active,
+        None => true,
     }
 }
 
