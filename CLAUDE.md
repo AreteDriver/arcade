@@ -4,7 +4,7 @@
 EVE Online arcade shooter suite built with Rust and Bevy. Features multiple campaigns, faction selection, procedural audio, and WASM support.
 
 **Stack**: Rust, Bevy 0.15, bevy_egui
-**Version**: 1.5.0
+**Version**: 1.5.x
 **Platforms**: Linux, Windows, macOS, Web (WASM)
 
 ---
