@@ -229,6 +229,13 @@ impl JoystickState {
         self.just_pressed(2)
     }
 
+    /// Check if Y button just pressed - edge triggered
+    /// Xbox: Y (button 3), PlayStation: Triangle
+    /// Used for Doomsday in Last Stand mode
+    pub fn y_button(&self) -> bool {
+        self.just_pressed(3)
+    }
+
     /// Check if left trigger is pressed (held state)
     pub fn left_trigger_pressed(&self) -> bool {
         self.left_trigger > 0.1

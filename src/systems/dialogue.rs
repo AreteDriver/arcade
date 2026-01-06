@@ -46,6 +46,8 @@ pub enum DialogueTrigger {
     PerfectRun,
     /// Player death
     PlayerDeath,
+    /// Custom dialogue (used for special game modes like Last Stand)
+    Custom(String),
 }
 
 /// Combat callout types
@@ -256,6 +258,7 @@ fn get_dialogue_text(trigger: &DialogueTrigger) -> String {
         DialogueTrigger::MissionSuccess => get_success_dialogue(),
         DialogueTrigger::PerfectRun => get_perfect_dialogue(),
         DialogueTrigger::PlayerDeath => get_death_dialogue(),
+        DialogueTrigger::Custom(text) => text.clone(),
     }
 }
 
@@ -378,6 +381,7 @@ fn get_cg_dialogue_text(trigger: &DialogueTrigger) -> String {
         DialogueTrigger::MissionSuccess => get_cg_success_dialogue(),
         DialogueTrigger::PerfectRun => get_cg_perfect_dialogue(),
         DialogueTrigger::PlayerDeath => get_cg_death_dialogue(),
+        DialogueTrigger::Custom(text) => text.clone(),
     }
 }
 
