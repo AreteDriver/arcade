@@ -3028,12 +3028,15 @@ fn update_titan_fighters(
         ),
     >,
     mut last_stand: ResMut<LastStandState>,
+    mut despawned_this_frame: Local<std::collections::HashSet<Entity>>,
 ) {
     let dt = time.delta_secs();
     const FIGHTER_SPEED: f32 = 350.0;
-    const FIGHTER_DAMAGE: f32 = 25.0;
     const FIGHTER_HIT_RANGE: f32 = 30.0;
     const FIGHTER_ACQUIRE_RANGE: f32 = 400.0;
+
+    // Clear the set at the start of each frame
+    despawned_this_frame.clear();
 
     for (fighter_entity, mut fighter, mut transform) in fighter_query.iter_mut() {
         // Decrement lifetime
@@ -3048,10 +3051,12 @@ fn update_titan_fighters(
         let mut target_pos = None;
 
         if let Some(target_entity) = fighter.target {
-            // Check if target still exists
-            if let Ok((_, enemy_transform, _)) = enemy_query.get(target_entity) {
-                current_target_valid = true;
-                target_pos = Some(enemy_transform.translation.truncate());
+            // Check if target still exists and wasn't despawned this frame
+            if !despawned_this_frame.contains(&target_entity) {
+                if let Ok((_, enemy_transform, _)) = enemy_query.get(target_entity) {
+                    current_target_valid = true;
+                    target_pos = Some(enemy_transform.translation.truncate());
+                }
             }
         }
 
@@ -3062,6 +3067,10 @@ fn update_titan_fighters(
             let mut closest_dist = FIGHTER_ACQUIRE_RANGE;
 
             for (enemy_entity, enemy_transform, _) in enemy_query.iter() {
+                // Skip enemies already despawned this frame
+                if despawned_this_frame.contains(&enemy_entity) {
+                    continue;
+                }
                 let enemy_pos = enemy_transform.translation.truncate();
                 let dist = fighter_pos.distance(enemy_pos);
                 if dist < closest_dist {
@@ -3091,15 +3100,16 @@ fn update_titan_fighters(
 
         // Check for collision with target enemy
         if let Some(target_entity) = fighter.target {
-            if let Ok((_, enemy_transform, _)) = enemy_query.get(target_entity) {
+            // Skip if already despawned this frame by another fighter
+            if despawned_this_frame.contains(&target_entity) {
+                fighter.target = None;
+            } else if let Ok((_, enemy_transform, _)) = enemy_query.get(target_entity) {
                 let enemy_pos = enemy_transform.translation.truncate();
                 if fighter_pos.distance(enemy_pos) < FIGHTER_HIT_RANGE {
-                    // Deal damage via event or direct despawn for now
-                    // For simplicity, despawn the enemy and count as kill
-                    if let Some(entity_commands) = commands.get_entity(target_entity) {
-                        entity_commands.despawn_recursive();
-                        last_stand.kills += 1;
-                    }
+                    // Mark as despawned before actually despawning
+                    despawned_this_frame.insert(target_entity);
+                    commands.entity(target_entity).despawn_recursive();
+                    last_stand.kills += 1;
                     fighter.target = None;
 
                     // Fighter continues to next target (doesn't despawn on hit)
