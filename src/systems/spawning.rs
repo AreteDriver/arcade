@@ -21,14 +21,17 @@ impl Plugin for SpawningPlugin {
         app.init_resource::<WaveManager>()
             .add_systems(
                 OnEnter(GameState::Playing),
-                (reset_wave_manager, spawn_enemy_carrier).run_if(not_last_stand),
+                (reset_wave_manager, spawn_enemy_carrier)
+                    .run_if(not_last_stand)
+                    .run_if(not_abyssal),
             )
             .add_systems(OnExit(GameState::Playing), cleanup_carrier)
             .add_systems(
                 Update,
                 (wave_spawning, handle_spawn_events, animate_carrier)
                     .run_if(in_state(GameState::Playing))
-                    .run_if(not_last_stand),
+                    .run_if(not_last_stand)
+                    .run_if(not_abyssal),
             );
     }
 }
@@ -36,6 +39,11 @@ impl Plugin for SpawningPlugin {
 /// Run condition: Last Stand mode is NOT active
 fn not_last_stand(last_stand: Option<Res<LastStandState>>) -> bool {
     last_stand.map(|ls| !ls.active).unwrap_or(true)
+}
+
+/// Run condition: Abyssal Depths is NOT active
+fn not_abyssal(abyssal: Option<Res<crate::games::abyssal_depths::AbyssalState>>) -> bool {
+    abyssal.map(|a| !a.active).unwrap_or(true)
 }
 
 /// Marker component for the enemy carrier in background

@@ -4827,28 +4827,36 @@ fn update_menu_selection<T: Component>(
 fn get_nav_input(keyboard: &ButtonInput<KeyCode>, joystick: &JoystickState) -> i32 {
     let mut nav = 0;
 
-    // Keyboard (edge triggered)
-    if keyboard.just_pressed(KeyCode::ArrowUp) || keyboard.just_pressed(KeyCode::KeyW) {
+    // Keyboard (edge triggered) - Up/Down and Left/Right both work
+    if keyboard.just_pressed(KeyCode::ArrowUp)
+        || keyboard.just_pressed(KeyCode::KeyW)
+        || keyboard.just_pressed(KeyCode::ArrowLeft)
+        || keyboard.just_pressed(KeyCode::KeyA)
+    {
         nav = -1;
     }
-    if keyboard.just_pressed(KeyCode::ArrowDown) || keyboard.just_pressed(KeyCode::KeyS) {
+    if keyboard.just_pressed(KeyCode::ArrowDown)
+        || keyboard.just_pressed(KeyCode::KeyS)
+        || keyboard.just_pressed(KeyCode::ArrowRight)
+        || keyboard.just_pressed(KeyCode::KeyD)
+    {
         nav = 1;
     }
 
     // Joystick dpad (edge triggered)
-    if joystick.dpad_just_up() {
+    if joystick.dpad_just_up() || joystick.dpad_just_left() {
         nav = -1;
     }
-    if joystick.dpad_just_down() {
+    if joystick.dpad_just_down() || joystick.dpad_just_right() {
         nav = 1;
     }
 
     // Analog stick (held state - menu cooldown prevents rapid repeat)
     // This is more reliable than edge detection for gradual analog input
-    if joystick.left_y < -0.5 {
+    if joystick.left_y < -0.5 || joystick.left_x < -0.5 {
         nav = -1;
     }
-    if joystick.left_y > 0.5 {
+    if joystick.left_y > 0.5 || joystick.left_x > 0.5 {
         nav = 1;
     }
 

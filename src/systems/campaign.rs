@@ -15,11 +15,13 @@ pub struct CampaignPlugin;
 
 impl Plugin for CampaignPlugin {
     fn build(&self, app: &mut App) {
-        // These systems run only when NOT in Caldari/Gallente module
-        // (CG module has its own campaign systems)
+        // These systems run only when NOT in Caldari/Gallente or Abyssal modules
+        // (those modules have their own campaign/spawning systems)
         app.add_systems(
             OnEnter(GameState::Playing),
-            start_mission.run_if(not(is_cg_module)),
+            start_mission
+                .run_if(not(is_cg_module))
+                .run_if(not(is_abyssal_module)),
         )
         .add_systems(
             Update,
@@ -32,21 +34,27 @@ impl Plugin for CampaignPlugin {
                 check_mission_complete,
             )
                 .run_if(in_state(GameState::Playing))
-                .run_if(not(is_cg_module)),
+                .run_if(not(is_cg_module))
+                .run_if(not(is_abyssal_module)),
         )
         .add_systems(
             OnEnter(GameState::BossIntro),
-            spawn_mission_boss.run_if(not(is_cg_module)),
+            spawn_mission_boss
+                .run_if(not(is_cg_module))
+                .run_if(not(is_abyssal_module)),
         )
         .add_systems(
             Update,
             boss_intro_sequence
                 .run_if(in_state(GameState::BossIntro))
-                .run_if(not(is_cg_module)),
+                .run_if(not(is_cg_module))
+                .run_if(not(is_abyssal_module)),
         )
         .add_systems(
             OnEnter(GameState::BossFight),
-            start_boss_fight.run_if(not(is_cg_module)),
+            start_boss_fight
+                .run_if(not(is_cg_module))
+                .run_if(not(is_abyssal_module)),
         );
     }
 }
@@ -54,6 +62,11 @@ impl Plugin for CampaignPlugin {
 /// Run condition: is Caldari/Gallente module active?
 fn is_cg_module(active_module: Res<ActiveModule>) -> bool {
     active_module.is_caldari_gallente()
+}
+
+/// Run condition: is Abyssal Depths module active?
+fn is_abyssal_module(abyssal: Option<Res<crate::games::abyssal_depths::AbyssalState>>) -> bool {
+    abyssal.map(|a| a.active).unwrap_or(false)
 }
 
 /// Start mission when entering Playing state
