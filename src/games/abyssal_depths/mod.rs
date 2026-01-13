@@ -216,11 +216,12 @@ fn setup_abyssal(
 /// Spawn enemies for the current room
 fn spawn_room_enemies(commands: &mut Commands, state: &AbyssalState, _session: &GameSession) {
     let count = state.room.enemy_count();
-    let spawn_y = SCREEN_HEIGHT / 2.0 + 100.0;
+    // Spawn within bounds (margin is 100, so stay below SCREEN_HEIGHT/2 + 100)
+    let spawn_y_base = SCREEN_HEIGHT / 2.0 - 50.0;
 
     for i in 0..count {
         let x = -SCREEN_WIDTH / 2.0 + (i as f32 + 1.0) * (SCREEN_WIDTH / (count as f32 + 1.0));
-        let y = spawn_y + fastrand::f32() * 200.0;
+        let y = spawn_y_base + fastrand::f32() * 100.0; // Spread across top portion
 
         // Spawn Triglavian enemies (Damavik variants)
         if i % 3 == 0 && state.room != AbyssalRoom::Room1 {
@@ -234,7 +235,7 @@ fn spawn_room_enemies(commands: &mut Commands, state: &AbyssalState, _session: &
 
     // Spawn boss in final room
     if state.room == AbyssalRoom::Room3 {
-        let boss_pos = Vec2::new(0.0, spawn_y + 300.0);
+        let boss_pos = Vec2::new(0.0, spawn_y_base + 50.0);
         crate::entities::enemy::spawn_drekavac_boss(commands, boss_pos, None, None);
     }
 

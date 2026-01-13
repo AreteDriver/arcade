@@ -792,9 +792,10 @@ fn module_select_input(
     mut selection: ResMut<MenuSelection>,
     mut active_module: ResMut<ActiveModule>,
     mut endless: ResMut<crate::core::EndlessMode>,
+    mut abyssal: ResMut<crate::games::abyssal_depths::AbyssalState>,
     time: Res<Time>,
     mut transitions: EventWriter<TransitionEvent>,
-    mut cards: Query<(&MenuItem, &mut BackgroundColor, &mut BorderColor), With<ModuleSelectRoot>>,
+    mut cards: Query<(&MenuItem, &mut BackgroundColor, &mut BorderColor)>,
 ) {
     selection.cooldown -= time.delta_secs();
 
@@ -834,6 +835,7 @@ fn module_select_input(
                 // Elder Fleet
                 active_module.set_module("elder_fleet");
                 endless.active = false;
+                abyssal.active = false;
                 info!("Selected Elder Fleet campaign");
                 transitions.send(TransitionEvent::to(GameState::FactionSelect));
             }
@@ -841,6 +843,7 @@ fn module_select_input(
                 // Caldari vs Gallente
                 active_module.set_module("caldari_gallente");
                 endless.active = false;
+                abyssal.active = false;
                 info!("Selected Caldari vs Gallente campaign");
                 transitions.send(TransitionEvent::to(GameState::FactionSelect));
             }
@@ -848,6 +851,7 @@ fn module_select_input(
                 // Abyssal Depths
                 active_module.set_module("abyssal_depths");
                 endless.active = false;
+                abyssal.active = true; // Set BEFORE entering Playing state
                 info!("Selected ABYSSAL DEPTHS!");
                 // Skip faction select, go straight to ship select
                 transitions.send(TransitionEvent::to(GameState::ShipSelect));
@@ -856,6 +860,7 @@ fn module_select_input(
                 // Endless Mode
                 active_module.set_module("elder_fleet"); // Use Elder Fleet enemies
                 endless.active = true;
+                abyssal.active = false;
                 info!("Selected ENDLESS MODE!");
                 transitions.send(TransitionEvent::to(GameState::FactionSelect));
             }
