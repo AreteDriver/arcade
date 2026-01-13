@@ -4,3 +4,8 @@
 /web/*.wasm
 /web/*.d.ts
 /web/assets
+
+# Environment files
+.env
+.env.*
+.env.local

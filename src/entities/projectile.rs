@@ -37,7 +37,7 @@ pub struct ProjectilePhysics {
 /// Projectile damage info
 #[derive(Component, Debug, Clone)]
 pub struct ProjectileDamage {
-    /// Damage amount
+    /// Damage amount (base, before ammo multipliers)
     pub damage: f32,
     /// Damage type
     pub damage_type: DamageType,
@@ -45,6 +45,8 @@ pub struct ProjectileDamage {
     pub crit_chance: f32,
     /// Critical hit damage multiplier
     pub crit_multiplier: f32,
+    /// Ammo type (for damage multipliers vs shield/armor)
+    pub ammo_type: AmmoType,
 }
 
 impl Default for ProjectileDamage {
@@ -54,6 +56,7 @@ impl Default for ProjectileDamage {
             damage_type: DamageType::Kinetic,
             crit_chance: 0.1,     // 10% base crit chance
             crit_multiplier: 1.5, // 1.5x crit damage
+            ammo_type: AmmoType::default(),
         }
     }
 }
@@ -81,6 +84,7 @@ impl Default for PlayerProjectileBundle {
                 damage_type: DamageType::Kinetic,
                 crit_chance: 0.1, // 10% crit for autocannons
                 crit_multiplier: 1.5,
+                ammo_type: AmmoType::default(),
             },
             sprite: Sprite {
                 color: Color::srgb(1.0, 0.9, 0.3),
@@ -113,8 +117,9 @@ impl Default for EnemyProjectileBundle {
             damage: ProjectileDamage {
                 damage: 10.0,
                 damage_type: DamageType::EM,
-                crit_chance: 0.05,     // 5% crit for enemies (lower)
-                crit_multiplier: 1.25, // 1.25x crit for enemies
+                crit_chance: 0.05,              // 5% crit for enemies (lower)
+                crit_multiplier: 1.25,          // 1.25x crit for enemies
+                ammo_type: AmmoType::default(), // Enemies don't use ammo types
             },
             sprite: Sprite {
                 color: Color::srgb(1.0, 0.3, 0.3),
@@ -215,6 +220,7 @@ fn spawn_player_projectiles(
                         damage_type,
                         crit_chance: 0.15,
                         crit_multiplier: 1.75,
+                        ammo_type: event.ammo_type,
                     },
                     BulletTrail::new(Color::srgb(1.0, 0.6, 0.2)),
                     Sprite {
@@ -239,6 +245,7 @@ fn spawn_player_projectiles(
                         damage_type,
                         crit_chance: 0.1,
                         crit_multiplier: 1.5,
+                        ammo_type: event.ammo_type,
                     },
                     BulletTrail::new(color.with_alpha(0.5)),
                     Sprite {
@@ -362,6 +369,7 @@ pub fn spawn_enemy_projectile(
             damage_type: DamageType::EM,
             crit_chance: 0.05, // 5% crit for enemies
             crit_multiplier: 1.25,
+            ammo_type: AmmoType::default(),
         },
         transform: Transform::from_xyz(position.x, position.y, LAYER_ENEMY_BULLETS)
             .with_rotation(Quat::from_rotation_z(angle)),
@@ -421,6 +429,7 @@ pub fn spawn_enemy_projectile_typed(
             damage_type,
             crit_chance: 0.05, // 5% crit for enemies
             crit_multiplier: 1.25,
+            ammo_type: AmmoType::default(),
         },
         Sprite {
             color,

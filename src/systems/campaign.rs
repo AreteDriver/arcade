@@ -328,6 +328,7 @@ fn update_boss_behavior(
                     damage_type: DamageType::EM,
                     crit_chance: 0.08, // 8% crit for boss
                     crit_multiplier: 1.5,
+                    ammo_type: AmmoType::default(),
                 },
                 crate::entities::Movement {
                     velocity: dir * projectile_speed,

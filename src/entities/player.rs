@@ -187,20 +187,22 @@ impl Default for Movement {
 pub struct Weapon {
     /// Weapon type
     pub weapon_type: WeaponType,
-    /// Shots per second
+    /// Shots per second (base rate)
     pub fire_rate: f32,
     /// Time until next shot
     pub cooldown: f32,
     /// Bullet speed
     pub bullet_speed: f32,
-    /// Damage per hit
+    /// Damage per hit (base damage)
     pub damage: f32,
     /// Capacitor cost per shot
     pub cap_usage: f32,
     /// Current aim direction
     pub aim_direction: Vec2,
-    /// Bullet/projectile color
+    /// Bullet/projectile color (overridden by ammo type for autocannons)
     pub bullet_color: Color,
+    /// Current ammo type (for autocannons)
+    pub ammo_type: AmmoType,
 }
 
 impl Default for Weapon {
@@ -214,6 +216,7 @@ impl Default for Weapon {
             cap_usage: 5.0,
             aim_direction: Vec2::Y,                   // Up by default
             bullet_color: Color::srgb(1.0, 0.8, 0.4), // Default orange tracer
+            ammo_type: AmmoType::default(),           // Sabot by default
         }
     }
 }
@@ -291,6 +294,7 @@ fn spawn_player(
     mut commands: Commands,
     session: Res<GameSession>,
     sprite_cache: Res<crate::assets::ShipSpriteCache>,
+    save_data: Res<crate::core::SaveData>,
     last_stand: Option<Res<crate::games::caldari_gallente::LastStandState>>,
 ) {
     // Skip player spawn in Last Stand mode (titan is spawned instead)
@@ -311,36 +315,43 @@ fn spawn_player(
     let faction = session.player_faction;
     let type_id = ship_def.type_id;
 
-    // Create stats from ship definition
+    // Get upgrade bonuses from persistent save data
+    let bonuses = save_data.get_upgrade_bonuses();
+
+    // Create stats from ship definition + upgrade bonuses
+    let base_shield = ship_def.health * 0.4;
+    let base_armor = ship_def.health * 0.35;
+    let base_hull = ship_def.health * 0.25;
+
     let stats = ShipStats {
         type_id,
         name: ship_def.name.to_string(),
-        max_shield: ship_def.health * 0.4, // 40% shield
-        shield: ship_def.health * 0.4,
-        shield_recharge: PLAYER_SHIELD_RECHARGE_RATE,
+        max_shield: base_shield + bonuses.shield_bonus,
+        shield: base_shield + bonuses.shield_bonus,
+        shield_recharge: PLAYER_SHIELD_RECHARGE_RATE * bonuses.shield_regen_mult,
         shield_recharge_delay: PLAYER_SHIELD_RECHARGE_DELAY,
         shield_timer: 0.0,
-        max_armor: ship_def.health * 0.35, // 35% armor
-        armor: ship_def.health * 0.35,
-        max_hull: ship_def.health * 0.25, // 25% hull
-        hull: ship_def.health * 0.25,
-        max_capacitor: CAP_FRIGATE,
-        capacitor: CAP_FRIGATE,
+        max_armor: base_armor + bonuses.armor_bonus,
+        armor: base_armor + bonuses.armor_bonus,
+        max_hull: base_hull,
+        hull: base_hull,
+        max_capacitor: CAP_FRIGATE + bonuses.capacitor_bonus,
+        capacitor: CAP_FRIGATE + bonuses.capacitor_bonus,
         capacitor_recharge: 10.0,
     };
 
-    // Create movement from ship speed
+    // Create movement from ship speed + upgrade bonus
     let movement = Movement {
         velocity: Vec2::ZERO,
-        max_speed: ship_def.speed,
-        acceleration: ship_def.speed * 3.0, // 3x speed for accel
+        max_speed: ship_def.speed * bonuses.speed_mult,
+        acceleration: ship_def.speed * 3.0 * bonuses.speed_mult,
         friction: 8.0,
     };
 
-    // Create weapon from ship stats
+    // Create weapon from ship stats + upgrade bonuses
     let weapon = Weapon {
-        fire_rate: ship_def.fire_rate,
-        damage: ship_def.damage,
+        fire_rate: ship_def.fire_rate * bonuses.fire_rate_mult,
+        damage: ship_def.damage * bonuses.damage_mult,
         bullet_color: faction.weapon_type().bullet_color(),
         ..default()
     };
@@ -536,6 +547,28 @@ fn player_shooting(
         weapon.cooldown -= dt;
     }
 
+    // Ammo switching (only for autocannons)
+    if weapon.weapon_type == WeaponType::Autocannon {
+        // Number keys 1-5 for direct selection
+        if keyboard.just_pressed(KeyCode::Digit1) {
+            weapon.ammo_type = AmmoType::Sabot;
+        } else if keyboard.just_pressed(KeyCode::Digit2) {
+            weapon.ammo_type = AmmoType::EMP;
+        } else if keyboard.just_pressed(KeyCode::Digit3) {
+            weapon.ammo_type = AmmoType::Plasma;
+        } else if keyboard.just_pressed(KeyCode::Digit4) {
+            weapon.ammo_type = AmmoType::Fusion;
+        } else if keyboard.just_pressed(KeyCode::Digit5) {
+            weapon.ammo_type = AmmoType::Barrage;
+        }
+        // Q/E or D-pad left/right for cycling
+        else if keyboard.just_pressed(KeyCode::KeyQ) || joystick.dpad_just_left() {
+            weapon.ammo_type = weapon.ammo_type.prev();
+        } else if keyboard.just_pressed(KeyCode::KeyE) || joystick.dpad_just_right() {
+            weapon.ammo_type = weapon.ammo_type.next();
+        }
+    }
+
     // Update aim direction from keyboard (IJKL or arrows for aiming)
     let mut aim = Vec2::ZERO;
     if keyboard.pressed(KeyCode::ArrowUp) || keyboard.pressed(KeyCode::KeyI) {
@@ -573,11 +606,13 @@ fn player_shooting(
 
         // Calculate fire rate with modifiers:
         // - Base fire rate
+        // - Ammo type modifier (Fusion slower, Barrage faster)
         // - Berserk bonus (1.5x when active)
         // - Heat penalty (0.7x when overheated)
+        let ammo_mult = weapon.ammo_type.fire_rate_mult();
         let berserk_mult = if berserk.is_active { 1.5 } else { 1.0 };
         let heat_mult = heat_system.fire_rate_mult();
-        let fire_rate = weapon.fire_rate * berserk_mult * heat_mult;
+        let fire_rate = weapon.fire_rate * ammo_mult * berserk_mult * heat_mult;
         weapon.cooldown = 1.0 / fire_rate;
 
         // Calculate burst parameters from ability effects
@@ -591,15 +626,23 @@ fn player_shooting(
             0.0
         };
 
+        // Use ammo color for autocannons, weapon color for others
+        let bullet_color = if weapon.weapon_type == WeaponType::Autocannon {
+            weapon.ammo_type.color()
+        } else {
+            weapon.bullet_color
+        };
+
         // Send fire event
         fire_events.send(PlayerFireEvent {
             position: transform.translation.truncate(),
             direction: weapon.aim_direction,
             weapon_type: weapon.weapon_type,
-            bullet_color: weapon.bullet_color,
+            bullet_color,
             damage: weapon.damage,
             burst_count,
             spread_angle,
+            ammo_type: weapon.ammo_type,
         });
     }
 }

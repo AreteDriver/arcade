@@ -154,11 +154,16 @@ fn player_projectile_enemy_collision(
 
                 // Roll for critical hit
                 let is_crit = fastrand::f32() < proj_damage.crit_chance;
-                let final_damage = if is_crit {
-                    proj_damage.damage * proj_damage.crit_multiplier
+                let crit_mult = if is_crit {
+                    proj_damage.crit_multiplier
                 } else {
-                    proj_damage.damage
+                    1.0
                 };
+
+                // Apply ammo type multiplier (use armor mult since most enemies are armored)
+                let ammo_mult = proj_damage.ammo_type.armor_mult();
+
+                let final_damage = proj_damage.damage * crit_mult * ammo_mult;
 
                 // Apply damage
                 enemy_stats.health -= final_damage;

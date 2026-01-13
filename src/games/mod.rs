@@ -7,6 +7,7 @@
 
 use bevy::prelude::*;
 
+pub mod abyssal_depths;
 pub mod caldari_gallente;
 pub mod elder_fleet;
 
@@ -18,7 +19,8 @@ impl Plugin for GameModulesPlugin {
         app.init_resource::<ModuleRegistry>()
             .init_resource::<ActiveModule>()
             .add_plugins(elder_fleet::ElderFleetPlugin)
-            .add_plugins(caldari_gallente::CaldariGallentePlugin);
+            .add_plugins(caldari_gallente::CaldariGallentePlugin)
+            .add_plugins(abyssal_depths::AbyssalDepthsPlugin);
     }
 }
 
@@ -86,6 +88,10 @@ impl ActiveModule {
 
     pub fn is_elder_fleet(&self) -> bool {
         self.module_id.as_deref() == Some("elder_fleet")
+    }
+
+    pub fn is_abyssal_depths(&self) -> bool {
+        self.module_id.as_deref() == Some("abyssal_depths")
     }
 }
 

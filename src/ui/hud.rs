@@ -35,6 +35,8 @@ impl Plugin for HudPlugin {
                 update_dialogue_display,
                 update_wingman_gauge,
                 update_ability_indicator,
+                update_ammo_display,
+                update_achievement_popup,
             )
                 .run_if(in_state(GameState::Playing))
                 .run_if(not_last_stand),
@@ -195,6 +197,22 @@ pub struct AbilityIndicatorText;
 /// Ability cooldown key hint
 #[derive(Component)]
 pub struct AbilityKeyHint;
+
+/// Ammo type display text
+#[derive(Component)]
+pub struct AmmoTypeText;
+
+/// Achievement popup container
+#[derive(Component)]
+pub struct AchievementPopup;
+
+/// Achievement popup text (name)
+#[derive(Component)]
+pub struct AchievementPopupName;
+
+/// Achievement popup description
+#[derive(Component)]
+pub struct AchievementPopupDesc;
 
 fn spawn_hud(mut commands: Commands) {
     commands
@@ -467,6 +485,8 @@ fn spawn_hud(mut commands: Commands) {
                             );
                             // Ship ability indicator (blue/cyan)
                             spawn_ability_indicator(left);
+                            // Ammo type indicator (for autocannons)
+                            spawn_ammo_indicator(left);
                         });
 
                     // Center: Spacer to push wingman gauge right
@@ -604,6 +624,59 @@ fn spawn_hud(mut commands: Commands) {
                         TextColor(Color::srgb(0.9, 0.9, 0.85)),
                     ));
                 });
+        });
+
+    // === ACHIEVEMENT POPUP (hidden by default) ===
+    commands
+        .spawn((
+            AchievementPopup,
+            Node {
+                position_type: PositionType::Absolute,
+                top: Val::Px(100.0),
+                left: Val::Percent(50.0),
+                margin: UiRect::left(Val::Px(-150.0)), // Center the 300px wide popup
+                width: Val::Px(300.0),
+                height: Val::Auto,
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                padding: UiRect::all(Val::Px(12.0)),
+                row_gap: Val::Px(4.0),
+                display: Display::None, // Hidden by default
+                ..default()
+            },
+            BackgroundColor(Color::srgba(0.15, 0.1, 0.0, 0.95)),
+            BorderRadius::all(Val::Px(8.0)),
+        ))
+        .with_children(|popup| {
+            // "ACHIEVEMENT UNLOCKED" header
+            popup.spawn((
+                Text::new("ACHIEVEMENT UNLOCKED"),
+                TextFont {
+                    font_size: 11.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.8, 0.6, 0.2)),
+            ));
+            // Achievement name
+            popup.spawn((
+                AchievementPopupName,
+                Text::new(""),
+                TextFont {
+                    font_size: 18.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(1.0, 0.85, 0.3)), // Gold
+            ));
+            // Achievement description
+            popup.spawn((
+                AchievementPopupDesc,
+                Text::new(""),
+                TextFont {
+                    font_size: 12.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.7, 0.7, 0.7)),
+            ));
         });
 
     info!("HUD spawned");
@@ -1276,6 +1349,115 @@ fn update_ability_indicator(
         } else {
             // Cooldown - darker blue
             bg_color.0 = Color::srgb(0.2, 0.4, 0.6);
+        }
+    }
+}
+
+/// Spawn the ammo type indicator UI
+fn spawn_ammo_indicator(parent: &mut ChildBuilder) {
+    parent
+        .spawn(Node {
+            flex_direction: FlexDirection::Row,
+            column_gap: Val::Px(8.0),
+            align_items: AlignItems::Center,
+            margin: UiRect::top(Val::Px(8.0)),
+            ..default()
+        })
+        .with_children(|row| {
+            // Label
+            row.spawn((
+                Text::new("AMMO"),
+                TextFont {
+                    font_size: 10.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.6, 0.6, 0.6)),
+            ));
+            // Ammo type name (colored by ammo type)
+            row.spawn((
+                AmmoTypeText,
+                Text::new("SABOT"),
+                TextFont {
+                    font_size: 12.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.7, 0.7, 0.7)),
+            ));
+            // Key hint
+            row.spawn((
+                Text::new("[1-5/Q/E]"),
+                TextFont {
+                    font_size: 9.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.4, 0.4, 0.4)),
+            ));
+        });
+}
+
+/// Update ammo type display based on player's current ammo
+fn update_ammo_display(
+    player_query: Query<&crate::entities::Weapon, With<Player>>,
+    mut text_query: Query<(&mut Text, &mut TextColor), With<AmmoTypeText>>,
+) {
+    let Ok(weapon) = player_query.get_single() else {
+        return;
+    };
+
+    // Only show for autocannons
+    if weapon.weapon_type != crate::core::WeaponType::Autocannon {
+        return;
+    }
+
+    for (mut text, mut color) in text_query.iter_mut() {
+        **text = weapon.ammo_type.name().to_string();
+        color.0 = weapon.ammo_type.color();
+    }
+}
+
+/// Update achievement popup display
+fn update_achievement_popup(
+    mut popup_state: ResMut<AchievementPopupState>,
+    time: Res<Time>,
+    mut popup_query: Query<&mut Node, With<AchievementPopup>>,
+    mut name_query: Query<
+        (&mut Text, &mut TextColor),
+        (With<AchievementPopupName>, Without<AchievementPopupDesc>),
+    >,
+    mut desc_query: Query<&mut Text, (With<AchievementPopupDesc>, Without<AchievementPopupName>)>,
+) {
+    let dt = time.delta_secs();
+
+    // Update timer if showing an achievement
+    if popup_state.current.is_some() {
+        popup_state.timer -= dt;
+        if popup_state.timer <= 0.0 {
+            // Hide current popup
+            popup_state.current = None;
+            if let Ok(mut node) = popup_query.get_single_mut() {
+                node.display = Display::None;
+            }
+        }
+    }
+
+    // Show next queued achievement if not currently showing one
+    if popup_state.current.is_none() && !popup_state.queue.is_empty() {
+        let achievement = popup_state.queue.remove(0);
+        popup_state.current = Some(achievement);
+        popup_state.timer = AchievementPopupState::DISPLAY_TIME;
+
+        // Update popup content
+        if let Ok((mut name_text, mut name_color)) = name_query.get_single_mut() {
+            **name_text = achievement.name().to_string();
+            name_color.0 = achievement.color();
+        }
+        if let Ok(mut desc_text) = desc_query.get_single_mut() {
+            **desc_text = achievement.description().to_string();
+        }
+
+        // Show popup
+        if let Ok(mut node) = popup_query.get_single_mut() {
+            node.display = Display::Flex;
         }
     }
 }

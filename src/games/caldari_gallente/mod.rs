@@ -1421,6 +1421,7 @@ fn update_cg_boss(
                     damage_type: crate::core::DamageType::EM,
                     crit_chance: 0.08,
                     crit_multiplier: 1.5,
+                    ammo_type: crate::core::AmmoType::default(),
                 },
                 ProjectilePhysics {
                     velocity: dir * projectile_speed,

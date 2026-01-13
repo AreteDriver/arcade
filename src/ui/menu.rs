@@ -106,6 +106,17 @@ impl Plugin for MenuPlugin {
                     .run_if(in_state(GameState::ShipSelect)),
             )
             .add_systems(OnExit(GameState::ShipSelect), despawn_menu::<ShipMenuRoot>)
+            // Upgrade Shop
+            .add_systems(OnEnter(GameState::UpgradeShop), spawn_upgrade_shop)
+            .add_systems(
+                Update,
+                (upgrade_shop_input, update_upgrade_shop_selection)
+                    .run_if(in_state(GameState::UpgradeShop)),
+            )
+            .add_systems(
+                OnExit(GameState::UpgradeShop),
+                despawn_menu::<UpgradeShopRoot>,
+            )
             // Pause Menu
             .add_systems(OnEnter(GameState::Paused), spawn_pause_menu)
             .add_systems(Update, pause_menu_input.run_if(in_state(GameState::Paused)))
@@ -253,6 +264,14 @@ struct BossIntroDialogue {
 }
 
 #[derive(Component)]
+struct UpgradeShopRoot;
+
+#[derive(Component)]
+struct UpgradeItem {
+    upgrade: crate::core::Upgrade,
+}
+
+#[derive(Component)]
 struct StageCompleteRoot;
 
 #[derive(Component)]
@@ -394,7 +413,7 @@ fn spawn_main_menu(
     save_data: Res<SaveData>,
 ) {
     selection.index = 0;
-    selection.total = 3;
+    selection.total = 4; // PLAY, UPGRADES, OPTIONS, QUIT
 
     // Get best high score across all faction pairs
     let best_score = save_data
@@ -446,8 +465,9 @@ fn spawn_main_menu(
 
             // Menu buttons
             spawn_menu_item(parent, "PLAY", 0);
-            spawn_menu_item(parent, "OPTIONS", 1);
-            spawn_menu_item(parent, "QUIT", 2);
+            spawn_menu_item(parent, "UPGRADES", 1);
+            spawn_menu_item(parent, "OPTIONS", 2);
+            spawn_menu_item(parent, "QUIT", 3);
 
             // High score display
             if best_score > 0 {
@@ -546,10 +566,14 @@ fn main_menu_input(
                 transitions.send(TransitionEvent::to(GameState::ModuleSelect));
             }
             1 => {
+                // UPGRADES - go to upgrade shop
+                transitions.send(TransitionEvent::to(GameState::UpgradeShop));
+            }
+            2 => {
                 // OPTIONS - go to options menu
                 transitions.send(TransitionEvent::to(GameState::Options));
             }
-            2 => {
+            3 => {
                 exit.send(AppExit::Success);
             }
             _ => {}
@@ -573,7 +597,7 @@ fn is_elder_fleet(active_module: Res<ActiveModule>) -> bool {
 
 fn spawn_module_select(mut commands: Commands, mut selection: ResMut<MenuSelection>) {
     selection.index = 0;
-    selection.total = 3; // Elder Fleet, Caldari vs Gallente, Endless
+    selection.total = 4; // Elder Fleet, Caldari vs Gallente, Abyssal Depths, Endless
 
     commands
         .spawn((
@@ -635,10 +659,21 @@ fn spawn_module_select(mut commands: Commands, mut selection: ResMut<MenuSelecti
                         "◆",
                     );
 
-                    // Endless Mode card
+                    // Abyssal Depths card
                     spawn_module_card(
                         row,
                         2,
+                        "ABYSSAL DEPTHS",
+                        "Triglavian Extraction",
+                        "3 rooms. Limited time.\nExtract or die in the Abyss.",
+                        Color::srgb(0.6, 0.2, 0.6), // Triglavian purple
+                        "◈",
+                    );
+
+                    // Endless Mode card
+                    spawn_module_card(
+                        row,
+                        3,
                         "ENDLESS",
                         "Survival Mode",
                         "Infinite waves of enemies.\nSurvive as long as you can!",
@@ -775,6 +810,7 @@ fn module_select_input(
     let colors = [
         Color::srgb(0.8, 0.5, 0.2), // Elder Fleet orange
         Color::srgb(0.2, 0.4, 0.7), // Caldari blue
+        Color::srgb(0.6, 0.2, 0.6), // Abyssal purple
         Color::srgb(0.7, 0.2, 0.2), // Endless red
     ];
 
@@ -809,6 +845,14 @@ fn module_select_input(
                 transitions.send(TransitionEvent::to(GameState::FactionSelect));
             }
             2 => {
+                // Abyssal Depths
+                active_module.set_module("abyssal_depths");
+                endless.active = false;
+                info!("Selected ABYSSAL DEPTHS!");
+                // Skip faction select, go straight to ship select
+                transitions.send(TransitionEvent::to(GameState::ShipSelect));
+            }
+            3 => {
                 // Endless Mode
                 active_module.set_module("elder_fleet"); // Use Elder Fleet enemies
                 endless.active = true;
@@ -4820,5 +4864,291 @@ fn is_confirm(keyboard: &ButtonInput<KeyCode>, joystick: &JoystickState) -> bool
 fn despawn_menu<T: Component>(mut commands: Commands, query: Query<Entity, With<T>>) {
     for entity in query.iter() {
         commands.entity(entity).despawn_recursive();
+    }
+}
+
+// ============================================================================
+// Upgrade Shop
+// ============================================================================
+
+fn spawn_upgrade_shop(
+    mut commands: Commands,
+    mut selection: ResMut<MenuSelection>,
+    save_data: Res<SaveData>,
+) {
+    use crate::core::Upgrade;
+
+    let upgrades = Upgrade::all();
+    selection.index = 0;
+    selection.total = upgrades.len();
+
+    commands
+        .spawn((
+            UpgradeShopRoot,
+            Node {
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                flex_direction: FlexDirection::Column,
+                padding: UiRect::all(Val::Px(40.0)),
+                ..default()
+            },
+            BackgroundColor(Color::srgba(0.02, 0.02, 0.05, 0.95)),
+        ))
+        .with_children(|parent| {
+            // Header row with title and SP
+            parent
+                .spawn(Node {
+                    width: Val::Percent(100.0),
+                    justify_content: JustifyContent::SpaceBetween,
+                    align_items: AlignItems::Center,
+                    margin: UiRect::bottom(Val::Px(20.0)),
+                    ..default()
+                })
+                .with_children(|header| {
+                    // Title
+                    header.spawn((
+                        Text::new("SKILL UPGRADES"),
+                        TextFont {
+                            font_size: 36.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgb(0.9, 0.7, 0.3)),
+                    ));
+
+                    // SP display
+                    header
+                        .spawn((
+                            Node {
+                                padding: UiRect::new(
+                                    Val::Px(15.0),
+                                    Val::Px(15.0),
+                                    Val::Px(8.0),
+                                    Val::Px(8.0),
+                                ),
+                                border: UiRect::all(Val::Px(1.0)),
+                                ..default()
+                            },
+                            BorderColor(Color::srgb(0.5, 0.3, 0.7)),
+                            BackgroundColor(Color::srgba(0.2, 0.1, 0.3, 0.8)),
+                        ))
+                        .with_children(|sp_box| {
+                            sp_box.spawn((
+                                Text::new(format!("SP: {}", save_data.skill_points)),
+                                TextFont {
+                                    font_size: 24.0,
+                                    ..default()
+                                },
+                                TextColor(Color::srgb(0.9, 0.7, 1.0)),
+                            ));
+                        });
+                });
+
+            // Upgrade list container
+            parent
+                .spawn((
+                    Node {
+                        width: Val::Percent(100.0),
+                        height: Val::Percent(70.0),
+                        flex_direction: FlexDirection::Column,
+                        overflow: Overflow::clip_y(),
+                        row_gap: Val::Px(8.0),
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgba(0.05, 0.05, 0.1, 0.5)),
+                ))
+                .with_children(|list| {
+                    for (i, &upgrade) in upgrades.iter().enumerate() {
+                        let purchased = save_data.has_upgrade(upgrade);
+                        let can_buy = save_data.can_purchase_upgrade(upgrade);
+                        let locked = if let Some(req) = upgrade.requires() {
+                            !save_data.has_upgrade(req)
+                        } else {
+                            false
+                        };
+
+                        let (name_color, status_text, status_color) = if purchased {
+                            (
+                                Color::srgb(0.5, 0.5, 0.5),
+                                "PURCHASED".to_string(),
+                                Color::srgb(0.4, 0.6, 0.4),
+                            )
+                        } else if locked {
+                            (
+                                Color::srgb(0.4, 0.4, 0.4),
+                                format!("Requires: {}", upgrade.requires().unwrap().name()),
+                                Color::srgb(0.6, 0.4, 0.4),
+                            )
+                        } else if can_buy {
+                            (
+                                Color::WHITE,
+                                format!("Cost: {} SP", upgrade.cost()),
+                                Color::srgb(0.4, 0.8, 0.4),
+                            )
+                        } else {
+                            (
+                                Color::srgb(0.7, 0.7, 0.7),
+                                format!("Cost: {} SP", upgrade.cost()),
+                                Color::srgb(0.8, 0.5, 0.5),
+                            )
+                        };
+
+                        list.spawn((
+                            UpgradeItem { upgrade },
+                            MenuItem { index: i },
+                            Node {
+                                width: Val::Percent(100.0),
+                                height: Val::Px(50.0),
+                                justify_content: JustifyContent::SpaceBetween,
+                                align_items: AlignItems::Center,
+                                padding: UiRect::horizontal(Val::Px(15.0)),
+                                border: UiRect::all(Val::Px(2.0)),
+                                ..default()
+                            },
+                            BackgroundColor(Color::srgba(0.1, 0.1, 0.15, 0.8)),
+                            BorderColor(Color::srgb(0.2, 0.2, 0.3)),
+                        ))
+                        .with_children(|row| {
+                            // Upgrade name
+                            row.spawn((
+                                Text::new(upgrade.name()),
+                                TextFont {
+                                    font_size: 20.0,
+                                    ..default()
+                                },
+                                TextColor(name_color),
+                            ));
+
+                            // Status/Cost
+                            row.spawn((
+                                Text::new(status_text),
+                                TextFont {
+                                    font_size: 18.0,
+                                    ..default()
+                                },
+                                TextColor(status_color),
+                            ));
+                        });
+                    }
+                });
+
+            // Description panel (bottom)
+            parent
+                .spawn((
+                    Node {
+                        width: Val::Percent(100.0),
+                        min_height: Val::Px(80.0),
+                        margin: UiRect::top(Val::Px(20.0)),
+                        padding: UiRect::all(Val::Px(15.0)),
+                        border: UiRect::all(Val::Px(1.0)),
+                        flex_direction: FlexDirection::Column,
+                        ..default()
+                    },
+                    BorderColor(Color::srgb(0.3, 0.3, 0.4)),
+                    BackgroundColor(Color::srgba(0.08, 0.08, 0.12, 0.9)),
+                    UpgradeDescriptionPanel,
+                ))
+                .with_children(|desc_panel| {
+                    let first_upgrade = upgrades.first().copied().unwrap_or(Upgrade::ShieldBoost1);
+                    desc_panel.spawn((
+                        Text::new(first_upgrade.description()),
+                        TextFont {
+                            font_size: 18.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgb(0.8, 0.8, 0.8)),
+                        UpgradeDescriptionText,
+                    ));
+                });
+
+            // Controls hint
+            parent.spawn((
+                Text::new("↑/↓ Navigate  •  Enter/Space Purchase  •  Esc Back"),
+                TextFont {
+                    font_size: 16.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.5, 0.5, 0.5)),
+                Node {
+                    margin: UiRect::top(Val::Px(15.0)),
+                    ..default()
+                },
+            ));
+        });
+}
+
+#[derive(Component)]
+struct UpgradeDescriptionPanel;
+
+#[derive(Component)]
+struct UpgradeDescriptionText;
+
+fn update_upgrade_shop_selection(
+    selection: Res<MenuSelection>,
+    mut item_query: Query<
+        (
+            &MenuItem,
+            &UpgradeItem,
+            &mut BorderColor,
+            &mut BackgroundColor,
+        ),
+        With<UpgradeItem>,
+    >,
+    mut desc_query: Query<&mut Text, With<UpgradeDescriptionText>>,
+) {
+    for (item, upgrade_item, mut border, mut bg) in item_query.iter_mut() {
+        if item.index == selection.index {
+            border.0 = Color::srgb(0.7, 0.5, 0.9); // Purple highlight
+            bg.0 = Color::srgba(0.2, 0.15, 0.25, 0.95);
+
+            // Update description
+            if let Ok(mut desc_text) = desc_query.get_single_mut() {
+                desc_text.0 = upgrade_item.upgrade.description().to_string();
+            }
+        } else {
+            border.0 = Color::srgb(0.2, 0.2, 0.3);
+            bg.0 = Color::srgba(0.1, 0.1, 0.15, 0.8);
+        }
+    }
+}
+
+fn upgrade_shop_input(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    joystick: Res<JoystickState>,
+    mut selection: ResMut<MenuSelection>,
+    mut save_data: ResMut<SaveData>,
+    mut next_state: ResMut<NextState<GameState>>,
+    item_query: Query<(&MenuItem, &UpgradeItem)>,
+    mut commands: Commands,
+    sp_query: Query<Entity, With<UpgradeShopRoot>>,
+) {
+    // Navigation
+    let nav = get_nav_input(&keyboard, &joystick);
+    if nav != 0 && selection.total > 0 {
+        let new_index = (selection.index as i32 + nav).rem_euclid(selection.total as i32) as usize;
+        selection.index = new_index;
+    }
+
+    // Purchase
+    if is_confirm(&keyboard, &joystick) {
+        for (item, upgrade_item) in item_query.iter() {
+            if item.index == selection.index {
+                if save_data.purchase_upgrade(upgrade_item.upgrade) {
+                    info!("Purchased upgrade: {}", upgrade_item.upgrade.name());
+                    // Respawn the shop to update the UI
+                    for entity in sp_query.iter() {
+                        commands.entity(entity).despawn_recursive();
+                    }
+                    // Force re-spawn on next frame by temporarily going to a different state
+                    // Actually, let's just respawn inline
+                    next_state.set(GameState::UpgradeShop);
+                }
+                break;
+            }
+        }
+    }
+
+    // Back
+    if keyboard.just_pressed(KeyCode::Escape) || joystick.back() {
+        next_state.set(GameState::MainMenu);
     }
 }

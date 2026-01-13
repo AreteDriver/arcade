@@ -19,10 +19,10 @@ mod ui;
 
 use assets::AssetsPlugin;
 use core::{
-    ActCompleteEvent, AudioSettings, BerserkSystem, BossSpawnEvent, CampaignState, CurrentStage,
-    Difficulty, EndlessMode, GameEventsPlugin, GameProgress, GameSession, GameState, InputConfig,
-    MissionCompleteEvent, MissionStartEvent, SavePlugin, ScoreSystem, SelectedShip, ShipUnlocks,
-    WaveCompleteEvent,
+    AchievementPlugin, ActCompleteEvent, AudioSettings, BerserkSystem, BossSpawnEvent,
+    CampaignState, CurrentStage, Difficulty, EndlessMode, GameEventsPlugin, GameProgress,
+    GameSession, GameState, InputConfig, MissionCompleteEvent, MissionStartEvent, SavePlugin,
+    ScoreSystem, SelectedShip, ShipUnlocks, WaveCompleteEvent,
 };
 use entities::EntitiesPlugin;
 use games::GameModulesPlugin;
@@ -66,6 +66,7 @@ fn main() {
         // Game plugins
         .add_plugins((
             SavePlugin,
+            AchievementPlugin,
             AssetsPlugin,
             GameEventsPlugin,
             EntitiesPlugin,

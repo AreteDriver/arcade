@@ -193,6 +193,7 @@ fn handle_pickup_effects(
     >,
     mut score: ResMut<ScoreSystem>,
     mut progress: ResMut<GameProgress>,
+    mut save_data: ResMut<crate::core::SaveData>,
     mut heat_system: ResMut<ComboHeatSystem>,
     mut dialogue_events: EventWriter<DialogueEvent>,
     mut rumble_events: EventWriter<crate::systems::RumbleRequest>,
@@ -208,6 +209,9 @@ fn handle_pickup_effects(
                 score.souls_liberated += 1;
                 score.add_score(500);
 
+                // Award skill points (1 SP per soul liberated)
+                save_data.add_skill_points(1);
+
                 // Check for liberation milestone
                 if let Some(milestone) =
                     check_liberation_milestone(old_count, score.souls_liberated)
@@ -215,6 +219,11 @@ fn handle_pickup_effects(
                     dialogue_events.send(DialogueEvent::liberation_milestone(milestone));
                     info!("Liberation milestone reached: {} souls!", milestone);
                 }
+            }
+            CollectibleType::SkillPointDrop => {
+                // Direct SP drop (from special enemies or bonuses)
+                save_data.add_skill_points(event.value);
+                info!("Gained {} SP!", event.value);
             }
             CollectibleType::Credits => {
                 progress.credits += event.value as u64;
@@ -299,6 +308,7 @@ pub fn spawn_collectible(
         CollectibleType::Invulnerability => (Color::srgb(1.0, 1.0, 1.0), 28.0, 1),
         CollectibleType::Nanite => (Color::srgb(0.0, 0.8, 0.6), 28.0, 1),
         CollectibleType::ExtraLife => (Color::srgb(0.0, 1.0, 0.5), 28.0, 1),
+        CollectibleType::SkillPointDrop => (Color::srgb(0.9, 0.7, 1.0), 18.0, 5), // Purple glow, 5 SP
     };
 
     // Try to use icon from cache, fallback to colored sprite

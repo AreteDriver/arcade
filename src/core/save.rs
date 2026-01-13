@@ -39,6 +39,18 @@ pub struct SaveData {
     pub high_scores: Vec<HighScore>,
     /// Settings
     pub settings: GameSettings,
+    /// Unlocked achievements
+    #[serde(default)]
+    pub achievements: HashSet<super::Achievement>,
+    /// Lifetime statistics
+    #[serde(default)]
+    pub lifetime_stats: LifetimeStats,
+    /// Available skill points (persistent currency)
+    #[serde(default)]
+    pub skill_points: u32,
+    /// Purchased upgrades
+    #[serde(default)]
+    pub purchased_upgrades: HashSet<super::Upgrade>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
@@ -55,6 +67,25 @@ pub struct HighScore {
     pub enemy_faction: String,
     pub score: u64,
     pub stage: u32,
+}
+
+/// Lifetime statistics for tracking total progress
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+pub struct LifetimeStats {
+    /// Total enemies destroyed across all runs
+    pub total_kills: u64,
+    /// Total souls liberated across all runs
+    pub total_souls: u64,
+    /// Total games played
+    pub games_played: u32,
+    /// Total missions completed
+    pub missions_completed: u32,
+    /// Total bosses defeated
+    pub bosses_defeated: u32,
+    /// Highest combo ever achieved
+    pub highest_combo: u32,
+    /// Highest score ever achieved
+    pub highest_score: u64,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -288,6 +319,134 @@ impl SaveData {
     /// Add credits
     pub fn add_credits(&mut self, amount: u64) {
         self.lifetime_credits += amount;
+    }
+
+    /// Check if an achievement is unlocked
+    pub fn has_achievement(&self, achievement: super::Achievement) -> bool {
+        self.achievements.contains(&achievement)
+    }
+
+    /// Get achievement progress as (unlocked, total)
+    pub fn achievement_progress(&self) -> (usize, usize) {
+        let total = super::Achievement::all()
+            .iter()
+            .filter(|a| !a.is_hidden())
+            .count();
+        let unlocked = self.achievements.iter().filter(|a| !a.is_hidden()).count();
+        (unlocked, total)
+    }
+
+    /// Update lifetime stats after a run
+    pub fn update_lifetime_stats(
+        &mut self,
+        kills: u32,
+        souls: u32,
+        bosses: u32,
+        max_combo: u32,
+        score: u64,
+        mission_completed: bool,
+    ) {
+        self.lifetime_stats.total_kills += kills as u64;
+        self.lifetime_stats.total_souls += souls as u64;
+        self.lifetime_stats.bosses_defeated += bosses;
+        self.lifetime_stats.games_played += 1;
+        if mission_completed {
+            self.lifetime_stats.missions_completed += 1;
+        }
+        if max_combo > self.lifetime_stats.highest_combo {
+            self.lifetime_stats.highest_combo = max_combo;
+        }
+        if score > self.lifetime_stats.highest_score {
+            self.lifetime_stats.highest_score = score;
+        }
+    }
+
+    /// Add skill points
+    pub fn add_skill_points(&mut self, amount: u32) {
+        self.skill_points += amount;
+    }
+
+    /// Check if an upgrade is purchased
+    pub fn has_upgrade(&self, upgrade: super::Upgrade) -> bool {
+        self.purchased_upgrades.contains(&upgrade)
+    }
+
+    /// Check if an upgrade can be purchased
+    pub fn can_purchase_upgrade(&self, upgrade: super::Upgrade) -> bool {
+        // Already purchased?
+        if self.has_upgrade(upgrade) {
+            return false;
+        }
+        // Have enough SP?
+        if self.skill_points < upgrade.cost() {
+            return false;
+        }
+        // Prerequisites met?
+        if let Some(req) = upgrade.requires() {
+            if !self.has_upgrade(req) {
+                return false;
+            }
+        }
+        true
+    }
+
+    /// Purchase an upgrade (returns true if successful)
+    pub fn purchase_upgrade(&mut self, upgrade: super::Upgrade) -> bool {
+        if !self.can_purchase_upgrade(upgrade) {
+            return false;
+        }
+        self.skill_points -= upgrade.cost();
+        self.purchased_upgrades.insert(upgrade);
+        true
+    }
+
+    /// Get total stat bonuses from purchased upgrades
+    pub fn get_upgrade_bonuses(&self) -> UpgradeBonuses {
+        let mut bonuses = UpgradeBonuses::default();
+
+        for upgrade in &self.purchased_upgrades {
+            match upgrade {
+                super::Upgrade::ShieldBoost1 => bonuses.shield_bonus += 20.0,
+                super::Upgrade::ShieldBoost2 => bonuses.shield_bonus += 40.0,
+                super::Upgrade::ArmorPlate1 => bonuses.armor_bonus += 30.0,
+                super::Upgrade::ArmorPlate2 => bonuses.armor_bonus += 60.0,
+                super::Upgrade::Gyrostabilizer1 => bonuses.fire_rate_mult *= 1.1,
+                super::Upgrade::Gyrostabilizer2 => bonuses.fire_rate_mult *= 1.2,
+                super::Upgrade::ExpandedRocketBay => bonuses.rocket_capacity += 5,
+                super::Upgrade::DamageAmplifier1 => bonuses.damage_mult *= 1.1,
+                super::Upgrade::DamageAmplifier2 => bonuses.damage_mult *= 1.2,
+                super::Upgrade::Afterburner => bonuses.speed_mult *= 1.1,
+                super::Upgrade::CapacitorBattery => bonuses.capacitor_bonus += 25.0,
+                super::Upgrade::ShieldBooster => bonuses.shield_regen_mult *= 1.5,
+            }
+        }
+
+        bonuses
+    }
+}
+
+/// Stat bonuses from purchased upgrades
+#[derive(Debug, Clone, Default)]
+pub struct UpgradeBonuses {
+    pub shield_bonus: f32,
+    pub armor_bonus: f32,
+    pub capacitor_bonus: f32,
+    pub fire_rate_mult: f32,
+    pub damage_mult: f32,
+    pub speed_mult: f32,
+    pub shield_regen_mult: f32,
+    pub rocket_capacity: i32,
+}
+
+impl UpgradeBonuses {
+    pub fn new() -> Self {
+        Self {
+            fire_rate_mult: 1.0,
+            damage_mult: 1.0,
+            speed_mult: 1.0,
+            shield_regen_mult: 1.0,
+            ..Default::default()
+        }
     }
 }
 

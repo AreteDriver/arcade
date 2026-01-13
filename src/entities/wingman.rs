@@ -305,6 +305,7 @@ fn wingman_shooting(
                     damage_type: DamageType::Kinetic,
                     crit_chance: 0.1, // 10% crit for wingman
                     crit_multiplier: 1.5,
+                    ammo_type: AmmoType::default(), // Wingmen don't use ammo types
                 },
                 Sprite {
                     color: Color::srgb(0.8, 0.5, 0.3), // Rust-colored bullets

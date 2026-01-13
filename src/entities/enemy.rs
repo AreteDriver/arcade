@@ -34,6 +34,8 @@ pub enum EnemyBehavior {
     Spawner,
     /// Heavy armor, slow advance, absorbs damage
     Tank,
+    /// Triglavian disintegrator: tracks player, fires continuous beam with ramping damage
+    Disintegrator,
 }
 
 /// Enemy stats
@@ -171,6 +173,79 @@ impl Default for EnemySpawner {
     }
 }
 
+/// Triglavian Disintegrator ramping damage component
+/// Damage increases the longer the beam stays on target
+#[derive(Component, Debug, Clone)]
+pub struct DisintegratorRamp {
+    /// Base damage per tick
+    pub base_damage: f32,
+    /// Maximum damage multiplier (1.0 = no ramp, 3.0 = 3x max)
+    pub ramp_max: f32,
+    /// Time to reach max ramp (seconds)
+    pub ramp_time: f32,
+    /// Time currently on target
+    pub time_on_target: f32,
+    /// Current damage multiplier (1.0 to ramp_max)
+    pub current_mult: f32,
+    /// Is beam currently active/firing
+    pub beam_active: bool,
+    /// Beam visual intensity (0.0 to 1.0)
+    pub beam_intensity: f32,
+}
+
+impl Default for DisintegratorRamp {
+    fn default() -> Self {
+        Self {
+            base_damage: 8.0,
+            ramp_max: 2.0,
+            ramp_time: 6.0,
+            time_on_target: 0.0,
+            current_mult: 1.0,
+            beam_active: false,
+            beam_intensity: 0.0,
+        }
+    }
+}
+
+impl DisintegratorRamp {
+    /// Create a new disintegrator with specified parameters
+    pub fn new(base_damage: f32, ramp_max: f32, ramp_time: f32) -> Self {
+        Self {
+            base_damage,
+            ramp_max,
+            ramp_time,
+            ..Default::default()
+        }
+    }
+
+    /// Update the ramp based on whether we're hitting the target
+    pub fn update(&mut self, dt: f32, hitting_target: bool) {
+        if hitting_target {
+            self.time_on_target += dt;
+            let ramp_progress = (self.time_on_target / self.ramp_time).min(1.0);
+            self.current_mult = 1.0 + (self.ramp_max - 1.0) * ramp_progress;
+            self.beam_active = true;
+            self.beam_intensity = 0.3 + 0.7 * ramp_progress; // 30% to 100% intensity
+        } else {
+            // Reset ramp when not hitting
+            self.time_on_target = 0.0;
+            self.current_mult = 1.0;
+            self.beam_active = false;
+            self.beam_intensity = 0.0;
+        }
+    }
+
+    /// Get current damage output
+    pub fn current_damage(&self) -> f32 {
+        self.base_damage * self.current_mult
+    }
+
+    /// Get ramp progress (0.0 to 1.0)
+    pub fn ramp_progress(&self) -> f32 {
+        (self.time_on_target / self.ramp_time).min(1.0)
+    }
+}
+
 /// Bundle for spawning an enemy
 #[derive(Bundle)]
 pub struct EnemyBundle {
@@ -210,6 +285,7 @@ impl Plugin for EnemyPlugin {
                 enemy_movement,
                 update_enemy_ship_rotation,
                 enemy_shooting,
+                disintegrator_update,
                 spawner_update,
                 enemy_bounds_check,
             )
@@ -289,6 +365,27 @@ fn enemy_movement(
                 // Mostly moves down, slight homing
                 Vec2::new(dir.x * stats.speed * 0.3, -stats.speed * 0.4)
             }
+            EnemyBehavior::Disintegrator => {
+                // Triglavian: Maintains distance while tracking player
+                // Optimal range: 150-250 units from player
+                let to_player = player_pos - pos;
+                let distance = to_player.length();
+                let dir = to_player.normalize_or_zero();
+
+                let optimal_range = 200.0;
+                let approach_speed = if distance > optimal_range + 50.0 {
+                    stats.speed * 0.8 // Close in
+                } else if distance < optimal_range - 50.0 {
+                    -stats.speed * 0.5 // Back off
+                } else {
+                    0.0 // At optimal range
+                };
+
+                // Strafe perpendicular to player direction
+                let strafe = Vec2::new(-dir.y, dir.x) * (ai.timer * 2.0).sin() * stats.speed * 0.4;
+
+                dir * approach_speed + strafe + Vec2::new(0.0, -stats.speed * 0.2)
+            }
         };
 
         transform.translation.x += velocity.x * dt;
@@ -334,6 +431,74 @@ fn enemy_shooting(
                 weapon.bullet_speed,
                 weapon.weapon_type,
             );
+        }
+    }
+}
+
+/// Triglavian disintegrator beam system
+/// Handles continuous beam damage with ramping multiplier
+fn disintegrator_update(
+    time: Res<Time>,
+    mut player_query: Query<
+        (
+            &Transform,
+            &mut super::ShipStats,
+            &super::PowerupEffects,
+            &crate::systems::ManeuverState,
+        ),
+        With<super::Player>,
+    >,
+    mut enemy_query: Query<(&Transform, &mut DisintegratorRamp, &EnemyAI), With<Enemy>>,
+    mut damage_events: EventWriter<PlayerDamagedEvent>,
+    mut next_state: ResMut<NextState<GameState>>,
+) {
+    let dt = time.delta_secs();
+
+    let Ok((player_transform, mut player_stats, powerups, maneuver)) =
+        player_query.get_single_mut()
+    else {
+        return;
+    };
+    let player_pos = player_transform.translation.truncate();
+
+    // Check invulnerability
+    let player_invulnerable = powerups.is_invulnerable() || maneuver.invincible;
+
+    for (enemy_transform, mut disintegrator, ai) in enemy_query.iter_mut() {
+        if !ai.active {
+            disintegrator.update(dt, false);
+            continue;
+        }
+
+        let enemy_pos = enemy_transform.translation.truncate();
+        let to_player = player_pos - enemy_pos;
+        let distance = to_player.length();
+
+        // Check if player is within beam range (350 units max)
+        let in_range = distance < 350.0;
+
+        // Update ramping state
+        disintegrator.update(dt, in_range);
+
+        // Apply damage if beam is active
+        if disintegrator.beam_active && !player_invulnerable {
+            // Damage per second = base * mult, convert to per-frame damage
+            let damage_per_frame = disintegrator.current_damage() * dt;
+
+            // Apply damage directly to player
+            let destroyed = player_stats.take_damage(damage_per_frame, DamageType::Thermal);
+
+            // Send damage event for other systems to react
+            damage_events.send(PlayerDamagedEvent {
+                damage: damage_per_frame,
+                damage_type: DamageType::Thermal,
+                source_position: enemy_pos,
+            });
+
+            if destroyed {
+                info!("Player destroyed by disintegrator beam!");
+                next_state.set(GameState::GameOver);
+            }
         }
     }
 }
@@ -389,6 +554,11 @@ fn update_enemy_ship_rotation(
                 Vec2::new(x, 0.0)
             }
             EnemyBehavior::Tank => Vec2::new(0.0, -stats.speed * 0.4),
+            EnemyBehavior::Disintegrator => {
+                // Triglavian ships strafe while tracking
+                let strafe = (ai.timer * 2.0).sin() * stats.speed * 0.4;
+                Vec2::new(strafe, -stats.speed * 0.2)
+            }
         };
 
         let target_rotation = model_rot.calculate_rotation(velocity, stats.speed);
@@ -409,6 +579,8 @@ fn get_enemy_color(type_id: u32) -> Color {
         593 | 594 | 608 | 16242 | 24700 => COLOR_GALLENTE,
         // Minmatar - Rust (frigates)
         587 | 585 | 598 => COLOR_MINMATAR,
+        // Triglavian - Crimson (Damavik, Vedmak, Drekavac)
+        47269..=47273 => COLOR_TRIGLAVIAN,
         _ => Color::srgb(0.5, 0.5, 0.5),
     }
 }
@@ -868,6 +1040,221 @@ pub fn spawn_tank(
         is_boss: false,
         liberation_value: 2,
     });
+
+    entity
+}
+
+// ============================================================================
+// Triglavian Ships (Disintegrator beam weapons with ramping damage)
+// ============================================================================
+
+/// Triglavian ship type IDs (EVE Image Server)
+pub mod triglavian {
+    pub const DAMAVIK: u32 = 47269; // Light frigate
+    pub const VEDMAK: u32 = 47270; // Cruiser
+    pub const DREKAVAC: u32 = 47271; // Battlecruiser
+    pub const LESHAK: u32 = 47272; // Battleship
+    pub const KIKIMORA: u32 = 47273; // Destroyer
+}
+
+/// Spawn a Raznaborg Damavik (light Triglavian frigate)
+/// Fast, agile, moderate ramp (2.0x max)
+pub fn spawn_damavik(
+    commands: &mut Commands,
+    position: Vec2,
+    sprite: Option<Handle<Image>>,
+    model_cache: Option<&ShipModelCache>,
+) -> Entity {
+    let type_id = triglavian::DAMAVIK;
+    let entity = spawn_enemy(
+        commands,
+        type_id,
+        position,
+        EnemyBehavior::Disintegrator,
+        sprite,
+        model_cache,
+    );
+
+    commands.entity(entity).insert(EnemyStats {
+        type_id,
+        name: "Raznaborg Damavik".into(),
+        health: 120.0,
+        max_health: 120.0,
+        speed: 100.0, // Fast frigate
+        score_value: 180,
+        is_boss: false,
+        liberation_value: 2,
+    });
+
+    // Disintegrator beam weapon
+    commands.entity(entity).insert(DisintegratorRamp::new(
+        8.0, // Base damage per second
+        2.0, // Max 2x multiplier
+        6.0, // 6 seconds to max ramp
+    ));
+
+    // No standard weapon - uses disintegrator beam instead
+    commands.entity(entity).remove::<EnemyWeapon>();
+
+    entity
+}
+
+/// Spawn a Starving Damavik (fast, fragile variant)
+/// Very fast, lower HP, quick ramp (1.8x max)
+pub fn spawn_starving_damavik(
+    commands: &mut Commands,
+    position: Vec2,
+    sprite: Option<Handle<Image>>,
+    model_cache: Option<&ShipModelCache>,
+) -> Entity {
+    let type_id = triglavian::DAMAVIK;
+    let entity = spawn_enemy(
+        commands,
+        type_id,
+        position,
+        EnemyBehavior::Disintegrator,
+        sprite,
+        model_cache,
+    );
+
+    commands.entity(entity).insert(EnemyStats {
+        type_id,
+        name: "Starving Damavik".into(),
+        health: 80.0, // Fragile
+        max_health: 80.0,
+        speed: 130.0, // Very fast
+        score_value: 150,
+        is_boss: false,
+        liberation_value: 1,
+    });
+
+    commands.entity(entity).insert(DisintegratorRamp::new(
+        6.0, // Lower base damage
+        1.8, // Lower max multiplier
+        4.0, // Faster ramp time
+    ));
+
+    commands.entity(entity).remove::<EnemyWeapon>();
+
+    entity
+}
+
+/// Spawn a Harrowing Vedmak (heavy Triglavian cruiser)
+/// Slow, tanky, high ramp (2.5x max)
+pub fn spawn_vedmak(
+    commands: &mut Commands,
+    position: Vec2,
+    sprite: Option<Handle<Image>>,
+    model_cache: Option<&ShipModelCache>,
+) -> Entity {
+    let type_id = triglavian::VEDMAK;
+    let entity = spawn_enemy(
+        commands,
+        type_id,
+        position,
+        EnemyBehavior::Disintegrator,
+        sprite,
+        model_cache,
+    );
+
+    commands.entity(entity).insert(EnemyStats {
+        type_id,
+        name: "Harrowing Vedmak".into(),
+        health: 400.0, // Heavy cruiser
+        max_health: 400.0,
+        speed: 60.0, // Slower
+        score_value: 350,
+        is_boss: false,
+        liberation_value: 5,
+    });
+
+    commands.entity(entity).insert(DisintegratorRamp::new(
+        15.0, // High base damage
+        2.5,  // High max multiplier
+        8.0,  // Longer ramp time
+    ));
+
+    commands.entity(entity).remove::<EnemyWeapon>();
+
+    entity
+}
+
+/// Spawn a Blinding Vedmak (EWAR variant)
+/// Medium stats, moderate ramp with debuff effect
+pub fn spawn_blinding_vedmak(
+    commands: &mut Commands,
+    position: Vec2,
+    sprite: Option<Handle<Image>>,
+    model_cache: Option<&ShipModelCache>,
+) -> Entity {
+    let type_id = triglavian::VEDMAK;
+    let entity = spawn_enemy(
+        commands,
+        type_id,
+        position,
+        EnemyBehavior::Disintegrator,
+        sprite,
+        model_cache,
+    );
+
+    commands.entity(entity).insert(EnemyStats {
+        type_id,
+        name: "Blinding Vedmak".into(),
+        health: 350.0,
+        max_health: 350.0,
+        speed: 70.0,
+        score_value: 320,
+        is_boss: false,
+        liberation_value: 4,
+    });
+
+    commands.entity(entity).insert(DisintegratorRamp::new(
+        12.0, // Moderate damage
+        2.0,  // Standard multiplier
+        6.0,
+    ));
+
+    commands.entity(entity).remove::<EnemyWeapon>();
+
+    entity
+}
+
+/// Spawn a Drekavac (Triglavian battlecruiser boss)
+/// Very tanky, high damage, extreme ramp (3.0x max)
+pub fn spawn_drekavac_boss(
+    commands: &mut Commands,
+    position: Vec2,
+    sprite: Option<Handle<Image>>,
+    model_cache: Option<&ShipModelCache>,
+) -> Entity {
+    let type_id = triglavian::DREKAVAC;
+    let entity = spawn_enemy(
+        commands,
+        type_id,
+        position,
+        EnemyBehavior::Disintegrator,
+        sprite,
+        model_cache,
+    );
+
+    commands.entity(entity).insert(EnemyStats {
+        type_id,
+        name: "Drekavac".into(),
+        health: 800.0, // Boss-level HP
+        max_health: 800.0,
+        speed: 45.0, // Slow battlecruiser
+        score_value: 1000,
+        is_boss: true, // This is a boss!
+        liberation_value: 10,
+    });
+
+    commands.entity(entity).insert(DisintegratorRamp::new(
+        25.0, // Very high base damage
+        3.0,  // Extreme max multiplier
+        10.0, // Long ramp time (counterplay: stay mobile)
+    ));
+
+    commands.entity(entity).remove::<EnemyWeapon>();
 
     entity
 }

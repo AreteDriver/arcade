@@ -304,6 +304,7 @@ fn drone_target_and_shoot(
                     damage_type,
                     crit_chance: 0.08,
                     crit_multiplier: 1.4,
+                    ammo_type: AmmoType::default(), // Drones don't use ammo types
                 },
                 Sprite {
                     color: bullet_color,
