@@ -475,7 +475,7 @@ fn create_audio_source(_samples: &[f32], _sample_rate: u32) -> Option<AudioSourc
     None
 }
 
-/// Play weapon firing sounds
+/// Play weapon firing sounds with subtle variation
 fn play_weapon_sounds(
     mut commands: Commands,
     mut fire_events: EventReader<PlayerFireEvent>,
@@ -496,11 +496,16 @@ fn play_weapon_sounds(
         };
 
         if let Some(source) = sound {
+            // Add subtle volume and speed variation to avoid repetition
+            let volume_var = 0.9 + fastrand::f32() * 0.2; // 0.9 - 1.1
+            let speed_var = 0.95 + fastrand::f32() * 0.1; // 0.95 - 1.05 pitch variation
+
             commands.spawn((
                 AudioPlayer(source),
                 PlaybackSettings {
                     mode: PlaybackMode::Despawn,
-                    volume: Volume::new(settings.sfx_volume * settings.master_volume * 0.5),
+                    volume: Volume::new(settings.sfx_volume * settings.master_volume * 0.5 * volume_var),
+                    speed: speed_var,
                     ..default()
                 },
             ));
@@ -508,7 +513,7 @@ fn play_weapon_sounds(
     }
 }
 
-/// Play explosion sounds on enemy destruction
+/// Play explosion sounds on enemy destruction with size-based variation
 fn play_explosion_sounds(
     mut commands: Commands,
     mut destroy_events: EventReader<EnemyDestroyedEvent>,
@@ -521,18 +526,31 @@ fn play_explosion_sounds(
     }
 
     for event in destroy_events.read() {
-        let sound = if event.was_boss {
-            sounds.explosion_large.clone()
+        // Select explosion sound based on enemy type/size
+        let (sound, base_volume, base_pitch) = if event.was_boss {
+            // Boss = large, deep explosion
+            (sounds.explosion_large.clone(), 0.8, 0.8)
         } else {
-            sounds.explosion_small.clone()
+            // Use score_value as proxy for ship size
+            match event.score_value {
+                0..=50 => (sounds.explosion_small.clone(), 0.5, 1.1),    // Frigates
+                51..=150 => (sounds.explosion_small.clone(), 0.6, 1.0), // Destroyers
+                151..=300 => (sounds.explosion_medium.clone(), 0.65, 0.95), // Cruisers
+                _ => (sounds.explosion_medium.clone(), 0.7, 0.9),       // Battlecruisers+
+            }
         };
 
         if let Some(source) = sound {
+            // Add variation
+            let volume_var = 0.9 + fastrand::f32() * 0.2;
+            let pitch_var = 0.95 + fastrand::f32() * 0.1;
+
             commands.spawn((
                 AudioPlayer(source),
                 PlaybackSettings {
                     mode: PlaybackMode::Despawn,
-                    volume: Volume::new(settings.sfx_volume * settings.master_volume * 0.6),
+                    volume: Volume::new(settings.sfx_volume * settings.master_volume * base_volume * volume_var),
+                    speed: base_pitch * pitch_var,
                     ..default()
                 },
             ));
@@ -577,7 +595,7 @@ fn play_pickup_sounds(
     }
 }
 
-/// Play damage sounds when player is hit
+/// Play damage sounds when player is hit with intensity variation
 fn play_damage_sounds(
     mut commands: Commands,
     mut damage_events: EventReader<PlayerDamagedEvent>,
@@ -597,11 +615,21 @@ fn play_damage_sounds(
         };
 
         if let Some(source) = sound {
+            // Scale volume and pitch based on damage amount (heavier hits = louder, deeper)
+            let damage_scale = (event.damage / 50.0).clamp(0.5, 2.0);
+            let volume = 0.6 + 0.2 * damage_scale.min(1.5);
+            let pitch = 1.1 - 0.15 * damage_scale.min(1.5); // Bigger hits = deeper
+
+            // Add subtle variation
+            let volume_var = 0.95 + fastrand::f32() * 0.1;
+            let pitch_var = 0.97 + fastrand::f32() * 0.06;
+
             commands.spawn((
                 AudioPlayer(source),
                 PlaybackSettings {
                     mode: PlaybackMode::Despawn,
-                    volume: Volume::new(settings.sfx_volume * settings.master_volume * 0.8),
+                    volume: Volume::new(settings.sfx_volume * settings.master_volume * volume * volume_var),
+                    speed: pitch * pitch_var,
                     ..default()
                 },
             ));
