@@ -35,10 +35,12 @@ Defend New Eden from the Triglavian invasion, or embrace the Flow and fight for 
 - **Four Factions** — Minmatar, Amarr, Caldari, Gallente (Triglavian coming soon)
 - **Heat & Combo System** — Push your weapons to the limit for score multipliers
 - **Berserk Mode** — Fill your rage meter to unleash devastating power
+- **Ship Abilities** — Faction-specific active abilities with cooldowns
 - **Ship Progression** — Unlock faction ships as you advance
+- **The Last Stand** — Defend Shiigeru as a fixed-platform titan battle
 - **Endless Mode** — High-score survival with escalating difficulty
-- **Authentic EVE Visuals** — Ships rendered from official EVE Online assets
-- **Procedural Audio** — Dynamic soundtrack generated at runtime
+- **Authentic EVE Visuals** — Ships with faction color tints and parallax starfield
+- **Procedural Audio** — Dynamic soundtrack and sound effects generated at runtime
 
 ## Controls
 
@@ -46,11 +48,15 @@ Defend New Eden from the Triglavian invasion, or embrace the Flow and fight for 
 - **WASD / Arrow Keys** - Move
 - **Space** - Fire
 - **B** - Activate Berserk Mode (when meter full)
+- **E** - Activate Ship Ability
+- **Shift** - Barrel Roll (i-frames)
 
 ### Controller (Xbox/PlayStation)
 - **Left Stick** - Move
 - **Right Trigger** - Fire
 - **Y / Triangle** - Activate Berserk Mode
+- **Right Bumper** - Activate Ship Ability
+- **A / X** - Barrel Roll
 
 ## Building
 
