@@ -101,8 +101,8 @@ fn draw_capacitor_wheel(
     let cap_pct = (stats.capacitor / stats.max_capacitor).clamp(0.0, 1.0);
     let heat_pct = heat_system.heat / 100.0;
 
-    // Get speed
-    let speed = movement.map(|m| m.velocity.length()).unwrap_or(0.0);
+    // Get speed (reserved for future speedometer display)
+    let _speed = movement.map(|m| m.velocity.length()).unwrap_or(0.0);
 
     // Draw using egui Area
     egui::Area::new(egui::Id::new("capacitor_wheel"))
@@ -235,17 +235,6 @@ fn draw_capacitor_wheel(
                 );
             }
         });
-}
-
-/// Get text color based on health percentage
-fn health_text_color(pct: f32) -> egui::Color32 {
-    if pct < 0.20 {
-        egui::Color32::from_rgb(255, 80, 80) // Critical - red
-    } else if pct < 0.35 {
-        egui::Color32::from_rgb(255, 180, 80) // Warning - orange
-    } else {
-        egui::Color32::from_rgb(170, 180, 190) // Normal - gray-white
-    }
 }
 
 /// Get text color based on capacitor percentage - EVE yellow theme
@@ -506,96 +495,4 @@ fn draw_cap_cell(
     }
 }
 
-/// Draw a single radial gauge (rectangular cell pointing outward)
-fn draw_radial_gauge(
-    painter: &egui::Painter,
-    center: egui::Pos2,
-    inner_radius: f32,
-    outer_radius: f32,
-    center_angle: f32,
-    arc_width: f32,
-    fill_color: egui::Color32,
-    border_color: egui::Color32,
-) {
-    let half_arc = arc_width / 2.0;
-    let start_angle = center_angle - half_arc;
-    let end_angle = center_angle + half_arc;
 
-    // Create trapezoid shape (wider at outer edge, narrower at inner)
-    let points = vec![
-        // Inner edge (narrower)
-        egui::pos2(
-            center.x + inner_radius * start_angle.cos(),
-            center.y + inner_radius * start_angle.sin(),
-        ),
-        // Outer edge left
-        egui::pos2(
-            center.x + outer_radius * start_angle.cos(),
-            center.y + outer_radius * start_angle.sin(),
-        ),
-        // Outer edge right
-        egui::pos2(
-            center.x + outer_radius * end_angle.cos(),
-            center.y + outer_radius * end_angle.sin(),
-        ),
-        // Inner edge right
-        egui::pos2(
-            center.x + inner_radius * end_angle.cos(),
-            center.y + inner_radius * end_angle.sin(),
-        ),
-    ];
-
-    // Fill
-    painter.add(egui::Shape::convex_polygon(
-        points.clone(),
-        fill_color,
-        egui::Stroke::NONE,
-    ));
-
-    // Border
-    painter.add(egui::Shape::closed_line(
-        points,
-        egui::Stroke::new(0.5, border_color),
-    ));
-}
-
-/// Draw overheating status indicators (small orange/red marks)
-fn draw_heat_indicators(
-    painter: &egui::Painter,
-    center: egui::Pos2,
-    wheel_radius: f32,
-    heat_pct: f32,
-) {
-    // Position above the capacitor area
-    let indicator_radius = wheel_radius - 35.0;
-    let num_indicators = 5;
-    let filled = (heat_pct * num_indicators as f32).ceil() as u32;
-
-    // Arc from -120 to -60 degrees (top area)
-    let start_angle = -PI * 0.7;
-    let end_angle = -PI * 0.3;
-    let arc_span = end_angle - start_angle;
-
-    for i in 0..num_indicators {
-        let angle = start_angle + (i as f32 / (num_indicators - 1) as f32) * arc_span;
-        let x = center.x + indicator_radius * angle.cos();
-        let y = center.y + indicator_radius * angle.sin();
-
-        let is_active = i < filled;
-        let color = if is_active {
-            if heat_pct > 0.8 {
-                egui::Color32::from_rgb(255, 60, 40) // Critical red
-            } else if heat_pct > 0.5 {
-                egui::Color32::from_rgb(255, 140, 40) // Warning orange
-            } else {
-                egui::Color32::from_rgb(255, 200, 80) // Low heat yellow
-            }
-        } else {
-            egui::Color32::from_rgb(40, 45, 55) // Inactive
-        };
-
-        // Small rectangular indicator
-        let rect = egui::Rect::from_center_size(egui::pos2(x, y), egui::vec2(4.0, 8.0));
-        painter.rect_filled(rect, 1.0, color);
-    }
-}
