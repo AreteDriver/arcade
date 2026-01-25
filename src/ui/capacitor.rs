@@ -89,10 +89,10 @@ fn draw_capacitor_wheel(
         return;
     };
 
-    // Position at bottom center of screen
-    let wheel_radius = 55.0;
-    let center_x = window.width() / 2.0;
-    let center_y = window.height() - 70.0;
+    // Position at bottom RIGHT corner (EVE style)
+    let wheel_radius = 38.0; // 30% smaller (was 55)
+    let center_x = window.width() - 70.0; // Right side
+    let center_y = window.height() - 55.0;
 
     // Calculate percentages
     let shield_pct = (stats.shield / stats.max_shield).clamp(0.0, 1.0);
@@ -135,8 +135,8 @@ fn draw_capacitor_wheel(
             );
 
             // === HEALTH ARCS (top semicircle, EVE style) ===
-            let arc_width = 7.0;
-            let arc_gap = 2.0;
+            let arc_width = 5.0;  // Scaled down for smaller wheel
+            let arc_gap = 1.5;
             let arc_start = -PI; // Left
             let arc_end = 0.0; // Right (top semicircle)
 
@@ -210,153 +210,30 @@ fn draw_capacitor_wheel(
                 egui::Stroke::new(1.0, egui::Color32::from_rgb(50, 60, 75)),
             );
 
-            // === OVERHEATING STATUS (orange indicators above capacitor) ===
-            if heat_pct > 0.0 {
-                draw_heat_indicators(&painter, center, wheel_radius, heat_pct);
-            }
+            // Heat indicators removed - capacitor display now primary
 
-            // === PERCENTAGE TEXT (left side, stacked) ===
-            let text_x = center.x - wheel_radius - 28.0;
-            let text_y_start = center.y - 25.0;
-            let text_spacing = 14.0;
-
-            // Shield %
-            let shield_color = health_text_color(shield_pct);
+            // === CAPACITOR PERCENTAGE (center of wheel) ===
+            let cap_color = capacitor_text_color(cap_pct);
             painter.text(
-                egui::pos2(text_x, text_y_start),
-                egui::Align2::RIGHT_CENTER,
-                format!("{:.0}%", shield_pct * 100.0),
+                egui::pos2(center.x, center.y - 2.0),
+                egui::Align2::CENTER_CENTER,
+                format!("{:.0}%", cap_pct * 100.0),
                 egui::FontId::monospace(10.0),
-                shield_color,
+                cap_color,
             );
 
-            // Armor %
-            let armor_color = health_text_color(armor_pct);
-            painter.text(
-                egui::pos2(text_x, text_y_start + text_spacing),
-                egui::Align2::RIGHT_CENTER,
-                format!("{:.0}%", armor_pct * 100.0),
-                egui::FontId::monospace(10.0),
-                armor_color,
-            );
-
-            // Hull %
-            let hull_color = health_text_color(hull_pct);
-            painter.text(
-                egui::pos2(text_x, text_y_start + text_spacing * 2.0),
-                egui::Align2::RIGHT_CENTER,
-                format!("{:.0}%", hull_pct * 100.0),
-                egui::FontId::monospace(10.0),
-                hull_color,
-            );
-
-            // === HEAT PERCENTAGE (right side) ===
-            let heat_text_x = center.x + wheel_radius + 28.0;
-            let heat_color = heat_text_color(heat_pct);
-            painter.text(
-                egui::pos2(heat_text_x, center.y - 8.0),
-                egui::Align2::LEFT_CENTER,
-                format!("{:.0}%", heat_pct * 100.0),
-                egui::FontId::monospace(11.0),
-                heat_color,
-            );
-            painter.text(
-                egui::pos2(heat_text_x, center.y + 6.0),
-                egui::Align2::LEFT_CENTER,
-                "HEAT",
-                egui::FontId::monospace(8.0),
-                egui::Color32::from_rgb(100, 110, 125),
-            );
-
-            // === OVERHEAT WARNING FLASH ===
-            if heat_pct > 0.85 {
-                // Pulsing red border around the wheel
+            // === LOW CAPACITOR WARNING FLASH ===
+            if cap_pct < 0.15 {
+                // Pulsing red/orange border around the wheel
                 let flash_alpha = ((anim.pulse - 0.9) * 10.0).sin().abs();
                 let flash_color =
-                    egui::Color32::from_rgba_unmultiplied(255, 40, 40, (flash_alpha * 80.0) as u8);
+                    egui::Color32::from_rgba_unmultiplied(255, 100, 40, (flash_alpha * 80.0) as u8);
                 painter.circle_stroke(
                     center,
-                    wheel_radius + 6.0,
-                    egui::Stroke::new(3.0, flash_color),
+                    wheel_radius + 4.0,
+                    egui::Stroke::new(2.0, flash_color),
                 );
-
-                // "OVERHEAT" warning text
-                if flash_alpha > 0.5 {
-                    painter.text(
-                        egui::pos2(center.x, center.y - wheel_radius - 18.0),
-                        egui::Align2::CENTER_CENTER,
-                        "⚠ OVERHEAT",
-                        egui::FontId::monospace(10.0),
-                        egui::Color32::from_rgb(255, 80, 60),
-                    );
-                }
             }
-
-            // === SPEED DISPLAY (center) ===
-            painter.text(
-                egui::pos2(center.x, center.y + 2.0),
-                egui::Align2::CENTER_CENTER,
-                format!("{:.0}", speed),
-                egui::FontId::monospace(11.0),
-                egui::Color32::from_rgb(100, 170, 210),
-            );
-            painter.text(
-                egui::pos2(center.x, center.y + 14.0),
-                egui::Align2::CENTER_CENTER,
-                "m/s",
-                egui::FontId::monospace(7.0),
-                egui::Color32::from_rgb(70, 100, 130),
-            );
-
-            // === -/+ SPEED CONTROL INDICATORS ===
-            let ctrl_y = center.y + wheel_radius + 12.0;
-
-            // Minus button (left)
-            painter.circle_filled(
-                egui::pos2(center.x - 22.0, ctrl_y),
-                8.0,
-                egui::Color32::from_rgb(30, 35, 45),
-            );
-            painter.circle_stroke(
-                egui::pos2(center.x - 22.0, ctrl_y),
-                8.0,
-                egui::Stroke::new(1.0, egui::Color32::from_rgb(55, 65, 80)),
-            );
-            painter.text(
-                egui::pos2(center.x - 22.0, ctrl_y),
-                egui::Align2::CENTER_CENTER,
-                "−",
-                egui::FontId::proportional(14.0),
-                egui::Color32::from_rgb(140, 150, 165),
-            );
-
-            // Plus button (right)
-            painter.circle_filled(
-                egui::pos2(center.x + 22.0, ctrl_y),
-                8.0,
-                egui::Color32::from_rgb(30, 35, 45),
-            );
-            painter.circle_stroke(
-                egui::pos2(center.x + 22.0, ctrl_y),
-                8.0,
-                egui::Stroke::new(1.0, egui::Color32::from_rgb(55, 65, 80)),
-            );
-            painter.text(
-                egui::pos2(center.x + 22.0, ctrl_y),
-                egui::Align2::CENTER_CENTER,
-                "+",
-                egui::FontId::proportional(14.0),
-                egui::Color32::from_rgb(140, 150, 165),
-            );
-
-            // Speed value below center
-            painter.text(
-                egui::pos2(center.x, ctrl_y),
-                egui::Align2::CENTER_CENTER,
-                format!("{:.0} m/s", speed),
-                egui::FontId::monospace(9.0),
-                egui::Color32::from_rgb(80, 140, 180),
-            );
         });
 }
 
@@ -371,16 +248,14 @@ fn health_text_color(pct: f32) -> egui::Color32 {
     }
 }
 
-/// Get text color based on heat percentage (inverse of health - high is bad)
-fn heat_text_color(pct: f32) -> egui::Color32 {
-    if pct > 0.85 {
-        egui::Color32::from_rgb(255, 60, 60) // Critical - bright red
-    } else if pct > 0.60 {
-        egui::Color32::from_rgb(255, 140, 60) // Hot - orange
-    } else if pct > 0.30 {
-        egui::Color32::from_rgb(255, 200, 100) // Warm - golden
+/// Get text color based on capacitor percentage - EVE yellow theme
+fn capacitor_text_color(pct: f32) -> egui::Color32 {
+    if pct < 0.15 {
+        egui::Color32::from_rgb(200, 80, 80) // Critical - reddish
+    } else if pct < 0.30 {
+        egui::Color32::from_rgb(200, 150, 80) // Low - orange-ish
     } else {
-        egui::Color32::from_rgb(100, 180, 200) // Cool - teal
+        egui::Color32::from_rgb(255, 220, 80) // Normal - bright yellow
     }
 }
 
@@ -478,126 +353,156 @@ fn draw_arc_segment(
     }
 }
 
-/// Draw HEAT display as radial spoke gauges (EVE Online style)
-/// Empty = cool, Filled = hot
-/// Color shifts: teal (cool) → golden (warm) → red (overheating)
+/// Draw EVE Online-style CAPACITOR display
+/// Bright yellow dashes when full, grey when depleted
 fn draw_capacitor_rings(
     painter: &egui::Painter,
     center: egui::Pos2,
     inner_radius: f32,
     outer_radius: f32,
-    _cap_pct: f32, // Unused - kept for API compatibility
-    heat_pct: f32,
+    cap_pct: f32,
+    _heat_pct: f32,
     pulse: f32,
 ) {
-    // Radial spoke pattern - rectangular gauges arranged like wheel spokes
-    let num_layers = 3;
-    let gauges_per_layer = 16;
-    let total_gauges = num_layers * gauges_per_layer;
+    // EVE style - ring of dashes/cells
+    let num_cells = 18;
 
-    // Heat fills from inside-out (heat builds up from core)
-    let filled_gauges = (heat_pct * total_gauges as f32).round() as u32;
+    // Cells filled based on capacitor percentage
+    let filled_cells = (cap_pct * num_cells as f32).round() as u32;
 
-    // Heat color gradient: teal → golden → orange → red
-    let heat_color = if heat_pct < 0.3 {
-        // Cool - teal/cyan
-        let t = heat_pct / 0.3;
-        egui::Color32::from_rgb(
-            (60.0 + 140.0 * t) as u8,  // 60 → 200
-            (180.0 - 30.0 * t) as u8,  // 180 → 150
-            (200.0 - 100.0 * t) as u8, // 200 → 100
-        )
-    } else if heat_pct < 0.6 {
-        // Warm - golden/yellow
-        let t = (heat_pct - 0.3) / 0.3;
-        egui::Color32::from_rgb(
-            (200.0 + 55.0 * t) as u8, // 200 → 255
-            (150.0 + 30.0 * t) as u8, // 150 → 180
-            (100.0 - 50.0 * t) as u8, // 100 → 50
-        )
-    } else if heat_pct < 0.85 {
-        // Hot - orange
-        let t = (heat_pct - 0.6) / 0.25;
-        egui::Color32::from_rgb(
-            255,
-            (180.0 - 80.0 * t) as u8, // 180 → 100
-            (50.0 - 30.0 * t) as u8,  // 50 → 20
-        )
-    } else {
-        // Critical - red (pulsing)
-        let critical_pulse = 0.7 + 0.3 * ((pulse - 0.9) * 5.0).sin().abs();
-        egui::Color32::from_rgb(
-            255,
-            (60.0 * critical_pulse) as u8,
-            (30.0 * critical_pulse) as u8,
-        )
-    };
+    // Ring dimensions
+    let ring_width = outer_radius - inner_radius - 2.0;
+    let cell_inner = inner_radius + 1.0;
+    let cell_outer = cell_inner + ring_width;
 
-    let empty_color = egui::Color32::from_rgb(20, 35, 45); // Dark teal-gray (cool look)
-    let border_color = egui::Color32::from_rgb(40, 60, 75);
+    // Draw cells in a full circle
+    for i in 0..num_cells {
+        // Start from top, go clockwise
+        let angle = -PI / 2.0 + (i as f32 / num_cells as f32) * PI * 2.0;
+        let cell_arc = (PI * 2.0 / num_cells as f32) * 0.65; // 65% fill, 35% gap
 
-    // Layer spacing
-    let layer_height = (outer_radius - inner_radius - 4.0) / num_layers as f32;
-    let gauge_gap = 2.0;
-    let gauge_height = layer_height - gauge_gap;
+        // Fill from index 0 up
+        let is_filled = i < filled_cells;
 
-    // Draw gauges - fill from inside-out (heat builds from core)
-    let mut gauge_index = 0;
+        // EVE colors: bright yellow when full, grey when empty
+        let filled_color = {
+            let pulse_mod = 0.92 + 0.08 * pulse;
+            egui::Color32::from_rgb(
+                (255.0 * pulse_mod) as u8,  // Bright yellow
+                (220.0 * pulse_mod) as u8,
+                (50.0 * pulse_mod) as u8,
+            )
+        };
+        let empty_color = egui::Color32::from_rgb(45, 48, 55); // Grey
 
-    // Inner layers first (heat builds from inside out)
-    for layer in 0..num_layers {
-        let layer_inner = inner_radius + 2.0 + layer as f32 * layer_height;
-        let layer_outer = layer_inner + gauge_height;
+        let fill_color = if is_filled { filled_color } else { empty_color };
 
-        for i in 0..gauges_per_layer {
-            // Start from top (-PI/2), go clockwise
-            let angle = -PI / 2.0 + (i as f32 / gauges_per_layer as f32) * PI * 2.0;
-            let gauge_arc = (PI * 2.0 / gauges_per_layer as f32) * 0.75;
-
-            // Fill from inside-out
-            let is_filled = gauge_index < filled_gauges;
-            gauge_index += 1;
-
-            let fill_color = if is_filled {
-                // Apply subtle pulse to filled gauges
-                let pulse_factor = if heat_pct > 0.85 {
-                    pulse
-                } else {
-                    0.95 + 0.05 * pulse
-                };
-                egui::Color32::from_rgb(
-                    (heat_color.r() as f32 * pulse_factor).min(255.0) as u8,
-                    (heat_color.g() as f32 * pulse_factor).min(255.0) as u8,
-                    (heat_color.b() as f32 * pulse_factor).min(255.0) as u8,
-                )
-            } else {
-                empty_color
-            };
-
-            draw_radial_gauge(
-                painter,
-                center,
-                layer_inner,
-                layer_outer,
-                angle,
-                gauge_arc,
-                fill_color,
-                border_color,
-            );
-        }
+        // Draw the dash/cell
+        draw_cap_cell(
+            painter,
+            center,
+            cell_inner,
+            cell_outer,
+            angle,
+            cell_arc,
+            fill_color,
+            egui::Color32::from_rgb(25, 28, 35), // Dark border
+            is_filled,
+        );
     }
 
-    // Center glow when heat is high (warning)
-    if heat_pct > 0.5 {
-        let glow_intensity = (heat_pct - 0.5) * 2.0; // 0.0 at 50%, 1.0 at 100%
-        let glow_alpha = (glow_intensity * 0.5 * 255.0 * pulse) as u8;
-        let glow_color = egui::Color32::from_rgba_unmultiplied(
-            heat_color.r(),
-            (heat_color.g() as f32 * 0.6) as u8,
-            (heat_color.b() as f32 * 0.4) as u8,
-            glow_alpha,
+    // Inner dark circle
+    painter.circle_filled(
+        center,
+        inner_radius,
+        egui::Color32::from_rgb(12, 14, 20),
+    );
+
+    // Subtle yellow glow in center when cap is high
+    if cap_pct > 0.5 {
+        let glow_alpha = ((cap_pct - 0.5) * 0.6 * 255.0 * pulse) as u8;
+        painter.circle_filled(
+            center,
+            inner_radius * 0.6,
+            egui::Color32::from_rgba_unmultiplied(255, 220, 80, glow_alpha),
         );
-        painter.circle_filled(center, inner_radius * 0.7, glow_color);
+    }
+}
+
+/// Draw a single capacitor cell with EVE-style appearance
+fn draw_cap_cell(
+    painter: &egui::Painter,
+    center: egui::Pos2,
+    inner_radius: f32,
+    outer_radius: f32,
+    center_angle: f32,
+    arc_width: f32,
+    fill_color: egui::Color32,
+    border_color: egui::Color32,
+    is_filled: bool,
+) {
+    let half_arc = arc_width / 2.0;
+    let start_angle = center_angle - half_arc;
+    let end_angle = center_angle + half_arc;
+
+    // Create trapezoid shape
+    let points = vec![
+        egui::pos2(
+            center.x + inner_radius * start_angle.cos(),
+            center.y + inner_radius * start_angle.sin(),
+        ),
+        egui::pos2(
+            center.x + outer_radius * start_angle.cos(),
+            center.y + outer_radius * start_angle.sin(),
+        ),
+        egui::pos2(
+            center.x + outer_radius * end_angle.cos(),
+            center.y + outer_radius * end_angle.sin(),
+        ),
+        egui::pos2(
+            center.x + inner_radius * end_angle.cos(),
+            center.y + inner_radius * end_angle.sin(),
+        ),
+    ];
+
+    // Fill
+    painter.add(egui::Shape::convex_polygon(
+        points.clone(),
+        fill_color,
+        egui::Stroke::NONE,
+    ));
+
+    // Border
+    painter.add(egui::Shape::closed_line(
+        points.clone(),
+        egui::Stroke::new(0.5, border_color),
+    ));
+
+    // Add highlight on filled cells (top edge glow)
+    if is_filled {
+        let highlight_points = vec![
+            egui::pos2(
+                center.x + (outer_radius - 1.0) * start_angle.cos(),
+                center.y + (outer_radius - 1.0) * start_angle.sin(),
+            ),
+            egui::pos2(
+                center.x + outer_radius * start_angle.cos(),
+                center.y + outer_radius * start_angle.sin(),
+            ),
+            egui::pos2(
+                center.x + outer_radius * end_angle.cos(),
+                center.y + outer_radius * end_angle.sin(),
+            ),
+            egui::pos2(
+                center.x + (outer_radius - 1.0) * end_angle.cos(),
+                center.y + (outer_radius - 1.0) * end_angle.sin(),
+            ),
+        ];
+        painter.add(egui::Shape::convex_polygon(
+            highlight_points,
+            egui::Color32::from_rgba_unmultiplied(255, 255, 200, 40),
+            egui::Stroke::NONE,
+        ));
     }
 }
 

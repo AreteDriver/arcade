@@ -27,6 +27,9 @@ impl Plugin for EffectsPlugin {
                 (
                     update_starfield,
                     update_explosions,
+                    update_shockwave_rings,
+                    update_explosion_flashes,
+                    update_explosion_embers,
                     update_screen_shake,
                     update_screen_flash,
                     update_berserk_tint,
@@ -120,6 +123,29 @@ pub struct ExplosionParticle {
     pub max_lifetime: f32,
 }
 
+/// Shockwave ring - expanding circular ring effect
+#[derive(Component)]
+pub struct ShockwaveRing {
+    pub lifetime: f32,
+    pub max_lifetime: f32,
+    pub max_radius: f32,
+}
+
+/// Explosion flash - bright center glow
+#[derive(Component)]
+pub struct ExplosionFlash {
+    pub lifetime: f32,
+    pub max_lifetime: f32,
+}
+
+/// Explosion ember - slow-moving sparks/debris
+#[derive(Component)]
+pub struct ExplosionEmber {
+    pub velocity: Vec2,
+    pub lifetime: f32,
+    pub max_lifetime: f32,
+}
+
 /// Handle explosion events with particle cap
 fn handle_explosion_events(
     mut commands: Commands,
@@ -168,18 +194,31 @@ fn spawn_explosion_capped(
 
     let mut rng = fastrand::Rng::new();
 
-    for _ in 0..count {
+    // Main explosion particles - hot colors in center, cooler at edges
+    for i in 0..count {
         let angle = rng.f32() * std::f32::consts::TAU;
         let speed_var = speed * (0.5 + rng.f32() * 0.5);
         let velocity = Vec2::new(angle.cos(), angle.sin()) * speed_var;
 
-        // Vary color slightly
-        let color_var = Color::srgba(
-            color.to_srgba().red * (0.8 + rng.f32() * 0.4),
-            color.to_srgba().green * (0.7 + rng.f32() * 0.3),
-            color.to_srgba().blue * (0.6 + rng.f32() * 0.2),
-            1.0,
-        );
+        // Color gradient: inner particles are brighter/hotter
+        let inner_factor = 1.0 - (i as f32 / count as f32);
+        let color_var = if inner_factor > 0.5 {
+            // Inner particles: white/yellow hot core
+            Color::srgba(
+                1.0,
+                0.9 + rng.f32() * 0.1,
+                0.5 + rng.f32() * 0.3,
+                1.0,
+            )
+        } else {
+            // Outer particles: orange/red
+            Color::srgba(
+                color.to_srgba().red * (0.8 + rng.f32() * 0.4),
+                color.to_srgba().green * (0.5 + rng.f32() * 0.3),
+                color.to_srgba().blue * (0.2 + rng.f32() * 0.2),
+                1.0,
+            )
+        };
 
         commands.spawn((
             ExplosionParticle {
@@ -194,6 +233,97 @@ fn spawn_explosion_capped(
             },
             Transform::from_xyz(position.x, position.y, LAYER_EFFECTS),
         ));
+    }
+
+    // Spawn shockwave ring for medium+ explosions
+    if matches!(size, ExplosionSize::Medium | ExplosionSize::Large | ExplosionSize::Massive) {
+        let ring_lifetime = match size {
+            ExplosionSize::Medium => 0.3,
+            ExplosionSize::Large => 0.4,
+            ExplosionSize::Massive => 0.5,
+            _ => 0.3,
+        };
+        let ring_radius = match size {
+            ExplosionSize::Medium => 60.0,
+            ExplosionSize::Large => 100.0,
+            ExplosionSize::Massive => 150.0,
+            _ => 60.0,
+        };
+
+        commands.spawn((
+            ShockwaveRing {
+                lifetime: ring_lifetime,
+                max_lifetime: ring_lifetime,
+                max_radius: ring_radius,
+            },
+            Sprite {
+                color: Color::srgba(1.0, 0.8, 0.4, 0.8),
+                custom_size: Some(Vec2::splat(10.0)),
+                ..default()
+            },
+            Transform::from_xyz(position.x, position.y, LAYER_EFFECTS + 0.1),
+        ));
+    }
+
+    // Spawn center flash for small+ explosions
+    if !matches!(size, ExplosionSize::Tiny) {
+        let flash_lifetime = match size {
+            ExplosionSize::Small => 0.1,
+            ExplosionSize::Medium => 0.15,
+            ExplosionSize::Large => 0.2,
+            ExplosionSize::Massive => 0.25,
+            _ => 0.1,
+        };
+        let flash_size = match size {
+            ExplosionSize::Small => 20.0,
+            ExplosionSize::Medium => 35.0,
+            ExplosionSize::Large => 50.0,
+            ExplosionSize::Massive => 80.0,
+            _ => 20.0,
+        };
+
+        commands.spawn((
+            ExplosionFlash {
+                lifetime: flash_lifetime,
+                max_lifetime: flash_lifetime,
+            },
+            Sprite {
+                color: Color::srgba(1.0, 1.0, 0.9, 1.0), // Bright white-yellow
+                custom_size: Some(Vec2::splat(flash_size)),
+                ..default()
+            },
+            Transform::from_xyz(position.x, position.y, LAYER_EFFECTS + 0.2),
+        ));
+    }
+
+    // Spawn embers/sparks for medium+ explosions
+    if matches!(size, ExplosionSize::Medium | ExplosionSize::Large | ExplosionSize::Massive) {
+        let ember_count = match size {
+            ExplosionSize::Medium => 5,
+            ExplosionSize::Large => 8,
+            ExplosionSize::Massive => 12,
+            _ => 5,
+        };
+
+        for _ in 0..ember_count {
+            let angle = rng.f32() * std::f32::consts::TAU;
+            let ember_speed = speed * 0.3 * (0.5 + rng.f32() * 0.5);
+            let velocity = Vec2::new(angle.cos(), angle.sin()) * ember_speed;
+
+            commands.spawn((
+                ExplosionEmber {
+                    velocity,
+                    lifetime: lifetime * 2.0, // Embers last longer
+                    max_lifetime: lifetime * 2.0,
+                },
+                Sprite {
+                    color: Color::srgba(1.0, 0.6 + rng.f32() * 0.3, 0.1, 1.0), // Orange-yellow sparks
+                    custom_size: Some(Vec2::splat(2.0 + rng.f32() * 2.0)),
+                    ..default()
+                },
+                Transform::from_xyz(position.x, position.y, LAYER_EFFECTS - 0.1),
+            ));
+        }
     }
 
     count
@@ -236,6 +366,104 @@ fn update_explosions(
         }
 
         if particle.lifetime <= 0.0 {
+            commands.entity(entity).despawn();
+        }
+    }
+}
+
+/// Update shockwave rings - expand and fade
+fn update_shockwave_rings(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(Entity, &mut ShockwaveRing, &mut Sprite, &mut Transform)>,
+) {
+    let dt = time.delta_secs();
+
+    for (entity, mut ring, mut sprite, mut transform) in query.iter_mut() {
+        ring.lifetime -= dt;
+
+        let progress = 1.0 - (ring.lifetime / ring.max_lifetime);
+        let current_radius = ring.max_radius * progress;
+
+        // Expand the ring
+        sprite.custom_size = Some(Vec2::splat(current_radius * 2.0));
+
+        // Make it hollow by reducing alpha and using scale
+        // Ring gets thinner as it expands
+        let alpha = (1.0 - progress) * 0.6;
+        sprite.color = sprite.color.with_alpha(alpha);
+
+        // Slight upward drift for visual interest
+        transform.translation.y += 10.0 * dt;
+
+        if ring.lifetime <= 0.0 {
+            commands.entity(entity).despawn();
+        }
+    }
+}
+
+/// Update explosion flashes - quick bright flash that fades
+fn update_explosion_flashes(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(Entity, &mut ExplosionFlash, &mut Sprite)>,
+) {
+    let dt = time.delta_secs();
+
+    for (entity, mut flash, mut sprite) in query.iter_mut() {
+        flash.lifetime -= dt;
+
+        // Quick fade out with size pulse
+        let progress = flash.lifetime / flash.max_lifetime;
+        let alpha = progress * progress; // Quadratic fade for snappy feel
+        sprite.color = sprite.color.with_alpha(alpha);
+
+        // Pulse size slightly larger then shrink
+        if let Some(size) = sprite.custom_size {
+            let scale = 1.0 + (1.0 - progress) * 0.5; // Grows slightly as it fades
+            sprite.custom_size = Some(size * (1.0 + 0.5 * dt));
+            if progress < 0.5 {
+                sprite.custom_size = Some(Vec2::splat(size.x * (0.8 + progress * 0.4)));
+            }
+            let _ = scale; // suppress warning
+        }
+
+        if flash.lifetime <= 0.0 {
+            commands.entity(entity).despawn();
+        }
+    }
+}
+
+/// Update explosion embers - slow drifting sparks
+fn update_explosion_embers(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(Entity, &mut ExplosionEmber, &mut Sprite, &mut Transform)>,
+) {
+    let dt = time.delta_secs();
+
+    for (entity, mut ember, mut sprite, mut transform) in query.iter_mut() {
+        // Move slowly
+        transform.translation.x += ember.velocity.x * dt;
+        transform.translation.y += ember.velocity.y * dt;
+
+        // Gentle gravity (embers drift down slightly)
+        ember.velocity.y -= 20.0 * dt;
+
+        // Very slow deceleration
+        ember.velocity *= 1.0 - 0.5 * dt;
+
+        // Fade out
+        ember.lifetime -= dt;
+        let alpha = (ember.lifetime / ember.max_lifetime).max(0.0);
+        sprite.color = sprite.color.with_alpha(alpha);
+
+        // Flicker effect - random brightness variation
+        let flicker = 0.7 + fastrand::f32() * 0.3;
+        let base = sprite.color.to_srgba();
+        sprite.color = Color::srgba(base.red * flicker, base.green * flicker, base.blue, alpha);
+
+        if ember.lifetime <= 0.0 {
             commands.entity(entity).despawn();
         }
     }
@@ -880,6 +1108,8 @@ pub struct EngineParticle {
     pub velocity: Vec2,
     pub lifetime: f32,
     pub max_lifetime: f32,
+    pub base_color: Color,
+    pub is_core: bool, // Core particles are brighter/smaller
 }
 
 /// Spawn engine trail particles from entities with EngineTrail
@@ -909,37 +1139,70 @@ fn spawn_engine_trails(
             );
             let spawn_pos = transform.translation.truncate() + rotated_offset;
 
-            // Random variation
-            let spread = 8.0;
-            let offset_x = (fastrand::f32() - 0.5) * spread;
-            let offset_y = (fastrand::f32() - 0.5) * spread;
+            // Exhaust direction (opposite of ship facing)
+            let exhaust_dir = Vec2::new(-rotation.sin(), -rotation.cos());
 
-            // Velocity pointing backward/down with some spread
-            let base_vel = Vec2::new(0.0, -80.0);
-            let vel_spread = Vec2::new(
-                (fastrand::f32() - 0.5) * 40.0,
-                (fastrand::f32() - 0.5) * 30.0,
+            // Spawn core particle (bright, small, short-lived)
+            let core_spread = 2.0;
+            let core_offset = Vec2::new(
+                (fastrand::f32() - 0.5) * core_spread,
+                (fastrand::f32() - 0.5) * core_spread,
             );
+            let core_vel = exhaust_dir * (60.0 + fastrand::f32() * 30.0);
+            let core_lifetime = 0.08 + fastrand::f32() * 0.06;
 
-            let lifetime = 0.15 + fastrand::f32() * 0.15;
-            let size = 3.0 + fastrand::f32() * 4.0;
-
-            // Spawn particle
             commands.spawn((
                 EngineParticle {
-                    velocity: base_vel + vel_spread,
-                    lifetime,
-                    max_lifetime: lifetime,
+                    velocity: core_vel,
+                    lifetime: core_lifetime,
+                    max_lifetime: core_lifetime,
+                    base_color: trail.color,
+                    is_core: true,
                 },
                 Sprite {
-                    color: trail.color,
-                    custom_size: Some(Vec2::splat(size)),
+                    color: Color::srgba(1.0, 1.0, 0.95, 1.0), // Hot white core
+                    custom_size: Some(Vec2::new(3.0, 5.0)), // Elongated
                     ..default()
                 },
                 Transform::from_xyz(
-                    spawn_pos.x + offset_x,
-                    spawn_pos.y + offset_y,
-                    LAYER_EFFECTS - 1.0, // Behind ships
+                    spawn_pos.x + core_offset.x,
+                    spawn_pos.y + core_offset.y,
+                    LAYER_EFFECTS - 0.5,
+                )
+                .with_rotation(Quat::from_rotation_z(rotation)),
+            ));
+
+            // Spawn outer glow particle (faction color, larger, longer-lived)
+            let glow_spread = 6.0;
+            let glow_offset = Vec2::new(
+                (fastrand::f32() - 0.5) * glow_spread,
+                (fastrand::f32() - 0.5) * glow_spread,
+            );
+            let glow_vel = exhaust_dir * (40.0 + fastrand::f32() * 40.0)
+                + Vec2::new(
+                    (fastrand::f32() - 0.5) * 20.0,
+                    (fastrand::f32() - 0.5) * 20.0,
+                );
+            let glow_lifetime = 0.15 + fastrand::f32() * 0.15;
+            let glow_size = 4.0 + fastrand::f32() * 4.0;
+
+            commands.spawn((
+                EngineParticle {
+                    velocity: glow_vel,
+                    lifetime: glow_lifetime,
+                    max_lifetime: glow_lifetime,
+                    base_color: trail.color,
+                    is_core: false,
+                },
+                Sprite {
+                    color: trail.color.with_alpha(0.7),
+                    custom_size: Some(Vec2::splat(glow_size)),
+                    ..default()
+                },
+                Transform::from_xyz(
+                    spawn_pos.x + glow_offset.x,
+                    spawn_pos.y + glow_offset.y,
+                    LAYER_EFFECTS - 1.0,
                 ),
             ));
         }
@@ -959,20 +1222,30 @@ fn update_engine_particles(
         transform.translation.x += particle.velocity.x * dt;
         transform.translation.y += particle.velocity.y * dt;
 
-        // Slow down
-        particle.velocity *= 1.0 - 5.0 * dt;
+        // Slow down (core slows faster)
+        let drag = if particle.is_core { 8.0 } else { 4.0 };
+        particle.velocity *= 1.0 - drag * dt;
 
         // Update lifetime
         particle.lifetime -= dt;
         let progress = particle.lifetime / particle.max_lifetime;
 
-        // Fade out
-        let alpha = progress * 0.9;
-        sprite.color = sprite.color.with_alpha(alpha);
+        if particle.is_core {
+            // Core: fade from white to faction color, then fade out
+            let base = particle.base_color.to_srgba();
+            let r = 1.0 * progress + base.red * (1.0 - progress);
+            let g = 1.0 * progress + base.green * (1.0 - progress);
+            let b = 0.9 * progress + base.blue * (1.0 - progress);
+            sprite.color = Color::srgba(r, g, b, progress);
+        } else {
+            // Glow: just fade out
+            sprite.color = particle.base_color.with_alpha(progress * 0.7);
+        }
 
         // Shrink
         if let Some(size) = sprite.custom_size {
-            sprite.custom_size = Some(size * (1.0 - 2.0 * dt));
+            let shrink_rate = if particle.is_core { 3.0 } else { 1.5 };
+            sprite.custom_size = Some(size * (1.0 - shrink_rate * dt));
         }
 
         if particle.lifetime <= 0.0 {

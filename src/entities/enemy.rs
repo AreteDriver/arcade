@@ -621,8 +621,8 @@ fn get_faction_weapon(type_id: u32) -> WeaponType {
 pub fn get_ship_rotation_correction(type_id: u32) -> f32 {
     use std::f32::consts::FRAC_PI_2;
     match type_id {
-        // === CALDARI === (most render sideways)
-        602 => FRAC_PI_2,   // Kestrel - faces right
+        // === CALDARI === (bundled sprites face up, need 180° base only)
+        // 602 => 0.0,        // Kestrel - faces up, no extra correction
         603 => -FRAC_PI_2,  // Merlin - faces left
         583 => -FRAC_PI_2,  // Condor - faces left
         11381 => FRAC_PI_2, // Hawk - assault frigate
