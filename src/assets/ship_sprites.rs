@@ -96,6 +96,8 @@ const SHIPS_TO_LOAD: &[u32] = &[
     23911, // Thanatos (Gallente carrier)
     23915, // Chimera (Caldari carrier)
     24483, // Nidhoggur (Minmatar carrier)
+    // === TITANS ===
+    3764, // Caldari capital (Last Stand titan)
 ];
 
 /// Setup the sprite cache directory (native only)

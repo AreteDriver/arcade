@@ -716,6 +716,7 @@ fn spawn_nightmare_enemies(
     mut commands: Commands,
     nightmare: Res<ShiigeruNightmare>,
     session: Res<GameSession>,
+    sprite_cache: Res<crate::assets::ShipSpriteCache>,
     spawn_requests: Query<(Entity, &NightmareSpawnRequest)>,
 ) {
     use crate::entities::enemy::{spawn_enemy, EnemyBehavior};
@@ -744,6 +745,7 @@ fn spawn_nightmare_enemies(
 
                     // Random enemy type and behavior
                     let type_id = enemy_types[fastrand::usize(..enemy_types.len())];
+                    let sprite = sprite_cache.get(type_id);
                     let behavior = match fastrand::u32(0..4) {
                         0 => EnemyBehavior::Linear,
                         1 => EnemyBehavior::Zigzag,
@@ -756,7 +758,7 @@ fn spawn_nightmare_enemies(
                         type_id,
                         Vec2::new(x, y),
                         behavior,
-                        None,
+                        sprite,
                         None,
                     );
                 }
@@ -764,13 +766,14 @@ fn spawn_nightmare_enemies(
             NightmareSpawnRequest::Boss(boss_type) => {
                 // Spawn mini-boss at top center
                 let type_id = enemy_types[0]; // Use first type as "elite"
+                let sprite = sprite_cache.get(type_id);
 
                 spawn_enemy(
                     &mut commands,
                     type_id,
                     Vec2::new(0.0, 320.0),
                     EnemyBehavior::Homing, // Bosses track player
-                    None,
+                    sprite,
                     None,
                 );
 
@@ -1008,6 +1011,7 @@ fn spawn_cg_wave(
     mut cg_campaign: ResMut<CGCampaignState>,
     session: Res<GameSession>,
     difficulty: Res<crate::core::Difficulty>,
+    sprite_cache: Res<crate::assets::ShipSpriteCache>,
     enemy_query: Query<Entity, With<crate::entities::Enemy>>,
     boss_query: Query<Entity, With<CGBoss>>,
     mut next_state: ResMut<NextState<GameState>>,
@@ -1053,6 +1057,7 @@ fn spawn_cg_wave(
 
     for i in 0..count {
         let type_id = enemy_types[fastrand::usize(..enemy_types.len())];
+        let sprite = sprite_cache.get(type_id);
         let x = (i as f32 - count as f32 / 2.0) * 80.0;
         let y = 300.0 + 50.0 + (i as f32 * 20.0);
 
@@ -1068,7 +1073,7 @@ fn spawn_cg_wave(
             type_id,
             Vec2::new(x, y),
             behavior,
-            None,
+            sprite,
             None,
         );
     }
@@ -2497,7 +2502,11 @@ enum LastStandHudElement {
 }
 
 /// Spawn the Last Stand mode (titan + HUD)
-fn spawn_last_stand(mut commands: Commands, last_stand: Res<LastStandState>) {
+fn spawn_last_stand(
+    mut commands: Commands,
+    last_stand: Res<LastStandState>,
+    sprite_cache: Res<crate::assets::ShipSpriteCache>,
+) {
     if !last_stand.active {
         return;
     }
@@ -2505,15 +2514,37 @@ fn spawn_last_stand(mut commands: Commands, last_stand: Res<LastStandState>) {
     info!("Spawning THE LAST STAND - CNS Kairiola titan defense");
 
     // Spawn the titan at bottom center (fixed position)
-    commands.spawn((
+    // Type 3764 is Leviathan (Caldari titan)
+    let titan_type_id = 3764u32;
+    let sprite = sprite_cache.get(titan_type_id);
+
+    // Titan size: ~18km long in EVE, frigates ~100m
+    // So titan is ~180x frigate size, but we compress for gameplay
+    // Frigates render at ~50px, titan at ~820px (~16x) for visual impact
+    let titan_size = 820.0;
+
+    let mut titan = commands.spawn((
         LastStandTitan,
-        Sprite {
-            color: Color::srgb(0.3, 0.5, 0.8),          // Caldari blue
-            custom_size: Some(Vec2::new(200.0, 120.0)), // Large titan shape
-            ..default()
-        },
-        Transform::from_xyz(0.0, -250.0, 5.0),
+        Transform::from_xyz(0.0, -350.0, 5.0), // No rotation needed - sprite faces up toward enemies
     ));
+
+    // Sprite is 107x692 (aspect ratio ~0.15), scale proportionally
+    let titan_width = titan_size * 0.15;
+
+    if let Some(texture) = sprite {
+        titan.insert(Sprite {
+            image: texture,
+            custom_size: Some(Vec2::new(titan_width, titan_size)),
+            ..default()
+        });
+    } else {
+        // Fallback to colored rectangle
+        titan.insert(Sprite {
+            color: Color::srgb(0.3, 0.5, 0.8), // Caldari blue
+            custom_size: Some(Vec2::new(titan_width, titan_size)),
+            ..default()
+        });
+    }
 
     // Spawn the HUD
     commands
@@ -2944,6 +2975,7 @@ fn spawn_last_stand_enemies(
     last_stand: Res<LastStandState>,
     mut commands: Commands,
     enemy_query: Query<Entity, With<crate::entities::Enemy>>,
+    sprite_cache: Res<crate::assets::ShipSpriteCache>,
     mut spawn_timer: Local<f32>,
 ) {
     if !last_stand.active || last_stand.in_descent {
@@ -2975,13 +3007,14 @@ fn spawn_last_stand_enemies(
         let x = (fastrand::f32() - 0.5) * 600.0;
         let y = 350.0;
         let type_id = [608, 594, 593][fastrand::usize(0..3)]; // Gallente frigates
+        let sprite = sprite_cache.get(type_id);
 
         spawn_enemy(
             &mut commands,
             type_id,
             Vec2::new(x, y),
             EnemyBehavior::Linear, // Simple downward movement
-            None,
+            sprite,
             None,
         );
     }
