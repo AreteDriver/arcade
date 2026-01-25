@@ -10,6 +10,10 @@
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 
+// WASM: Enable better panic messages in browser console
+#[cfg(target_arch = "wasm32")]
+use console_error_panic_hook;
+
 mod assets;
 mod core;
 mod entities;
@@ -30,6 +34,10 @@ use systems::SystemsPlugin;
 use ui::UiPlugin;
 
 fn main() {
+    // WASM: Set up panic hook for better error messages
+    #[cfg(target_arch = "wasm32")]
+    console_error_panic_hook::set_once();
+
     App::new()
         // Bevy plugins
         .add_plugins(DefaultPlugins.set(WindowPlugin {
