@@ -44,10 +44,7 @@ bevy = { version = "0.15", default-features = false, features = [
     "bevy_audio",
     "bevy_color",
     "bevy_core_pipeline",
-    "bevy_gizmos",
     "bevy_gltf",
-    "bevy_pbr",
-    "bevy_picking",
     "bevy_render",
     "bevy_scene",
     "bevy_sprite",
@@ -58,7 +55,6 @@ bevy = { version = "0.15", default-features = false, features = [
     "default_font",
     "multi_threaded",
     "png",
-    "vorbis",
     "wav",
     "x11",
     "wayland",
@@ -71,10 +67,7 @@ bevy = { version = "0.15", default-features = false, features = [
     "bevy_audio",
     "bevy_color",
     "bevy_core_pipeline",
-    "bevy_gizmos",
     "bevy_gltf",
-    "bevy_pbr",
-    "bevy_picking",
     "bevy_render",
     "bevy_scene",
     "bevy_sprite",
@@ -85,7 +78,6 @@ bevy = { version = "0.15", default-features = false, features = [
     "default_font",
     "multi_threaded",
     "png",
-    "vorbis",
     "wav",
 ] }
 
@@ -96,10 +88,7 @@ bevy = { version = "0.15", default-features = false, features = [
     "bevy_audio",
     "bevy_color",
     "bevy_core_pipeline",
-    "bevy_gizmos",
     "bevy_gltf",
-    "bevy_pbr",
-    "bevy_picking",
     "bevy_render",
     "bevy_scene",
     "bevy_sprite",
@@ -110,25 +99,18 @@ bevy = { version = "0.15", default-features = false, features = [
     "default_font",
     "multi_threaded",
     "png",
-    "vorbis",
     "wav",
 ] }
 
-# Game Engine - WASM (no multi-threading, no vorbis/wav codecs)
+# Game Engine - WASM (no multi-threading, no audio codecs)
 [target.'cfg(target_arch = "wasm32")'.dependencies.bevy]
 version = "0.15"
 default-features = false
 features = [
     "bevy_asset",
-    "bevy_audio",
     "bevy_color",
     "bevy_core_pipeline",
-    "bevy_gizmos",
-    "bevy_gltf",
-    "bevy_pbr",
-    "bevy_picking",
     "bevy_render",
-    "bevy_scene",
     "bevy_sprite",
     "bevy_state",
     "bevy_text",
@@ -149,11 +131,15 @@ opt-level = 1
 opt-level = 3
 
 [profile.release]
+opt-level = 3
 lto = "thin"
 codegen-units = 1
+strip = "symbols"
+panic = "abort"
 
 # WASM release profile - optimize for size
 [profile.wasm-release]
 inherits = "release"
 opt-level = "s"
 lto = true
+strip = "symbols"
