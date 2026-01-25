@@ -7,13 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.0] - 2025-01-25
+
 ### Added
+- Visual polish: enhanced explosions with shockwave rings, center flash, ember particles
+- Visual polish: engine trails with dual-layer system (hot white core + faction color glow)
+- Visual polish: parallax starfield background during gameplay
+- Audio polish: dynamic pitch/volume variation for weapons, explosions, damage sounds
+- Gameplay polish: extended chain timeout (2.0s → 2.5s)
+- Gameplay polish: faster shield recharge (5 → 8/sec)
+- Gameplay polish: berserk meter decay grace period (1.5s)
 - The Last Stand mode (fixed-platform titan defense)
 - Ship ability system with cooldowns
 - Drone entities and heat display
 - Faction-aware dialogue system
 
+### Changed
+- Capacitor wheel moved to bottom-right corner, EVE-style yellow dashes
+- Binary size reduced 29% (75MB → 53MB) via profile optimizations
+
 ### Fixed
+- Ship sprites display correctly with faction color tints
+- Kestrel sprite rotation in Gallente chapter
+- Remove dead code and compiler warnings
 - Cargo fmt and clippy dead_code warning
 - Prevent regular player/HUD spawn during Last Stand mode
 
