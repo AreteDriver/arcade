@@ -51,7 +51,7 @@ pub const PLAYER_DEFAULT_ARMOR: f32 = 100.0;
 pub const PLAYER_DEFAULT_HULL: f32 = 100.0;
 
 /// Shield recharge rate (per second, after delay)
-pub const PLAYER_SHIELD_RECHARGE_RATE: f32 = 5.0;
+pub const PLAYER_SHIELD_RECHARGE_RATE: f32 = 8.0;
 
 /// Delay before shields start recharging (seconds)
 pub const PLAYER_SHIELD_RECHARGE_DELAY: f32 = 3.0;
@@ -87,7 +87,7 @@ pub const ENEMY_BULLET_SPEED: f32 = 300.0;
 pub const POINTS_PER_KILL: u64 = 100;
 
 /// Chain timeout (seconds to maintain combo)
-pub const CHAIN_TIMEOUT: f32 = 2.0;
+pub const CHAIN_TIMEOUT: f32 = 2.5;
 
 /// Multiplier increase per kill
 pub const MULTIPLIER_PER_KILL: f32 = 0.1;

@@ -34,7 +34,7 @@ impl Default for ScoreSystem {
             multiplier: 1.0,
             chain: 0,
             chain_timer: 0.0,
-            max_chain_time: 2.0,
+            max_chain_time: crate::core::constants::CHAIN_TIMEOUT,
             style_points: 0,
             no_damage_bonus: true,
             souls_liberated: 0,
@@ -146,6 +146,10 @@ pub struct BerserkSystem {
     pub proximity_range: f32,
     /// Meter decay rate when not killing (per second)
     pub decay_rate: f32,
+    /// Grace period before decay starts (seconds since last kill)
+    pub decay_grace: f32,
+    /// Time since last kill (for grace period tracking)
+    pub time_since_kill: f32,
     /// Whether berserk mode is active
     pub is_active: bool,
     /// Remaining berserk duration
@@ -165,6 +169,8 @@ impl Default for BerserkSystem {
             meter_per_kill: 15.0,   // ~7 close kills to fill
             proximity_range: 120.0, // Slightly more forgiving range
             decay_rate: 5.0,        // Slow decay when not killing
+            decay_grace: 1.5,       // 1.5s grace before decay starts
+            time_since_kill: 0.0,
             is_active: false,
             timer: 0.0,
             duration: 8.0,         // 8 seconds when activated
@@ -181,6 +187,9 @@ impl BerserkSystem {
         if self.is_active {
             return 0.0; // Already active, no meter gain
         }
+
+        // Reset decay grace timer on kill
+        self.time_since_kill = 0.0;
 
         // Calculate meter gain based on proximity (closer = more)
         let proximity_bonus = if distance <= self.proximity_range {
@@ -232,8 +241,11 @@ impl BerserkSystem {
                 self.is_active = false;
             }
         } else {
-            // Decay meter slowly when not killing
-            if self.meter > 0.0 {
+            // Track time since last kill
+            self.time_since_kill += dt;
+
+            // Decay meter slowly when not killing (after grace period)
+            if self.meter > 0.0 && self.time_since_kill > self.decay_grace {
                 self.meter = (self.meter - self.decay_rate * dt).max(0.0);
             }
         }
@@ -292,6 +304,7 @@ impl BerserkSystem {
         self.is_active = false;
         self.timer = 0.0;
         self.activation_flash = 0.0;
+        self.time_since_kill = 0.0;
     }
 }
 
@@ -790,7 +803,7 @@ mod tests {
         let mut s = ScoreSystem::default();
         s.on_kill(100);
         assert_eq!(s.chain, 1);
-        assert_eq!(s.chain_timer, 2.0);
+        assert_eq!(s.chain_timer, 2.5); // CHAIN_TIMEOUT
         assert_eq!(s.multiplier, 1.1); // 1.0 + 1 * 0.1
     }
 
@@ -811,8 +824,8 @@ mod tests {
         s.on_kill(100);
         assert_eq!(s.chain, 1);
 
-        // Simulate time passing
-        s.update(2.1);
+        // Simulate time passing (past CHAIN_TIMEOUT of 2.5s)
+        s.update(2.6);
         assert_eq!(s.chain, 0);
         assert_eq!(s.multiplier, 1.0);
     }
@@ -960,6 +973,7 @@ mod tests {
     fn berserk_meter_decays_when_not_killing() {
         let mut b = BerserkSystem::default();
         b.meter = 50.0;
+        b.time_since_kill = 2.0; // Past grace period (1.5s)
 
         b.update(2.0); // 2 seconds at 5.0/s decay = -10
         assert!((b.meter - 40.0).abs() < 0.1);
