@@ -21,6 +21,7 @@ impl Plugin for EffectsPlugin {
         app.init_resource::<ScreenShake>()
             .init_resource::<ScreenFlash>()
             .init_resource::<CameraZoom>()
+            .init_resource::<HitStop>()
             .add_systems(OnEnter(GameState::Playing), spawn_starfield)
             // Split into multiple system groups due to Bevy tuple limits
             .add_systems(
@@ -35,6 +36,7 @@ impl Plugin for EffectsPlugin {
                     update_screen_flash,
                     update_berserk_tint,
                     update_low_health_vignette,
+                    update_hit_stop,
                     update_camera_zoom,
                     handle_explosion_events,
                 )
@@ -566,6 +568,80 @@ impl ScreenShake {
     pub fn massive(&mut self) {
         self.trigger(25.0, 0.5);
     }
+}
+
+// =============================================================================
+// HIT STOP (FREEZE FRAME)
+// Brief pause for dramatic impact on heavy hits
+// =============================================================================
+
+/// Hit stop (freeze frame) resource for dramatic pauses
+#[derive(Resource, Default)]
+pub struct HitStop {
+    /// Remaining freeze time
+    pub timer: f32,
+    /// Time scale during hit stop (0 = full freeze)
+    pub time_scale: f32,
+}
+
+impl HitStop {
+    /// Trigger a hit stop
+    pub fn trigger(&mut self, duration: f32) {
+        self.timer = duration.max(self.timer); // Don't override longer stops
+        self.time_scale = 0.05; // Near-freeze
+    }
+
+    /// Small hit stop (minor impact)
+    pub fn small(&mut self) {
+        self.trigger(0.03);
+    }
+
+    /// Medium hit stop (significant hit)
+    pub fn medium(&mut self) {
+        self.trigger(0.06);
+    }
+
+    /// Large hit stop (boss phase, heavy damage)
+    pub fn large(&mut self) {
+        self.trigger(0.1);
+    }
+
+    /// Massive hit stop (boss defeat, player death)
+    pub fn massive(&mut self) {
+        self.trigger(0.15);
+    }
+
+    /// Check if hit stop is active
+    pub fn is_active(&self) -> bool {
+        self.timer > 0.0
+    }
+
+    /// Get current time multiplier (for game systems to use)
+    pub fn time_mult(&self) -> f32 {
+        if self.timer > 0.0 {
+            self.time_scale
+        } else {
+            1.0
+        }
+    }
+
+    /// Update hit stop timer
+    pub fn update(&mut self, dt: f32) {
+        if self.timer > 0.0 {
+            // Use real time, not game time (so freeze actually works)
+            self.timer -= dt;
+            if self.timer <= 0.0 {
+                self.timer = 0.0;
+                self.time_scale = 1.0;
+            }
+        }
+    }
+}
+
+/// Update hit stop effect
+fn update_hit_stop(time: Res<Time>, mut hit_stop: ResMut<HitStop>) {
+    // Use delta_secs which is already real time
+    hit_stop.update(time.delta_secs());
 }
 
 /// Handle screen shake events
