@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.0] - 2025-01-26
+
 ### Added
 - Visual effects: Powerup rarity system with orbital particles and glow scaling (Common/Uncommon/Rare/Epic)
 - Visual effects: Layer-specific damage feedback (shield ripples, armor sparks, hull fire)
