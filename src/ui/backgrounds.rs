@@ -233,9 +233,16 @@ pub struct BackgroundShip {
     pub engine_phase: f32,
 }
 
+/// Engine glow child sprite
+#[derive(Component)]
+pub struct BackgroundShipEngine;
+
+/// Ship hull child sprite
+#[derive(Component)]
+pub struct BackgroundShipHull;
+
 /// Silhouette points for different ship classes (normalized 0-1 range)
 /// These are side profiles for better visual distinction from gameplay ships
-/// TODO: Use with bevy_prototype_lyon or similar for polygon rendering
 #[allow(dead_code)]
 fn get_silhouette_points(class: BackgroundShipClass, faction: BackgroundShipFaction) -> Vec<Vec2> {
     let base = match (class, faction) {
@@ -561,30 +568,148 @@ fn spawn_background_ship(commands: &mut Commands, window: &Window) {
         engine_phase: rng.gen_range(0.0..TAU),
     };
 
-    // Create silhouette mesh
-    let hull_color = faction.hull_color();
-    let color_with_alpha = Color::srgba(
-        hull_color.to_srgba().red,
-        hull_color.to_srgba().green,
-        hull_color.to_srgba().blue,
-        alpha,
-    );
-
-    // For simplicity, spawn as a simple rectangle (Bevy doesn't have easy polygon sprites)
-    // The size represents the ship's profile
+    // Ship dimensions
     let ship_width = size;
-    let ship_height = size * 0.4;
+    let ship_height = size * 0.35;
 
-    commands.spawn((
-        ship,
-        Starfield, // Use same marker for cleanup
-        Sprite {
-            color: color_with_alpha,
-            custom_size: Some(Vec2::new(ship_width, ship_height)),
-            ..default()
-        },
-        Transform::from_xyz(x, y, -98.0), // Behind stars, in front of nebula
-    ));
+    // Create hull color with transparency
+    let hull_color = faction.hull_color();
+    let hull_rgba = hull_color.to_srgba();
+    let color_with_alpha = Color::srgba(hull_rgba.red, hull_rgba.green, hull_rgba.blue, alpha);
+
+    // Engine glow color
+    let engine_color = faction.engine_color();
+    let engine_rgba = engine_color.to_srgba();
+    let engine_glow = Color::srgba(engine_rgba.red, engine_rgba.green, engine_rgba.blue, alpha * 0.8);
+
+    // Direction multiplier for nose/engine position
+    let dir = if faction.flies_right() { 1.0 } else { -1.0 };
+
+    // Spawn ship as parent with children for detailed silhouette
+    commands
+        .spawn((
+            ship,
+            Starfield, // Use same marker for cleanup
+            Transform::from_xyz(x, y, -98.0),
+            Visibility::default(),
+        ))
+        .with_children(|parent| {
+            // Main hull body (center mass)
+            parent.spawn((
+                BackgroundShipHull,
+                Sprite {
+                    color: color_with_alpha,
+                    custom_size: Some(Vec2::new(ship_width * 0.65, ship_height)),
+                    ..default()
+                },
+                Transform::from_xyz(0.0, 0.0, 0.0),
+            ));
+
+            // Nose section (pointed front)
+            let nose_width = match ship_class {
+                BackgroundShipClass::Frigate => ship_width * 0.35,
+                BackgroundShipClass::Cruiser => ship_width * 0.38,
+                BackgroundShipClass::Battleship => ship_width * 0.4,
+            };
+            let nose_height = match ship_class {
+                BackgroundShipClass::Frigate => ship_height * 0.6,
+                BackgroundShipClass::Cruiser => ship_height * 0.7,
+                BackgroundShipClass::Battleship => ship_height * 0.65,
+            };
+
+            parent.spawn((
+                Sprite {
+                    color: color_with_alpha,
+                    custom_size: Some(Vec2::new(nose_width, nose_height)),
+                    ..default()
+                },
+                Transform::from_xyz(ship_width * 0.4 * dir, 0.0, 0.01)
+                    .with_rotation(Quat::from_rotation_z(std::f32::consts::FRAC_PI_4 * dir)),
+            ));
+
+            // Engine block (rear section)
+            let engine_width = ship_width * 0.2;
+            let engine_height = ship_height * 0.8;
+
+            parent.spawn((
+                Sprite {
+                    color: color_with_alpha,
+                    custom_size: Some(Vec2::new(engine_width, engine_height)),
+                    ..default()
+                },
+                Transform::from_xyz(-ship_width * 0.38 * dir, 0.0, 0.01),
+            ));
+
+            // Engine glow (bright spot at rear)
+            parent.spawn((
+                BackgroundShipEngine,
+                Sprite {
+                    color: engine_glow,
+                    custom_size: Some(Vec2::new(engine_width * 0.6, engine_height * 0.5)),
+                    ..default()
+                },
+                Transform::from_xyz(-ship_width * 0.48 * dir, 0.0, 0.02),
+            ));
+
+            // Add wing/fin for cruisers and battleships
+            if matches!(ship_class, BackgroundShipClass::Cruiser | BackgroundShipClass::Battleship) {
+                let fin_width = ship_width * 0.15;
+                let fin_height = ship_height * 1.3;
+
+                // Upper fin
+                parent.spawn((
+                    Sprite {
+                        color: color_with_alpha.with_alpha(alpha * 0.8),
+                        custom_size: Some(Vec2::new(fin_width, fin_height * 0.4)),
+                        ..default()
+                    },
+                    Transform::from_xyz(-ship_width * 0.1 * dir, ship_height * 0.5, 0.0),
+                ));
+
+                // Lower fin
+                parent.spawn((
+                    Sprite {
+                        color: color_with_alpha.with_alpha(alpha * 0.8),
+                        custom_size: Some(Vec2::new(fin_width, fin_height * 0.4)),
+                        ..default()
+                    },
+                    Transform::from_xyz(-ship_width * 0.1 * dir, -ship_height * 0.5, 0.0),
+                ));
+            }
+
+            // Add extra detail for battleships
+            if matches!(ship_class, BackgroundShipClass::Battleship) {
+                // Bridge/superstructure
+                parent.spawn((
+                    Sprite {
+                        color: color_with_alpha.with_alpha(alpha * 0.9),
+                        custom_size: Some(Vec2::new(ship_width * 0.12, ship_height * 0.3)),
+                        ..default()
+                    },
+                    Transform::from_xyz(ship_width * 0.1 * dir, ship_height * 0.35, 0.01),
+                ));
+
+                // Secondary engine glow
+                parent.spawn((
+                    BackgroundShipEngine,
+                    Sprite {
+                        color: engine_glow.with_alpha(alpha * 0.5),
+                        custom_size: Some(Vec2::new(engine_width * 0.4, engine_height * 0.3)),
+                        ..default()
+                    },
+                    Transform::from_xyz(-ship_width * 0.48 * dir, ship_height * 0.25, 0.02),
+                ));
+                parent.spawn((
+                    BackgroundShipEngine,
+                    Sprite {
+                        color: engine_glow.with_alpha(alpha * 0.5),
+                        custom_size: Some(Vec2::new(engine_width * 0.4, engine_height * 0.3)),
+                        ..default()
+                    },
+                    Transform::from_xyz(-ship_width * 0.48 * dir, -ship_height * 0.25, 0.02),
+                ));
+            }
+        });
 }
 
 /// Update background ship spawn timer and spawn new ships
@@ -615,7 +740,8 @@ fn update_background_ship_spawning(
 /// Update background ship positions and despawn off-screen ships
 fn update_background_ships(
     mut commands: Commands,
-    mut ships: Query<(Entity, &mut Transform, &mut Sprite, &mut BackgroundShip)>,
+    mut ships: Query<(Entity, &mut Transform, &mut BackgroundShip), Without<BackgroundShipEngine>>,
+    mut engines: Query<(&Parent, &mut Sprite), With<BackgroundShipEngine>>,
     time: Res<Time>,
     windows: Query<&Window>,
 ) {
@@ -627,7 +753,7 @@ fn update_background_ships(
     let half_width = window.width() / 2.0;
     let half_height = window.height() / 2.0;
 
-    for (entity, mut transform, mut sprite, mut ship) in ships.iter_mut() {
+    for (entity, mut transform, mut ship) in ships.iter_mut() {
         // Update position
         transform.translation.x += ship.velocity.x * dt;
         transform.translation.y += ship.velocity.y * dt;
@@ -638,17 +764,10 @@ fn update_background_ships(
             ship.engine_phase -= TAU;
         }
 
-        // Subtle alpha pulsing for engine glow effect
-        let engine_intensity = 0.9 + 0.1 * ship.engine_phase.sin();
-        let base_color = ship.faction.hull_color().to_srgba();
-        sprite.color = Color::srgba(
-            base_color.red,
-            base_color.green,
-            base_color.blue,
-            ship.alpha * engine_intensity,
-        );
+        // Engine glow pulsing factor - store for child engine sprites
+        let _engine_intensity = 0.7 + 0.3 * ship.engine_phase.sin();
 
-        // Check if off-screen (despawn)
+        // Check if off-screen (despawn with children)
         let margin = ship.size + 50.0;
         let x = transform.translation.x;
         let y = transform.translation.y;
@@ -658,7 +777,22 @@ fn update_background_ships(
             || y < -half_height - margin
             || y > half_height + margin
         {
-            commands.entity(entity).despawn();
+            commands.entity(entity).despawn_recursive();
+        }
+    }
+
+    // Update engine glow sprites
+    for (parent, mut sprite) in engines.iter_mut() {
+        // Get the parent ship's engine phase
+        if let Ok((_, _, ship)) = ships.get(parent.get()) {
+            let intensity = 0.7 + 0.3 * ship.engine_phase.sin();
+            let current = sprite.color.to_srgba();
+            sprite.color = Color::srgba(
+                current.red,
+                current.green,
+                current.blue,
+                current.alpha.min(0.8) * intensity,
+            );
         }
     }
 }

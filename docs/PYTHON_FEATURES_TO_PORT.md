@@ -118,7 +118,7 @@ When active buff has <2 seconds remaining:
 
 ## Low Priority - Controller
 
-### 7. Steam Deck Controller Presets
+### 7. Steam Deck Controller Presets ✅ DONE
 **Python Location**: `controller_input.py`
 
 Auto-detection of Steam Deck with tuned settings:
@@ -126,7 +126,12 @@ Auto-detection of Steam Deck with tuned settings:
 - Adjusted deadzones for Steam Deck sticks
 - Quick-toggle for pause using Steam button
 
-**Port to Rust**: Bevy already has gamepad support; add Steam Deck profile detection.
+**Ported to Rust**: Added to `systems/joystick.rs`
+- `ControllerProfile` resource with per-controller tuning
+- Auto-detection via ioctl JSIOCGNAME (Steam Deck, Xbox, PlayStation)
+- Steam Deck profile: tighter deadzones (0.12/0.15), responsive triggers
+- `BackButtonConfig` with L4/L5/R4/R5 action mappings
+- `BackButtonEvent` for game systems to handle back button presses
 
 ---
 
