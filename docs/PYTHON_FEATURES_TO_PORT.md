@@ -145,7 +145,12 @@ These Python features already exist or are better in Rust:
 ## Implementation Order
 
 1. ~~**Background ship traffic**~~ ✅ DONE - Added to `ui/backgrounds.rs`
-2. **Rarity system** - Improves powerup feel significantly
+2. ~~**Rarity system**~~ ✅ DONE - Added to `entities/collectible.rs`
+   - Common/Uncommon/Rare/Epic tiers
+   - Size and glow scaling by rarity
+   - Pulse animation speed varies by tier
+   - Orbital particles for rare/epic items
+   - Rotation effect for rare/epic
 3. **Damage visuals** - Makes combat more satisfying
 4. **Pickup effects** - Polish for powerup collection
 5. **Buff warnings** - QoL improvement
