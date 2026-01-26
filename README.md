@@ -41,6 +41,11 @@ Defend New Eden from the Triglavian invasion, or embrace the Flow and fight for 
 - **Endless Mode** — High-score survival with escalating difficulty
 - **Authentic EVE Visuals** — Ships with faction color tints and parallax starfield
 - **Procedural Audio** — Dynamic soundtrack and sound effects generated at runtime
+- **Layer-Based Damage** — Shield ripples, armor sparks, hull fire with screen shake
+- **Powerup Rarity System** — Common to Epic tiers with orbital particles and glow effects
+- **Active Buff Visuals** — Shield bubbles, speed lines, damage auras while buffs active
+- **Low Health Warning** — Pulsing red vignette when health is critical
+- **Steam Deck Support** — Auto-detected profiles with tuned deadzones and back button mapping
 
 ## Controls
 
@@ -51,12 +56,19 @@ Defend New Eden from the Triglavian invasion, or embrace the Flow and fight for 
 - **E** - Activate Ship Ability
 - **Shift** - Barrel Roll (i-frames)
 
-### Controller (Xbox/PlayStation)
+### Controller (Xbox/PlayStation/Steam Deck)
 - **Left Stick** - Move
-- **Right Trigger** - Fire
+- **Right Stick** - Aim and Fire (twin-stick mode)
+- **Right Trigger** - Activate Ship Ability
 - **Y / Triangle** - Activate Berserk Mode
-- **Right Bumper** - Activate Ship Ability
-- **A / X** - Barrel Roll
+- **Right Bumper** - Barrel Roll
+- **A / X** - Context Action
+
+#### Steam Deck Back Buttons
+- **L4** - Previous Ammo Type
+- **L5** - Speed Boost
+- **R4** - Next Ammo Type
+- **R5** - Quick Rocket
 
 ## Building
 

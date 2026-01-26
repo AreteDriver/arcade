@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Visual effects: Powerup rarity system with orbital particles and glow scaling (Common/Uncommon/Rare/Epic)
+- Visual effects: Layer-specific damage feedback (shield ripples, armor sparks, hull fire)
+- Visual effects: Multi-phase pickup effects (flash, shockwave, particle burst)
+- Visual effects: Buff expiration warnings (HUD pulsing, countdown text, screen edge glow)
+- Visual effects: Active buff visuals (invuln shield bubble, overdrive speed lines, damage aura)
+- Visual effects: Low health vignette warning (pulsing red border below 30% HP)
+- Visual effects: Background ship traffic (multi-sprite silhouettes with engine glow)
+- Controller: Steam Deck auto-detection with tuned deadzones (0.12/0.15)
+- Controller: Back button mapping (L4/L5/R4/R5) for ammo cycling, boost, rockets
+- Controller: Per-controller profiles (Steam Deck, Xbox, PlayStation)
+
+### Changed
+- Performance: Added particle caps for all effect systems to prevent lag
+- Background ships now use detailed multi-sprite silhouettes instead of rectangles
+
 ## [1.8.0] - 2025-01-25
 
 ### Added

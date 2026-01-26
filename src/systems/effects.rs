@@ -34,6 +34,7 @@ impl Plugin for EffectsPlugin {
                     update_screen_shake,
                     update_screen_flash,
                     update_berserk_tint,
+                    update_low_health_vignette,
                     update_camera_zoom,
                     handle_explosion_events,
                 )
@@ -895,6 +896,73 @@ fn update_berserk_tint(
 }
 
 // =============================================================================
+// LOW HEALTH WARNING VIGNETTE
+// =============================================================================
+
+/// Marker component for low health vignette overlay
+#[derive(Component)]
+pub struct LowHealthVignette;
+
+/// Low health warning vignette - pulsing red edges when health is critical
+fn update_low_health_vignette(
+    mut commands: Commands,
+    time: Res<Time>,
+    player_query: Query<&ShipStats, With<Player>>,
+    mut vignette_query: Query<(Entity, &mut Sprite), With<LowHealthVignette>>,
+) {
+    let Ok(stats) = player_query.get_single() else {
+        // Remove vignette if no player
+        for (entity, _) in vignette_query.iter() {
+            commands.entity(entity).despawn();
+        }
+        return;
+    };
+
+    // Calculate health percentage (all layers combined)
+    let total_max = stats.max_shield + stats.max_armor + stats.max_hull;
+    let total_current = stats.shield + stats.armor + stats.hull;
+    let health_pct = total_current / total_max;
+
+    // Show vignette below 30% health, intensity increases as health drops
+    const VIGNETTE_THRESHOLD: f32 = 0.30;
+
+    if health_pct < VIGNETTE_THRESHOLD {
+        let elapsed = time.elapsed_secs();
+
+        // Urgency increases as health drops (0 = threshold, 1 = near death)
+        let urgency = 1.0 - (health_pct / VIGNETTE_THRESHOLD);
+
+        // Pulse speed increases with urgency (2-6 Hz)
+        let pulse_speed = 2.0 + urgency * 4.0;
+        let pulse = (elapsed * pulse_speed * std::f32::consts::TAU).sin() * 0.5 + 0.5;
+
+        // Alpha based on urgency and pulse
+        let base_alpha = 0.1 + urgency * 0.25;
+        let alpha = base_alpha + pulse * urgency * 0.15;
+
+        if let Ok((_, mut sprite)) = vignette_query.get_single_mut() {
+            sprite.color = Color::srgba(0.8, 0.0, 0.0, alpha);
+        } else {
+            // Spawn vignette overlay
+            commands.spawn((
+                LowHealthVignette,
+                Sprite {
+                    color: Color::srgba(0.8, 0.0, 0.0, alpha),
+                    custom_size: Some(Vec2::new(SCREEN_WIDTH + 100.0, SCREEN_HEIGHT + 100.0)),
+                    ..default()
+                },
+                Transform::from_xyz(0.0, 0.0, LAYER_HUD + 4.0), // Below berserk tint
+            ));
+        }
+    } else {
+        // Remove vignette when health is OK
+        for (entity, _) in vignette_query.iter() {
+            commands.entity(entity).despawn();
+        }
+    }
+}
+
+// =============================================================================
 // CAMERA ZOOM PULSE
 // =============================================================================
 
@@ -1691,6 +1759,7 @@ fn cleanup_effects_2(
     pickup_flashes: Query<Entity, With<PickupFlash>>,
     pickup_shockwaves: Query<Entity, With<PickupShockwave>>,
     pickup_particles: Query<Entity, With<PickupParticle>>,
+    low_health_vignettes: Query<Entity, With<LowHealthVignette>>,
 ) {
     for entity in shield_ripples.iter() {
         commands.entity(entity).despawn();
@@ -1708,6 +1777,9 @@ fn cleanup_effects_2(
         commands.entity(entity).despawn();
     }
     for entity in pickup_particles.iter() {
+        commands.entity(entity).despawn();
+    }
+    for entity in low_health_vignettes.iter() {
         commands.entity(entity).despawn();
     }
 }
@@ -1736,6 +1808,12 @@ fn cleanup_buff_visuals(
 
 /// Maximum damage layer particles
 const MAX_DAMAGE_LAYER_PARTICLES: usize = 100;
+
+/// Maximum shield ripple effects at once
+const MAX_SHIELD_RIPPLES: usize = 15;
+
+/// Maximum pickup effect particles at once
+const MAX_PICKUP_PARTICLES: usize = 100;
 
 /// Shield impact ripple - hexagonal expanding ring
 #[derive(Component)]
@@ -1768,14 +1846,19 @@ fn handle_damage_layer_events(
     mut commands: Commands,
     mut events: EventReader<DamageLayerEvent>,
     spark_query: Query<&ArmorSpark>,
+    ripple_query: Query<&ShieldRipple>,
     mut screen_shake: ResMut<ScreenShake>,
 ) {
     let current_sparks = spark_query.iter().count();
+    let current_ripples = ripple_query.iter().count();
 
     for event in events.read() {
         match event.layer {
             DamageLayer::Shield => {
-                spawn_shield_ripple(&mut commands, event.position, event.direction);
+                // Cap shield ripples to prevent lag during sustained fire
+                if current_ripples < MAX_SHIELD_RIPPLES {
+                    spawn_shield_ripple(&mut commands, event.position, event.direction);
+                }
             }
             DamageLayer::Armor => {
                 if current_sparks < MAX_DAMAGE_LAYER_PARTICLES {
@@ -2093,14 +2176,21 @@ pub struct PickupParticle {
 fn handle_pickup_effect_events(
     mut commands: Commands,
     mut events: EventReader<PickupEffectEvent>,
+    particle_query: Query<&PickupParticle>,
     mut screen_shake: ResMut<ScreenShake>,
     mut screen_flash: ResMut<ScreenFlash>,
 ) {
+    let current_particles = particle_query.iter().count();
+
     for event in events.read() {
         let rarity = Rarity::for_collectible(event.collectible_type);
-        spawn_pickup_effects(&mut commands, event.position, event.color, rarity);
 
-        // Screen effects scale with rarity
+        // Only spawn particles if under cap (always spawn flash/shockwave for feedback)
+        if current_particles < MAX_PICKUP_PARTICLES {
+            spawn_pickup_effects(&mut commands, event.position, event.color, rarity);
+        }
+
+        // Screen effects scale with rarity (always play these for feedback)
         match rarity {
             Rarity::Epic => {
                 screen_shake.trigger(5.0, 0.12);
@@ -2319,7 +2409,7 @@ fn update_pickup_shockwaves(
 // Visual feedback on player while buffs are active
 // =============================================================================
 
-use crate::entities::{Player, PowerupEffects};
+use crate::entities::{Player, PowerupEffects, ShipStats};
 
 /// Golden hexagonal shield bubble for invulnerability
 #[derive(Component)]
