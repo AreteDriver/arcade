@@ -157,7 +157,14 @@ These Python features already exist or are better in Rust:
    - Hull: Fire and smoke particles rising upward
    - Enhanced screen shake on hull damage
    - DamageLayerEvent tracks which layer absorbed damage
-4. **Pickup effects** - Polish for powerup collection
+4. ~~**Pickup effects**~~ ✅ DONE - Added to `systems/effects.rs`
+   - Phase 1: Instant flash (white -> color fade)
+   - Phase 2: Expanding shockwave ring (ease-out curve)
+   - Phase 3: Particle burst (color-matched, sparkle variation)
+   - Intensity scales with rarity (size, count, duration)
+   - Epic: Extra sparkle particles + screen shake + flash
+   - Rare: Screen shake + colored flash
+   - Uncommon: Light screen shake
 5. **Buff warnings** - QoL improvement
 6. **Active buff visuals** - Nice-to-have polish
 

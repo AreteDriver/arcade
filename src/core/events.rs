@@ -101,6 +101,14 @@ pub struct CollectiblePickedUpEvent {
     pub value: u32,
 }
 
+/// Pickup visual effect request (separate from pickup logic for visual effects system)
+#[derive(Event)]
+pub struct PickupEffectEvent {
+    pub position: Vec2,
+    pub collectible_type: CollectibleType,
+    pub color: Color,
+}
+
 /// Berserk mode activated
 #[derive(Event)]
 pub struct BerserkActivatedEvent;
@@ -481,6 +489,7 @@ impl Plugin for GameEventsPlugin {
             .add_event::<StageCompleteEvent>()
             .add_event::<BossDefeatedEvent>()
             .add_event::<CollectiblePickedUpEvent>()
+            .add_event::<PickupEffectEvent>()
             .add_event::<BerserkActivatedEvent>()
             .add_event::<BerserkEndedEvent>()
             .add_event::<ScreenShakeEvent>()

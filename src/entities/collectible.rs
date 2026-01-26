@@ -407,8 +407,9 @@ fn collectible_lifetime(
 fn collectible_pickup(
     mut commands: Commands,
     player_query: Query<&Transform, With<super::Player>>,
-    collectible_query: Query<(Entity, &Transform, &CollectibleData), With<Collectible>>,
+    collectible_query: Query<(Entity, &Transform, &CollectibleData, Option<&Sprite>), With<Collectible>>,
     mut pickup_events: EventWriter<CollectiblePickedUpEvent>,
+    mut effect_events: EventWriter<PickupEffectEvent>,
 ) {
     let Ok(player_transform) = player_query.get_single() else {
         return;
@@ -417,16 +418,26 @@ fn collectible_pickup(
     let player_pos = player_transform.translation.truncate();
     let pickup_radius = 30.0;
 
-    for (entity, transform, data) in collectible_query.iter() {
+    for (entity, transform, data, sprite) in collectible_query.iter() {
         let collectible_pos = transform.translation.truncate();
         let distance = (player_pos - collectible_pos).length();
 
         if distance < pickup_radius {
+            // Get color from sprite for visual effect
+            let color = sprite.map(|s| s.color).unwrap_or(Color::WHITE);
+
             // Send pickup event
             pickup_events.send(CollectiblePickedUpEvent {
                 collectible_type: data.collectible_type,
                 position: collectible_pos,
                 value: data.value,
+            });
+
+            // Send visual effect event
+            effect_events.send(PickupEffectEvent {
+                position: collectible_pos,
+                collectible_type: data.collectible_type,
+                color,
             });
 
             // Despawn collectible
