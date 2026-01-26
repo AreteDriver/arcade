@@ -14,6 +14,27 @@ pub struct PlayerDamagedEvent {
     pub source_position: Vec2,
 }
 
+/// Which defensive layer absorbed damage
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DamageLayer {
+    Shield,
+    Armor,
+    Hull,
+}
+
+/// Visual effect request for layer-specific damage
+#[derive(Event)]
+pub struct DamageLayerEvent {
+    /// Position where damage occurred
+    pub position: Vec2,
+    /// Which layer was hit
+    pub layer: DamageLayer,
+    /// Amount of damage dealt to this layer
+    pub damage: f32,
+    /// Direction damage came from (for directional effects)
+    pub direction: Vec2,
+}
+
 /// Enemy was destroyed
 #[derive(Event)]
 pub struct EnemyDestroyedEvent {
@@ -452,6 +473,7 @@ pub struct GameEventsPlugin;
 impl Plugin for GameEventsPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<PlayerDamagedEvent>()
+            .add_event::<DamageLayerEvent>()
             .add_event::<EnemyDestroyedEvent>()
             .add_event::<PlayerFireEvent>()
             .add_event::<SpawnEnemyEvent>()

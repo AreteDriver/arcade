@@ -285,6 +285,7 @@ fn enemy_projectile_player_collision(
     >,
     mut score: ResMut<ScoreSystem>,
     mut damage_events: EventWriter<PlayerDamagedEvent>,
+    mut damage_layer_events: EventWriter<DamageLayerEvent>,
     mut dialogue_events: EventWriter<super::DialogueEvent>,
     mut rumble_events: EventWriter<super::RumbleRequest>,
     mut screen_shake: ResMut<super::effects::ScreenShake>,
@@ -317,8 +318,37 @@ fn enemy_projectile_player_collision(
                 continue;
             }
 
-            // Apply damage
-            let destroyed = player_stats.take_damage(proj_damage.damage, proj_damage.damage_type);
+            // Apply damage with layer tracking
+            let damage_result = player_stats.take_damage_detailed(proj_damage.damage, proj_damage.damage_type);
+
+            // Calculate damage direction (from projectile to player)
+            let direction = (player_pos - proj_pos).normalize_or_zero();
+
+            // Send damage layer events for visual effects
+            if damage_result.shield_damage > 0.0 {
+                damage_layer_events.send(DamageLayerEvent {
+                    position: player_pos,
+                    layer: DamageLayer::Shield,
+                    damage: damage_result.shield_damage,
+                    direction,
+                });
+            }
+            if damage_result.armor_damage > 0.0 {
+                damage_layer_events.send(DamageLayerEvent {
+                    position: player_pos,
+                    layer: DamageLayer::Armor,
+                    damage: damage_result.armor_damage,
+                    direction,
+                });
+            }
+            if damage_result.hull_damage > 0.0 {
+                damage_layer_events.send(DamageLayerEvent {
+                    position: player_pos,
+                    layer: DamageLayer::Hull,
+                    damage: damage_result.hull_damage,
+                    direction,
+                });
+            }
 
             // Add hit flash effect to player (red-white flash when hit)
             let original_color = sprite.map(|s| s.color).unwrap_or(Color::WHITE);
@@ -364,7 +394,7 @@ fn enemy_projectile_player_collision(
                 }
             }
 
-            if destroyed {
+            if damage_result.destroyed {
                 info!("Player destroyed!");
                 next_state.set(GameState::GameOver);
             }

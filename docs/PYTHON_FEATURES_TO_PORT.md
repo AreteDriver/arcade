@@ -151,7 +151,12 @@ These Python features already exist or are better in Rust:
    - Pulse animation speed varies by tier
    - Orbital particles for rare/epic items
    - Rotation effect for rare/epic
-3. **Damage visuals** - Makes combat more satisfying
+3. ~~**Damage visuals**~~ ✅ DONE - Added to `systems/effects.rs`
+   - Shield: Blue expanding ripple rings with hex particles
+   - Armor: Orange directional spark spray with gravity
+   - Hull: Fire and smoke particles rising upward
+   - Enhanced screen shake on hull damage
+   - DamageLayerEvent tracks which layer absorbed damage
 4. **Pickup effects** - Polish for powerup collection
 5. **Buff warnings** - QoL improvement
 6. **Active buff visuals** - Nice-to-have polish

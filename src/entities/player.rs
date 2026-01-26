@@ -8,6 +8,15 @@ use crate::core::*;
 use crate::systems::{Ability, AbilityEffects, AbilityType, EngineTrail, ManeuverState};
 use bevy::prelude::*;
 
+/// Result of taking damage - which layers absorbed how much
+#[derive(Debug, Clone, Copy, Default)]
+pub struct DamageResult {
+    pub shield_damage: f32,
+    pub armor_damage: f32,
+    pub hull_damage: f32,
+    pub destroyed: bool,
+}
+
 /// Marker component for the player entity
 #[derive(Component, Debug)]
 pub struct Player;
@@ -101,7 +110,13 @@ impl ShipStats {
     }
 
     /// Take damage with EVE-style damage application order
+    /// Returns true if ship is destroyed (legacy compatibility)
     pub fn take_damage(&mut self, damage: f32, damage_type: DamageType) -> bool {
+        self.take_damage_detailed(damage, damage_type).destroyed
+    }
+
+    /// Take damage with detailed layer information
+    pub fn take_damage_detailed(&mut self, damage: f32, damage_type: DamageType) -> DamageResult {
         // Apply damage type resistances (simplified)
         let resistance = match damage_type {
             DamageType::EM => 0.0, // Shield weak to EM
@@ -111,27 +126,35 @@ impl ShipStats {
         };
 
         let mut remaining = damage * (1.0 - resistance);
+        let mut shield_damage = 0.0;
+        let mut armor_damage = 0.0;
+        let mut hull_damage = 0.0;
 
         // Damage order: Shield -> Armor -> Hull
         if self.shield > 0.0 {
-            let shield_damage = remaining.min(self.shield);
+            shield_damage = remaining.min(self.shield);
             self.shield -= shield_damage;
             remaining -= shield_damage;
             self.shield_timer = self.shield_recharge_delay;
         }
 
         if remaining > 0.0 && self.armor > 0.0 {
-            let armor_damage = remaining.min(self.armor);
+            armor_damage = remaining.min(self.armor);
             self.armor -= armor_damage;
             remaining -= armor_damage;
         }
 
         if remaining > 0.0 {
-            self.hull -= remaining;
+            hull_damage = remaining;
+            self.hull -= hull_damage;
         }
 
-        // Return true if ship is destroyed
-        self.hull <= 0.0
+        DamageResult {
+            shield_damage,
+            armor_damage,
+            hull_damage,
+            destroyed: self.hull <= 0.0,
+        }
     }
 
     /// Update shield recharge
