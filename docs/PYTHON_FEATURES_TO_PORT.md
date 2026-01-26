@@ -165,8 +165,17 @@ These Python features already exist or are better in Rust:
    - Epic: Extra sparkle particles + screen shake + flash
    - Rare: Screen shake + colored flash
    - Uncommon: Light screen shake
-5. **Buff warnings** - QoL improvement
-6. **Active buff visuals** - Nice-to-have polish
+5. ~~**Buff warnings**~~ ✅ DONE - Added to `ui/hud.rs`
+   - Countdown text overlay when buff < 2 seconds remaining
+   - Dramatic pulsing on HUD icon (8-20 Hz based on urgency)
+   - Color transitions (orange to red flash)
+   - Screen edge warning overlay (colored border pulses when expiring)
+   - Timer bar color changes as buff depletes
+6. ~~**Active buff visuals**~~ ✅ DONE - Added to `systems/effects.rs`
+   - Invulnerability: Golden hexagonal shield bubble (pulsing, rotating)
+   - Overdrive: Cyan speed lines trailing behind player
+   - Damage Boost: Red orbiting aura particles spiraling inward
+   - All effects follow player and despawn when buff expires
 
 ---
 

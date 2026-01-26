@@ -29,6 +29,7 @@ impl Plugin for HudPlugin {
                 update_combo_kills,
                 update_combo_timer_bar,
                 update_powerup_indicators,
+                update_buff_expiration_warnings,
                 update_wave_display,
                 update_mission_display,
                 update_boss_health_bar,
@@ -126,6 +127,27 @@ pub struct InvulnIndicator;
 pub struct PowerupTimerBar {
     /// Which powerup this bar is for
     pub powerup_type: PowerupType,
+}
+
+/// Countdown text for expiring buffs
+#[derive(Component)]
+pub struct PowerupCountdown {
+    pub powerup_type: PowerupType,
+}
+
+/// Screen edge warning overlay for expiring buffs (one per edge)
+#[derive(Component)]
+pub struct BuffExpirationWarning {
+    pub edge: ScreenEdge,
+}
+
+/// Which edge of the screen this warning covers
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum ScreenEdge {
+    Top,
+    Bottom,
+    Left,
+    Right,
 }
 
 /// Powerup type for status bar tracking
@@ -679,7 +701,72 @@ fn spawn_hud(mut commands: Commands) {
             ));
         });
 
+    // === BUFF EXPIRATION SCREEN EDGE WARNINGS ===
+    spawn_screen_edge_warnings(&mut commands);
+
     info!("HUD spawned");
+}
+
+/// Spawn screen edge warning overlays (hidden by default)
+fn spawn_screen_edge_warnings(commands: &mut Commands) {
+    // Edge dimensions
+    const EDGE_THICKNESS: f32 = 8.0;
+
+    // Top edge
+    commands.spawn((
+        BuffExpirationWarning { edge: ScreenEdge::Top },
+        Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(0.0),
+            left: Val::Px(0.0),
+            width: Val::Percent(100.0),
+            height: Val::Px(EDGE_THICKNESS),
+            ..default()
+        },
+        BackgroundColor(Color::NONE),
+    ));
+
+    // Bottom edge
+    commands.spawn((
+        BuffExpirationWarning { edge: ScreenEdge::Bottom },
+        Node {
+            position_type: PositionType::Absolute,
+            bottom: Val::Px(0.0),
+            left: Val::Px(0.0),
+            width: Val::Percent(100.0),
+            height: Val::Px(EDGE_THICKNESS),
+            ..default()
+        },
+        BackgroundColor(Color::NONE),
+    ));
+
+    // Left edge
+    commands.spawn((
+        BuffExpirationWarning { edge: ScreenEdge::Left },
+        Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(0.0),
+            left: Val::Px(0.0),
+            width: Val::Px(EDGE_THICKNESS),
+            height: Val::Percent(100.0),
+            ..default()
+        },
+        BackgroundColor(Color::NONE),
+    ));
+
+    // Right edge
+    commands.spawn((
+        BuffExpirationWarning { edge: ScreenEdge::Right },
+        Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(0.0),
+            right: Val::Px(0.0),
+            width: Val::Px(EDGE_THICKNESS),
+            height: Val::Percent(100.0),
+            ..default()
+        },
+        BackgroundColor(Color::NONE),
+    ));
 }
 
 fn spawn_health_bar<M: Component>(parent: &mut ChildBuilder, marker: M, color: Color, label: &str) {
@@ -827,6 +914,23 @@ fn spawn_powerup_status_box(
                         ));
                     });
             });
+
+        // Countdown text (shown when < 2 seconds remaining)
+        box_parent.spawn((
+            PowerupCountdown { powerup_type },
+            Text::new(""),
+            TextFont {
+                font_size: 14.0,
+                ..default()
+            },
+            TextColor(Color::srgb(1.0, 0.3, 0.3)),
+            Node {
+                display: Display::None, // Hidden until countdown starts
+                position_type: PositionType::Absolute,
+                right: Val::Px(4.0),
+                ..default()
+            },
+        ));
     });
 }
 
@@ -1040,6 +1144,9 @@ fn update_mission_display(
     }
 }
 
+/// Warning threshold for buff expiration (seconds)
+const BUFF_WARNING_THRESHOLD: f32 = 2.0;
+
 /// Update powerup effect indicators - show/hide boxes and update timer bars
 fn update_powerup_indicators(
     time: Res<Time>,
@@ -1048,6 +1155,10 @@ fn update_powerup_indicators(
     mut timer_bar_query: Query<
         (&PowerupTimerBar, &mut Node, &mut BackgroundColor),
         Without<PowerupStatusBox>,
+    >,
+    mut countdown_query: Query<
+        (&PowerupCountdown, &mut Text, &mut Node, &mut TextColor),
+        (Without<PowerupStatusBox>, Without<PowerupTimerBar>),
     >,
 ) {
     let Ok(effects) = player_query.get_single() else {
@@ -1068,6 +1179,8 @@ fn update_powerup_indicators(
         }
     };
 
+    let elapsed = time.elapsed_secs();
+
     // Update status box visibility and pulsing
     for (status_box, mut node, mut bg_color) in status_box_query.iter_mut() {
         let (timer, _max) = get_timer(status_box.powerup_type);
@@ -1075,10 +1188,17 @@ fn update_powerup_indicators(
         if timer > 0.0 {
             node.display = Display::Flex;
 
-            // Pulse background when timer is low (< 1.5 seconds)
-            if timer < 1.5 {
-                let pulse = (time.elapsed_secs() * 8.0).sin() * 0.5 + 0.5;
-                bg_color.0 = Color::srgba(0.3 + pulse * 0.2, 0.1, 0.1, 0.95);
+            // Enhanced pulsing when timer is low
+            if timer < BUFF_WARNING_THRESHOLD {
+                // Faster pulse as timer gets lower
+                let urgency = 1.0 - (timer / BUFF_WARNING_THRESHOLD);
+                let pulse_speed = 8.0 + urgency * 12.0; // 8-20 Hz
+                let pulse = (elapsed * pulse_speed).sin() * 0.5 + 0.5;
+
+                // More dramatic red flash
+                let red = 0.4 + pulse * 0.4;
+                let alpha = 0.9 + pulse * 0.1;
+                bg_color.0 = Color::srgba(red, 0.1, 0.1, alpha);
             } else {
                 bg_color.0 = Color::srgba(0.1, 0.1, 0.15, 0.9);
             }
@@ -1095,11 +1215,105 @@ fn update_powerup_indicators(
             let percent = (timer / max * 100.0).clamp(0.0, 100.0);
             node.width = Val::Percent(percent);
 
-            // Color changes when timer is low
-            if timer < 1.5 {
-                let pulse = (time.elapsed_secs() * 8.0).sin() * 0.5 + 0.5;
-                bg_color.0 = Color::srgb(1.0, 0.3 + pulse * 0.3, 0.2);
+            // Enhanced color pulsing when timer is low
+            if timer < BUFF_WARNING_THRESHOLD {
+                let urgency = 1.0 - (timer / BUFF_WARNING_THRESHOLD);
+                let pulse_speed = 8.0 + urgency * 12.0;
+                let pulse = (elapsed * pulse_speed).sin() * 0.5 + 0.5;
+
+                // Pulse between orange and bright red
+                bg_color.0 = Color::srgb(1.0, 0.2 + pulse * 0.4, 0.1);
             }
+        }
+    }
+
+    // Update countdown text
+    for (countdown, mut text, mut node, mut text_color) in countdown_query.iter_mut() {
+        let (timer, _max) = get_timer(countdown.powerup_type);
+
+        if timer > 0.0 && timer < BUFF_WARNING_THRESHOLD {
+            node.display = Display::Flex;
+
+            // Show remaining time with one decimal
+            **text = format!("{:.1}", timer);
+
+            // Pulse the countdown text color
+            let urgency = 1.0 - (timer / BUFF_WARNING_THRESHOLD);
+            let pulse_speed = 10.0 + urgency * 15.0;
+            let pulse = (elapsed * pulse_speed).sin() * 0.5 + 0.5;
+
+            // Flash between red and white
+            let r = 1.0;
+            let g = 0.3 + pulse * 0.7;
+            let b = 0.3 + pulse * 0.7;
+            text_color.0 = Color::srgb(r, g, b);
+        } else {
+            node.display = Display::None;
+            **text = String::new();
+        }
+    }
+}
+
+/// Update screen edge warning overlays when buffs are expiring
+fn update_buff_expiration_warnings(
+    time: Res<Time>,
+    player_query: Query<&PowerupEffects, With<Player>>,
+    mut warning_query: Query<(&BuffExpirationWarning, &mut BackgroundColor)>,
+) {
+    let Ok(effects) = player_query.get_single() else {
+        // Hide all warnings if no player
+        for (_, mut bg) in warning_query.iter_mut() {
+            bg.0 = Color::NONE;
+        }
+        return;
+    };
+
+    // Find the most urgent expiring buff
+    let mut most_urgent: Option<(f32, Color)> = None;
+
+    // Check each buff timer
+    let buffs = [
+        (effects.overdrive_timer, Color::srgb(0.3, 0.9, 1.0)),      // Cyan
+        (effects.damage_boost_timer, Color::srgb(1.0, 0.4, 0.2)),   // Orange/red
+        (effects.invuln_timer, Color::srgb(1.0, 0.9, 0.4)),         // Gold
+    ];
+
+    for (timer, color) in buffs {
+        if timer > 0.0 && timer < BUFF_WARNING_THRESHOLD {
+            match &most_urgent {
+                Some((urgency, _)) if timer < *urgency => {
+                    most_urgent = Some((timer, color));
+                }
+                None => {
+                    most_urgent = Some((timer, color));
+                }
+                _ => {}
+            }
+        }
+    }
+
+    // Update edge colors based on most urgent buff
+    if let Some((timer, color)) = most_urgent {
+        let elapsed = time.elapsed_secs();
+
+        // Calculate urgency (0 = just started warning, 1 = about to expire)
+        let urgency = 1.0 - (timer / BUFF_WARNING_THRESHOLD);
+
+        // Pulse speed increases with urgency (6-16 Hz)
+        let pulse_speed = 6.0 + urgency * 10.0;
+        let pulse = (elapsed * pulse_speed).sin() * 0.5 + 0.5;
+
+        // Alpha increases with urgency and pulse
+        let base_alpha = 0.3 + urgency * 0.4; // 0.3 to 0.7
+        let alpha = base_alpha * (0.5 + pulse * 0.5);
+
+        for (_, mut bg) in warning_query.iter_mut() {
+            bg.0 = color.with_alpha(alpha);
+        }
+    } else {
+        // No expiring buffs - hide warnings
+        for (_, mut bg) in warning_query.iter_mut() {
+            bg.0 = Color::NONE;
         }
     }
 }
@@ -1466,11 +1680,19 @@ fn despawn_hud(
     mut commands: Commands,
     hud_query: Query<Entity, With<HudRoot>>,
     dialogue_query: Query<Entity, With<DialogueContainer>>,
+    warning_query: Query<Entity, With<BuffExpirationWarning>>,
+    popup_query: Query<Entity, With<AchievementPopup>>,
 ) {
     for entity in hud_query.iter() {
         commands.entity(entity).despawn_recursive();
     }
     for entity in dialogue_query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+    for entity in warning_query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+    for entity in popup_query.iter() {
         commands.entity(entity).despawn_recursive();
     }
 }
