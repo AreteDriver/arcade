@@ -216,6 +216,8 @@ impl BackgroundShipFaction {
 /// A distant ship silhouette flying in the background
 #[derive(Component)]
 pub struct BackgroundShip {
+    /// Faction determines flight direction and colors (stored for future queries)
+    #[allow(dead_code)]
     pub faction: BackgroundShipFaction,
     /// Ship class (for future silhouette rendering)
     #[allow(dead_code)]
@@ -225,7 +227,8 @@ pub struct BackgroundShip {
     pub distance: f32,
     /// Actual rendered size
     pub size: f32,
-    /// Alpha transparency (farther = fainter)
+    /// Alpha transparency (farther = fainter) - baked into sprite at spawn
+    #[allow(dead_code)]
     pub alpha: f32,
     /// Velocity
     pub velocity: Vec2,
