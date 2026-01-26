@@ -21,10 +21,10 @@ Rise from a rookie pilot in a rusty Rifter to an ace liberator in a Jaguar. Join
 
 Choose your side in the battle that changed Caldari Prime forever. Fight as Caldari State defending Shiigeru, or Gallente Federation liberating the planet. Includes **Shiigeru Nightmare** — an endless survival mode aboard the dying Titan.
 
-### Triglavian Invasion *(Coming Soon)*
-*EDENCOM vs Triglavian Collective*
+### Triglavian Invasion *(In Development)*
+*EDENCOM vs Triglavian Collective — 9 missions*
 
-Defend New Eden from the Triglavian invasion, or embrace the Flow and fight for Pochven.
+Defend New Eden from the Triglavian invasion, or embrace the Flow and fight for Pochven. Choose EDENCOM to protect the empires, or join the Collective to claim systems for Pochven.
 
 ---
 

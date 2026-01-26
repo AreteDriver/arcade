@@ -10,6 +10,7 @@ use bevy::prelude::*;
 pub mod abyssal_depths;
 pub mod caldari_gallente;
 pub mod elder_fleet;
+pub mod triglavian_invasion;
 
 /// Game modules plugin - registers all available game modules
 pub struct GameModulesPlugin;
@@ -20,7 +21,8 @@ impl Plugin for GameModulesPlugin {
             .init_resource::<ActiveModule>()
             .add_plugins(elder_fleet::ElderFleetPlugin)
             .add_plugins(caldari_gallente::CaldariGallentePlugin)
-            .add_plugins(abyssal_depths::AbyssalDepthsPlugin);
+            .add_plugins(abyssal_depths::AbyssalDepthsPlugin)
+            .add_plugins(triglavian_invasion::TriglavianInvasionPlugin);
     }
 }
 
@@ -92,6 +94,10 @@ impl ActiveModule {
 
     pub fn is_abyssal_depths(&self) -> bool {
         self.module_id.as_deref() == Some("abyssal_depths")
+    }
+
+    pub fn is_triglavian_invasion(&self) -> bool {
+        self.module_id.as_deref() == Some("triglavian_invasion")
     }
 }
 

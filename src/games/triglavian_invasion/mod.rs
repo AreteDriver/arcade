@@ -1,0 +1,306 @@
+//! Triglavian Invasion Module
+//!
+//! EDENCOM vs Triglavian Collective - defend New Eden or embrace Pochven.
+//! Set during the Triglavian invasion of YC122.
+
+use super::{ActiveModule, FactionInfo, GameModuleInfo, ModuleRegistry};
+use crate::core::GameState;
+use bevy::prelude::*;
+
+pub mod campaign;
+pub mod ships;
+
+pub use campaign::*;
+pub use ships::*;
+
+/// Triglavian Invasion module plugin
+pub struct TriglavianInvasionPlugin;
+
+impl Plugin for TriglavianInvasionPlugin {
+    fn build(&self, app: &mut App) {
+        // Register module
+        app.add_systems(Startup, register_module);
+
+        // Initialize resources
+        app.init_resource::<TriglavianShips>();
+        app.init_resource::<TriglavianCampaignState>();
+
+        // Faction select screen
+        app.add_systems(
+            OnEnter(GameState::FactionSelect),
+            spawn_faction_select.run_if(is_triglavian_invasion),
+        )
+        .add_systems(
+            Update,
+            faction_select_input
+                .run_if(in_state(GameState::FactionSelect))
+                .run_if(is_triglavian_invasion),
+        )
+        .add_systems(
+            OnExit(GameState::FactionSelect),
+            despawn_faction_select.run_if(is_triglavian_invasion),
+        );
+
+        // Campaign systems
+        app.add_systems(
+            OnEnter(GameState::Playing),
+            start_trig_mission.run_if(is_triglavian_invasion),
+        )
+        .add_systems(
+            Update,
+            (update_trig_mission, check_trig_wave_complete, spawn_trig_wave)
+                .chain()
+                .run_if(in_state(GameState::Playing))
+                .run_if(is_triglavian_invasion),
+        );
+
+        // Boss systems
+        app.add_systems(
+            OnEnter(GameState::BossIntro),
+            spawn_trig_boss.run_if(is_triglavian_invasion),
+        )
+        .add_systems(
+            Update,
+            (update_trig_boss, check_trig_boss_defeated)
+                .run_if(in_state(GameState::BossFight))
+                .run_if(is_triglavian_invasion),
+        );
+    }
+}
+
+/// Check if Triglavian Invasion module is active
+fn is_triglavian_invasion(active: Res<ActiveModule>) -> bool {
+    active.module_id.as_deref() == Some("triglavian_invasion")
+}
+
+/// Register the Triglavian Invasion module
+fn register_module(mut registry: ResMut<ModuleRegistry>) {
+    registry.register(GameModuleInfo {
+        id: "triglavian_invasion",
+        display_name: "Triglavian Invasion",
+        subtitle: "YC122 - The Flow of Vyraj",
+        description: "Defend New Eden from the Triglavian Collective, or embrace the Flow and fight for Pochven.",
+        factions: vec![
+            FactionInfo {
+                id: "edencom",
+                name: "EDENCOM",
+                primary_color: Color::srgb(0.2, 0.6, 0.9),    // Blue
+                secondary_color: Color::srgb(0.9, 0.9, 0.95), // White
+                accent_color: Color::srgb(0.3, 0.8, 1.0),     // Cyan
+                doctrine: vec!["Unified Defense", "Shield Tanking", "Coordinated Fire"],
+                description: "The unified defense force of the four empires, standing against the Triglavian invasion.",
+            },
+            FactionInfo {
+                id: "triglavian",
+                name: "Triglavian Collective",
+                primary_color: Color::srgb(0.8, 0.2, 0.2),    // Red
+                secondary_color: Color::srgb(0.1, 0.1, 0.12), // Dark gray
+                accent_color: Color::srgb(1.0, 0.4, 0.2),     // Orange-red
+                doctrine: vec!["Entropic Disintegration", "Bioadaptation", "Proving"],
+                description: "Ancient Jove descendants from Abyssal Deadspace, seeking to claim systems for Pochven.",
+            },
+        ],
+    });
+}
+
+// =============================================================================
+// FACTION SELECT UI
+// =============================================================================
+
+/// Marker for faction select UI
+#[derive(Component)]
+struct TrigFactionSelectUI;
+
+/// Spawn faction selection screen
+fn spawn_faction_select(mut commands: Commands) {
+    info!("Spawning Triglavian faction select");
+
+    commands
+        .spawn((
+            TrigFactionSelectUI,
+            Node {
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                flex_direction: FlexDirection::Column,
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            BackgroundColor(Color::srgba(0.02, 0.02, 0.04, 0.95)),
+        ))
+        .with_children(|parent| {
+            // Title
+            parent.spawn((
+                Text::new("TRIGLAVIAN INVASION"),
+                TextFont {
+                    font_size: 48.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.9, 0.3, 0.2)),
+                Node {
+                    margin: UiRect::bottom(Val::Px(10.0)),
+                    ..default()
+                },
+            ));
+
+            // Subtitle
+            parent.spawn((
+                Text::new("Choose Your Side"),
+                TextFont {
+                    font_size: 24.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.7, 0.7, 0.7)),
+                Node {
+                    margin: UiRect::bottom(Val::Px(40.0)),
+                    ..default()
+                },
+            ));
+
+            // Faction choices
+            parent
+                .spawn(Node {
+                    flex_direction: FlexDirection::Row,
+                    justify_content: JustifyContent::Center,
+                    column_gap: Val::Px(60.0),
+                    ..default()
+                })
+                .with_children(|row| {
+                    // EDENCOM
+                    spawn_faction_card(
+                        row,
+                        "EDENCOM",
+                        "Defend New Eden",
+                        "Shield the empires from\nthe Triglavian threat",
+                        Color::srgb(0.2, 0.6, 0.9),
+                        "[A] or LEFT",
+                    );
+
+                    // Triglavian
+                    spawn_faction_card(
+                        row,
+                        "TRIGLAVIAN",
+                        "Embrace the Flow",
+                        "Prove yourself worthy\nand claim Pochven",
+                        Color::srgb(0.8, 0.2, 0.2),
+                        "[D] or RIGHT",
+                    );
+                });
+
+            // Back instruction
+            parent.spawn((
+                Text::new("[ESC] Back to Main Menu"),
+                TextFont {
+                    font_size: 16.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.5, 0.5, 0.5)),
+                Node {
+                    margin: UiRect::top(Val::Px(40.0)),
+                    ..default()
+                },
+            ));
+        });
+}
+
+fn spawn_faction_card(
+    parent: &mut ChildBuilder,
+    name: &str,
+    tagline: &str,
+    description: &str,
+    color: Color,
+    controls: &str,
+) {
+    parent
+        .spawn((
+            Node {
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                padding: UiRect::all(Val::Px(20.0)),
+                border: UiRect::all(Val::Px(2.0)),
+                ..default()
+            },
+            BorderColor(color),
+            BackgroundColor(Color::srgba(0.1, 0.1, 0.12, 0.8)),
+        ))
+        .with_children(|card| {
+            card.spawn((
+                Text::new(name),
+                TextFont {
+                    font_size: 32.0,
+                    ..default()
+                },
+                TextColor(color),
+                Node {
+                    margin: UiRect::bottom(Val::Px(8.0)),
+                    ..default()
+                },
+            ));
+
+            card.spawn((
+                Text::new(tagline),
+                TextFont {
+                    font_size: 18.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.8, 0.8, 0.8)),
+                Node {
+                    margin: UiRect::bottom(Val::Px(12.0)),
+                    ..default()
+                },
+            ));
+
+            card.spawn((
+                Text::new(description),
+                TextFont {
+                    font_size: 14.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.6, 0.6, 0.6)),
+                Node {
+                    margin: UiRect::bottom(Val::Px(16.0)),
+                    ..default()
+                },
+            ));
+
+            card.spawn((
+                Text::new(controls),
+                TextFont {
+                    font_size: 14.0,
+                    ..default()
+                },
+                TextColor(color.with_alpha(0.7)),
+            ));
+        });
+}
+
+/// Handle faction selection input
+fn faction_select_input(
+    keys: Res<ButtonInput<KeyCode>>,
+    mut active: ResMut<ActiveModule>,
+    mut next_state: ResMut<NextState<GameState>>,
+) {
+    // EDENCOM (left)
+    if keys.just_pressed(KeyCode::KeyA) || keys.just_pressed(KeyCode::ArrowLeft) {
+        active.set_faction("edencom", "triglavian");
+        next_state.set(GameState::Playing);
+    }
+
+    // Triglavian (right)
+    if keys.just_pressed(KeyCode::KeyD) || keys.just_pressed(KeyCode::ArrowRight) {
+        active.set_faction("triglavian", "edencom");
+        next_state.set(GameState::Playing);
+    }
+
+    // Back to menu
+    if keys.just_pressed(KeyCode::Escape) {
+        next_state.set(GameState::MainMenu);
+    }
+}
+
+/// Despawn faction select UI
+fn despawn_faction_select(mut commands: Commands, query: Query<Entity, With<TrigFactionSelectUI>>) {
+    for entity in query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+}
