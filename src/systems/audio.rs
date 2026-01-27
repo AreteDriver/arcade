@@ -493,6 +493,8 @@ fn play_weapon_sounds(
             WeaponType::Laser | WeaponType::Railgun => sounds.laser.clone(),
             WeaponType::MissileLauncher => sounds.missile.clone(),
             WeaponType::Drone => sounds.laser.clone(), // Drones use laser-like sound
+            WeaponType::Disintegrator => sounds.laser.clone(), // Triglavian beam sound
+            WeaponType::Vorton => sounds.laser.clone(), // EDENCOM arc sound
         };
 
         if let Some(source) = sound {

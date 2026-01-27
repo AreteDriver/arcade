@@ -418,6 +418,16 @@ pub fn spawn_enemy_projectile_typed(
             Color::srgb(1.0, 0.8, 0.3), // Minmatar yellow/orange
             Vec2::new(4.0, 8.0),        // Bullet shape
         ),
+        WeaponType::Disintegrator => (
+            DamageType::Thermal,
+            Color::srgb(0.9, 0.3, 0.0), // Triglavian orange-red beam
+            Vec2::new(3.0, 20.0),       // Long beam shape
+        ),
+        WeaponType::Vorton => (
+            DamageType::EM,
+            Color::srgb(0.6, 0.7, 1.0), // EDENCOM blue-white arc
+            Vec2::new(5.0, 12.0),       // Wide arc shape
+        ),
     };
 
     commands.spawn((
