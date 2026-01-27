@@ -3,8 +3,22 @@ name: CI
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.gitignore'
+      - '.github/dependabot.yml'
+      - 'assets/**'
   pull_request:
     branches: [main]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.gitignore'
+      - '.github/dependabot.yml'
+      - 'assets/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
