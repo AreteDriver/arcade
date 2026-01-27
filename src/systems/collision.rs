@@ -319,7 +319,8 @@ fn enemy_projectile_player_collision(
             }
 
             // Apply damage with layer tracking
-            let damage_result = player_stats.take_damage_detailed(proj_damage.damage, proj_damage.damage_type);
+            let damage_result =
+                player_stats.take_damage_detailed(proj_damage.damage, proj_damage.damage_type);
 
             // Calculate damage direction (from projectile to player)
             let direction = (player_pos - proj_pos).normalize_or_zero();

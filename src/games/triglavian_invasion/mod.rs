@@ -48,7 +48,11 @@ impl Plugin for TriglavianInvasionPlugin {
         )
         .add_systems(
             Update,
-            (update_trig_mission, check_trig_wave_complete, spawn_trig_wave)
+            (
+                update_trig_mission,
+                check_trig_wave_complete,
+                spawn_trig_wave,
+            )
                 .chain()
                 .run_if(in_state(GameState::Playing))
                 .run_if(is_triglavian_invasion),

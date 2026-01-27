@@ -418,12 +418,7 @@ fn spawn_starfield(mut commands: Commands, config: Res<StarfieldConfig>, windows
                 )
             } else if rng.gen_bool(0.5) {
                 // Yellow/orange stars
-                Color::srgba(
-                    brightness,
-                    brightness * 0.85,
-                    brightness * 0.5,
-                    brightness,
-                )
+                Color::srgba(brightness, brightness * 0.85, brightness * 0.5, brightness)
             } else {
                 // Red dwarf stars
                 Color::srgba(
@@ -583,7 +578,12 @@ fn spawn_background_ship(commands: &mut Commands, window: &Window) {
     // Engine glow color
     let engine_color = faction.engine_color();
     let engine_rgba = engine_color.to_srgba();
-    let engine_glow = Color::srgba(engine_rgba.red, engine_rgba.green, engine_rgba.blue, alpha * 0.8);
+    let engine_glow = Color::srgba(
+        engine_rgba.red,
+        engine_rgba.green,
+        engine_rgba.blue,
+        alpha * 0.8,
+    );
 
     // Direction multiplier for nose/engine position
     let dir = if faction.flies_right() { 1.0 } else { -1.0 };
@@ -655,7 +655,10 @@ fn spawn_background_ship(commands: &mut Commands, window: &Window) {
             ));
 
             // Add wing/fin for cruisers and battleships
-            if matches!(ship_class, BackgroundShipClass::Cruiser | BackgroundShipClass::Battleship) {
+            if matches!(
+                ship_class,
+                BackgroundShipClass::Cruiser | BackgroundShipClass::Battleship
+            ) {
                 let fin_width = ship_width * 0.15;
                 let fin_height = ship_height * 1.3;
 
@@ -799,4 +802,3 @@ fn update_background_ships(
         }
     }
 }
-

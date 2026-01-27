@@ -95,8 +95,8 @@ impl Rarity {
         match self {
             Rarity::Common => Color::srgba(0.6, 0.6, 0.6, 0.5), // Gray
             Rarity::Uncommon => Color::srgba(0.2, 0.8, 0.3, 0.7), // Green
-            Rarity::Rare => Color::srgba(0.3, 0.5, 1.0, 0.8), // Blue
-            Rarity::Epic => Color::srgba(0.8, 0.4, 1.0, 0.9), // Purple
+            Rarity::Rare => Color::srgba(0.3, 0.5, 1.0, 0.8),   // Blue
+            Rarity::Epic => Color::srgba(0.8, 0.4, 1.0, 0.9),   // Purple
         }
     }
 }
@@ -294,8 +294,7 @@ fn collectible_rarity_effects(
             } else {
                 0.25
             };
-            transform.rotation =
-                Quat::from_rotation_z(rarity_data.phase * rotation_speed);
+            transform.rotation = Quat::from_rotation_z(rarity_data.phase * rotation_speed);
         }
     }
 }
@@ -407,7 +406,10 @@ fn collectible_lifetime(
 fn collectible_pickup(
     mut commands: Commands,
     player_query: Query<&Transform, With<super::Player>>,
-    collectible_query: Query<(Entity, &Transform, &CollectibleData, Option<&Sprite>), With<Collectible>>,
+    collectible_query: Query<
+        (Entity, &Transform, &CollectibleData, Option<&Sprite>),
+        With<Collectible>,
+    >,
     mut pickup_events: EventWriter<CollectiblePickedUpEvent>,
     mut effect_events: EventWriter<PickupEffectEvent>,
 ) {

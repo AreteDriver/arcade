@@ -249,12 +249,7 @@ fn spawn_explosion_capped(
         let inner_factor = 1.0 - (i as f32 / count as f32);
         let color_var = if inner_factor > 0.5 {
             // Inner particles: white/yellow hot core
-            Color::srgba(
-                1.0,
-                0.9 + rng.f32() * 0.1,
-                0.5 + rng.f32() * 0.3,
-                1.0,
-            )
+            Color::srgba(1.0, 0.9 + rng.f32() * 0.1, 0.5 + rng.f32() * 0.3, 1.0)
         } else {
             // Outer particles: orange/red
             Color::srgba(
@@ -281,7 +276,10 @@ fn spawn_explosion_capped(
     }
 
     // Spawn shockwave ring for medium+ explosions
-    if matches!(size, ExplosionSize::Medium | ExplosionSize::Large | ExplosionSize::Massive) {
+    if matches!(
+        size,
+        ExplosionSize::Medium | ExplosionSize::Large | ExplosionSize::Massive
+    ) {
         let ring_lifetime = match size {
             ExplosionSize::Medium => 0.3,
             ExplosionSize::Large => 0.4,
@@ -342,7 +340,10 @@ fn spawn_explosion_capped(
     }
 
     // Spawn embers/sparks for medium+ explosions
-    if matches!(size, ExplosionSize::Medium | ExplosionSize::Large | ExplosionSize::Massive) {
+    if matches!(
+        size,
+        ExplosionSize::Medium | ExplosionSize::Large | ExplosionSize::Massive
+    ) {
         let ember_count = match size {
             ExplosionSize::Medium => 5,
             ExplosionSize::Large => 8,
@@ -1347,7 +1348,7 @@ fn spawn_engine_trails(
                 },
                 Sprite {
                     color: Color::srgba(1.0, 1.0, 0.95, 1.0), // Hot white core
-                    custom_size: Some(Vec2::new(3.0, 5.0)), // Elongated
+                    custom_size: Some(Vec2::new(3.0, 5.0)),   // Elongated
                     ..default()
                 },
                 Transform::from_xyz(
@@ -1938,7 +1939,12 @@ fn handle_damage_layer_events(
             }
             DamageLayer::Armor => {
                 if current_sparks < MAX_DAMAGE_LAYER_PARTICLES {
-                    spawn_armor_sparks(&mut commands, event.position, event.direction, event.damage);
+                    spawn_armor_sparks(
+                        &mut commands,
+                        event.position,
+                        event.direction,
+                        event.damage,
+                    );
                 }
             }
             DamageLayer::Hull => {
@@ -1990,7 +1996,8 @@ fn spawn_shield_ripple(commands: &mut Commands, position: Vec2, direction: Vec2)
     // Spawn hex grid particles at impact point
     let num_particles = 6;
     for i in 0..num_particles {
-        let particle_angle = angle + (i as f32 / num_particles as f32 - 0.5) * std::f32::consts::PI * 0.5;
+        let particle_angle =
+            angle + (i as f32 / num_particles as f32 - 0.5) * std::f32::consts::PI * 0.5;
         let offset = Vec2::new(particle_angle.cos(), particle_angle.sin()) * 15.0;
 
         commands.spawn((
@@ -2005,7 +2012,11 @@ fn spawn_shield_ripple(commands: &mut Commands, position: Vec2, direction: Vec2)
                 custom_size: Some(Vec2::splat(6.0)),
                 ..default()
             },
-            Transform::from_xyz(position.x + offset.x, position.y + offset.y, LAYER_EFFECTS + 0.8),
+            Transform::from_xyz(
+                position.x + offset.x,
+                position.y + offset.y,
+                LAYER_EFFECTS + 0.8,
+            ),
         ));
     }
 }
@@ -2351,8 +2362,8 @@ fn spawn_pickup_effects(commands: &mut Commands, position: Vec2, color: Color, r
     let particle_lifetime = 0.4 + 0.2 * intensity;
 
     for i in 0..particle_count {
-        let angle = (i as f32 / particle_count as f32) * std::f32::consts::TAU
-            + fastrand::f32() * 0.3;
+        let angle =
+            (i as f32 / particle_count as f32) * std::f32::consts::TAU + fastrand::f32() * 0.3;
         let speed = base_speed * (0.7 + fastrand::f32() * 0.6);
         let velocity = Vec2::new(angle.cos() * speed, angle.sin() * speed);
 
@@ -2521,7 +2532,10 @@ fn update_active_buff_visuals(
     mut commands: Commands,
     time: Res<Time>,
     player_query: Query<(Entity, &Transform, &PowerupEffects), With<Player>>,
-    mut shield_query: Query<(Entity, &mut InvulnShieldBubble, &mut Sprite, &mut Transform), Without<Player>>,
+    mut shield_query: Query<
+        (Entity, &mut InvulnShieldBubble, &mut Sprite, &mut Transform),
+        Without<Player>,
+    >,
     speed_line_query: Query<&OverdriveSpeedLine>,
     aura_query: Query<&DamageBoostAura>,
 ) {
@@ -2554,7 +2568,8 @@ fn update_active_buff_visuals(
 
             // Color pulse (gold to white)
             let color_pulse = (bubble.phase * 2.0).sin() * 0.3 + 0.7;
-            sprite.color = Color::srgba(1.0, 0.85 + color_pulse * 0.15, 0.3 + color_pulse * 0.3, 0.4);
+            sprite.color =
+                Color::srgba(1.0, 0.85 + color_pulse * 0.15, 0.3 + color_pulse * 0.3, 0.4);
         } else {
             // Spawn new shield bubble
             commands.spawn((

@@ -75,8 +75,8 @@ impl ControllerProfile {
             right_stick_deadzone: 0.15, // Tighter for aiming
             trigger_deadzone: 0.08,     // Steam Deck triggers are responsive
             movement_sensitivity: 1.0,
-            aim_sensitivity: 0.9,       // Slightly higher for twin-stick
-            rumble_multiplier: 0.7,     // Steam Deck haptics are subtle
+            aim_sensitivity: 0.9,   // Slightly higher for twin-stick
+            rumble_multiplier: 0.7, // Steam Deck haptics are subtle
         }
     }
 
@@ -118,7 +118,11 @@ impl ControllerProfile {
         } else if lower.contains("xbox") || lower.contains("microsoft") {
             info!("Detected Xbox controller");
             Self::xbox()
-        } else if lower.contains("playstation") || lower.contains("dualsense") || lower.contains("dualshock") || lower.contains("sony") {
+        } else if lower.contains("playstation")
+            || lower.contains("dualsense")
+            || lower.contains("dualshock")
+            || lower.contains("sony")
+        {
             info!("Detected PlayStation controller");
             Self::playstation()
         } else {
@@ -515,7 +519,9 @@ fn process_back_buttons(
     mut events: EventWriter<BackButtonEvent>,
 ) {
     // Only process back buttons for Steam Deck (other controllers may not have them)
-    if profile.controller_type != ControllerType::SteamDeck && profile.controller_type != ControllerType::Unknown {
+    if profile.controller_type != ControllerType::SteamDeck
+        && profile.controller_type != ControllerType::Unknown
+    {
         return;
     }
 
@@ -614,13 +620,14 @@ mod unix_impl {
 
         // SAFETY: fd is a valid file descriptor, name_buf is a valid buffer
         // JSIOCGNAME ioctl reads controller name into the buffer
-        let result = unsafe {
-            libc::ioctl(fd, JSIOCGNAME, name_buf.as_mut_ptr())
-        };
+        let result = unsafe { libc::ioctl(fd, JSIOCGNAME, name_buf.as_mut_ptr()) };
 
         if result >= 0 {
             // Find null terminator and convert to string
-            let len = name_buf.iter().position(|&c| c == 0).unwrap_or(name_buf.len());
+            let len = name_buf
+                .iter()
+                .position(|&c| c == 0)
+                .unwrap_or(name_buf.len());
             String::from_utf8_lossy(&name_buf[..len]).to_string()
         } else {
             "Unknown Controller".to_string()

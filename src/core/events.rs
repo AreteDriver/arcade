@@ -161,6 +161,8 @@ pub enum WeaponType {
     Railgun,
     MissileLauncher,
     Drone,
+    Disintegrator, // Triglavian entropic disintegrator (ramping damage)
+    Vorton,        // EDENCOM vorton projector (chain lightning)
 }
 
 /// Ammo types for Minmatar autocannons (affects damage and fire rate)

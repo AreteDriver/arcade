@@ -3,7 +3,11 @@
 //! 9-mission campaign across contested systems.
 
 use super::ships::*;
-use crate::core::GameState;
+use crate::assets::ShipSpriteCache;
+use crate::core::{GameState, LAYER_ENEMIES};
+use crate::entities::boss::{Boss, BossAttack, BossData, BossMovement, BossState, MovementPattern};
+use crate::entities::Hitbox;
+use crate::entities::{spawn_damavik, spawn_enemy, spawn_vedmak, EnemyBehavior};
 use bevy::prelude::*;
 
 /// Campaign state resource
@@ -215,7 +219,12 @@ pub fn start_trig_mission(
     };
 
     if let Some(info) = missions.get(mission as usize) {
-        info!("Starting mission {}: {} - {}", mission + 1, info.name, info.system);
+        info!(
+            "Starting mission {}: {} - {}",
+            mission + 1,
+            info.name,
+            info.system
+        );
     }
 }
 
@@ -245,28 +254,38 @@ pub fn check_trig_wave_complete(
 
 /// Spawn next wave of enemies
 pub fn spawn_trig_wave(
-    _commands: Commands,
+    mut commands: Commands,
     mut state: ResMut<TriglavianCampaignState>,
     active: Res<crate::games::ActiveModule>,
-    _asset_server: Res<AssetServer>,
-    _enemies: Query<Entity, With<crate::entities::Enemy>>,
+    sprite_cache: Res<ShipSpriteCache>,
+    enemies: Query<Entity, With<crate::entities::Enemy>>,
+    windows: Query<&Window>,
 ) {
     // Only spawn if no enemies and wave not complete
     if state.enemies_remaining > 0 || state.current_wave >= state.waves_in_mission {
         return;
     }
 
+    // Don't spawn if there are still enemies alive
+    if !enemies.is_empty() {
+        state.enemies_remaining = enemies.iter().count() as u32;
+        return;
+    }
+
     let faction = active.player_faction.as_deref().unwrap_or("edencom");
-    let _spawn_weights = if faction == "edencom" {
+    let spawn_weights = if faction == "edencom" {
         triglavian_spawn_weights()
     } else {
         edencom_spawn_weights()
     };
 
+    // Calculate total weight for random selection
+    let total_weight: u32 = spawn_weights.iter().map(|(_, w)| w).sum();
+
     // Calculate enemies for this wave
-    let base_count = 5 + state.current_mission * 2;
-    let wave_bonus = state.current_wave * 2;
-    let enemy_count = base_count + wave_bonus;
+    let base_count = 4 + state.current_mission;
+    let wave_bonus = state.current_wave;
+    let enemy_count = (base_count + wave_bonus).min(12); // Cap at 12 enemies per wave
 
     info!(
         "Spawning wave {}/{} with {} enemies",
@@ -275,8 +294,79 @@ pub fn spawn_trig_wave(
         enemy_count
     );
 
-    // Spawn enemies (simplified - full implementation would use proper spawn system)
-    // This is a placeholder - actual spawning would integrate with the enemy spawn system
+    // Get window dimensions for spawn positioning
+    let window = windows.single();
+    let width = window.width();
+    let height = window.height();
+    let spawn_y = height / 2.0 + 50.0; // Spawn above screen
+
+    // Spawn enemies
+    for i in 0..enemy_count {
+        // Weighted random selection
+        let roll = fastrand::u32(0..total_weight);
+        let mut cumulative = 0;
+        let mut selected_type_id = spawn_weights[0].0;
+
+        for (type_id, weight) in &spawn_weights {
+            cumulative += weight;
+            if roll < cumulative {
+                selected_type_id = *type_id;
+                break;
+            }
+        }
+
+        // Position spread across screen
+        let spread = width * 0.8;
+        let start_x = -spread / 2.0;
+        let x = start_x + (i as f32 / enemy_count as f32) * spread + fastrand::f32() * 40.0 - 20.0;
+        let y = spawn_y + fastrand::f32() * 100.0;
+        let pos = Vec2::new(x, y);
+
+        let sprite = sprite_cache.get(selected_type_id);
+
+        // Use specialized spawn functions for Triglavian ships (they have DisintegratorRamp)
+        if faction == "edencom" {
+            // Player is EDENCOM, enemies are Triglavian
+            match selected_type_id {
+                triglavian::DAMAVIK => {
+                    spawn_damavik(&mut commands, pos, sprite, None);
+                }
+                triglavian::VEDMAK => {
+                    spawn_vedmak(&mut commands, pos, sprite, None);
+                }
+                _ => {
+                    // Generic enemy spawn for other Triglavian ships
+                    spawn_enemy(
+                        &mut commands,
+                        selected_type_id,
+                        pos,
+                        EnemyBehavior::Disintegrator,
+                        sprite,
+                        None,
+                    );
+                }
+            }
+        } else {
+            // Player is Triglavian, enemies are EDENCOM/Empire
+            let behavior = match selected_type_id {
+                // EDENCOM ships - chain lightning behavior (use Sniper for now)
+                edencom::SKYBREAKER | edencom::THUNDERCHILD | edencom::STORMBRINGER => {
+                    EnemyBehavior::Sniper
+                }
+                // Empire frigates - aggressive
+                edencom::RIFTER | edencom::MERLIN | edencom::PUNISHER | edencom::INCURSUS => {
+                    EnemyBehavior::Zigzag
+                }
+                // Empire cruisers - steady
+                edencom::STABBER | edencom::CARACAL | edencom::OMEN | edencom::THORAX => {
+                    EnemyBehavior::Linear
+                }
+                // Empire battleships - tanky
+                _ => EnemyBehavior::Tank,
+            };
+            spawn_enemy(&mut commands, selected_type_id, pos, behavior, sprite, None);
+        }
+    }
 
     state.current_wave += 1;
     state.enemies_remaining = enemy_count;
@@ -288,10 +378,18 @@ pub fn spawn_trig_wave(
 
 /// Spawn mission boss
 pub fn spawn_trig_boss(
-    _commands: Commands,
+    mut commands: Commands,
     state: Res<TriglavianCampaignState>,
     active: Res<crate::games::ActiveModule>,
+    sprite_cache: Res<ShipSpriteCache>,
+    windows: Query<&Window>,
+    existing_bosses: Query<Entity, With<Boss>>,
 ) {
+    // Don't spawn if boss already exists
+    if !existing_bosses.is_empty() {
+        return;
+    }
+
     let faction = active.player_faction.as_deref().unwrap_or("edencom");
     let missions = if faction == "edencom" {
         edencom_missions()
@@ -299,9 +397,115 @@ pub fn spawn_trig_boss(
         triglavian_missions()
     };
 
-    if let Some(info) = missions.get(state.current_mission as usize) {
-        info!("Spawning boss: {} ({})", info.boss_name, info.boss_type_id);
-        // Boss spawn would integrate with existing boss system
+    let Some(info) = missions.get(state.current_mission as usize) else {
+        return;
+    };
+
+    info!("Spawning boss: {} ({})", info.boss_name, info.boss_type_id);
+
+    // Get boss stats based on type
+    let (health, score, scale) = match info.boss_type_id {
+        // Triglavian bosses (when player is EDENCOM)
+        triglavian::VEDMAK => (400.0, 800, 2.0),
+        triglavian::DREKAVAC => (600.0, 1200, 2.5),
+        triglavian::LESHAK => (1000.0, 2000, 3.0),
+        triglavian::IKITURSA => (500.0, 1000, 2.2),
+        triglavian::XORDAZH => (3000.0, 5000, 5.0), // World Ark - massive
+        // EDENCOM/Empire bosses (when player is Triglavian)
+        edencom::SKYBREAKER => (300.0, 600, 1.8),
+        edencom::THUNDERCHILD => (500.0, 1000, 2.5),
+        edencom::STORMBRINGER => (900.0, 1800, 3.0),
+        edencom::APOCALYPSE => (800.0, 1600, 3.5),
+        edencom::RAVEN => (700.0, 1400, 3.0),
+        edencom::MEGATHRON => (750.0, 1500, 3.2),
+        _ => (500.0, 1000, 2.5),
+    };
+
+    // Get window dimensions for spawn positioning
+    let window = windows.single();
+    let spawn_y = window.height() / 2.0 + 100.0; // Start above screen
+
+    let sprite = sprite_cache.get(info.boss_type_id);
+    let size = 64.0 * scale;
+
+    // Create boss entity
+    let mut entity = commands.spawn((
+        Boss,
+        BossData {
+            id: state.current_mission + 1,
+            stage: state.current_mission + 1,
+            name: info.boss_name.to_string(),
+            title: info.name.to_string(),
+            ship_class: get_ship_class_name(info.boss_type_id).to_string(),
+            type_id: info.boss_type_id,
+            max_health: health,
+            health,
+            current_phase: 1,
+            total_phases: 3,
+            score_value: score,
+            liberation_value: 10,
+            stationary: info.boss_type_id == triglavian::XORDAZH, // World Ark is stationary
+            dialogue_intro: format!("{} has engaged!", info.boss_name),
+            dialogue_defeat: format!("{} has been destroyed!", info.boss_name),
+            is_enraged: false,
+            enrage_threshold: 0.2,
+        },
+        BossState::Intro,
+        BossMovement {
+            pattern: MovementPattern::Descend,
+            timer: 0.0,
+            speed: 80.0,
+        },
+        BossAttack::default(),
+        Hitbox { radius: size / 2.0 },
+        Transform::from_xyz(0.0, spawn_y, LAYER_ENEMIES),
+    ));
+
+    // Add sprite
+    if let Some(image) = sprite {
+        entity.insert(Sprite {
+            image,
+            custom_size: Some(Vec2::splat(size)),
+            ..default()
+        });
+    } else {
+        // Fallback colored square
+        entity.insert(Sprite {
+            color: if faction == "edencom" {
+                Color::srgb(0.8, 0.2, 0.2) // Triglavian red
+            } else {
+                Color::srgb(0.2, 0.6, 0.9) // EDENCOM blue
+            },
+            custom_size: Some(Vec2::splat(size)),
+            ..default()
+        });
+    }
+
+    // Add disintegrator for Triglavian bosses
+    if faction == "edencom" {
+        entity.insert(crate::entities::DisintegratorRamp::new(
+            12.0, // Base damage (boss-level)
+            2.5,  // Max multiplier
+            8.0,  // Ramp time
+        ));
+    }
+}
+
+/// Get ship class name from type_id
+fn get_ship_class_name(type_id: u32) -> &'static str {
+    match type_id {
+        triglavian::DAMAVIK => "Frigate",
+        triglavian::KIKIMORA => "Destroyer",
+        triglavian::VEDMAK | triglavian::IKITURSA => "Cruiser",
+        triglavian::DREKAVAC => "Battlecruiser",
+        triglavian::LESHAK => "Battleship",
+        triglavian::XORDAZH => "World Ark",
+        edencom::SKYBREAKER => "Frigate",
+        edencom::THUNDERCHILD => "Cruiser",
+        edencom::STORMBRINGER | edencom::APOCALYPSE | edencom::RAVEN | edencom::MEGATHRON => {
+            "Battleship"
+        }
+        _ => "Unknown",
     }
 }
 

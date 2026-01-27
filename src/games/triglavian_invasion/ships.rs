@@ -18,30 +18,30 @@ pub struct TriglavianShips {
 /// Triglavian ship type IDs
 pub mod triglavian {
     // Frigates
-    pub const DAMAVIK: u32 = 47269;      // T1 Frigate
-    pub const NERGAL: u32 = 48427;       // Assault Frigate
+    pub const DAMAVIK: u32 = 47269; // T1 Frigate
+    pub const NERGAL: u32 = 48427; // Assault Frigate
 
     // Destroyers
-    pub const KIKIMORA: u32 = 49710;     // T1 Destroyer
+    pub const KIKIMORA: u32 = 49710; // T1 Destroyer
 
     // Cruisers
-    pub const VEDMAK: u32 = 47271;       // T1 Cruiser
-    pub const IKITURSA: u32 = 49711;     // Heavy Assault Cruiser
-    pub const RODIVA: u32 = 52249;       // Logistics Cruiser
-    pub const ZARMAZD: u32 = 52250;      // Logistics Cruiser (remote armor)
+    pub const VEDMAK: u32 = 47271; // T1 Cruiser
+    pub const IKITURSA: u32 = 49711; // Heavy Assault Cruiser
+    pub const RODIVA: u32 = 52249; // Logistics Cruiser
+    pub const ZARMAZD: u32 = 52250; // Logistics Cruiser (remote armor)
 
     // Battlecruisers
-    pub const DREKAVAC: u32 = 47273;     // T1 Battlecruiser
+    pub const DREKAVAC: u32 = 47273; // T1 Battlecruiser
 
     // Battleships
-    pub const LESHAK: u32 = 47466;       // T1 Battleship
-    pub const XORDAZH: u32 = 56756;      // World Ark (capital)
+    pub const LESHAK: u32 = 47466; // T1 Battleship
+    pub const XORDAZH: u32 = 56756; // World Ark (capital)
 
     // Special
-    pub const ZIRNITRA: u32 = 52907;     // Dreadnought
+    pub const ZIRNITRA: u32 = 52907; // Dreadnought
 
     // Drones
-    pub const SVAROG: u32 = 47276;       // Heavy drone platform
+    pub const SVAROG: u32 = 47276; // Heavy drone platform
 }
 
 // =============================================================================
@@ -52,13 +52,13 @@ pub mod triglavian {
 /// EDENCOM ship type IDs
 pub mod edencom {
     // Frigates
-    pub const SKYBREAKER: u32 = 56757;   // Frigate
+    pub const SKYBREAKER: u32 = 56757; // Frigate
 
     // Cruisers
-    pub const THUNDERCHILD: u32 = 56759;  // Cruiser
+    pub const THUNDERCHILD: u32 = 56759; // Cruiser
 
     // Battleships
-    pub const STORMBRINGER: u32 = 56760;  // Battleship
+    pub const STORMBRINGER: u32 = 56760; // Battleship
 
     // Empire ships commonly used with EDENCOM
     // Amarr
@@ -212,11 +212,11 @@ impl Default for ShipStats {
 /// Enemy spawn weights for Triglavian enemies (when playing as EDENCOM)
 pub fn triglavian_spawn_weights() -> Vec<(u32, u32)> {
     vec![
-        (triglavian::DAMAVIK, 50),     // Common frigate
-        (triglavian::KIKIMORA, 25),    // Uncommon destroyer
-        (triglavian::VEDMAK, 15),      // Rare cruiser
-        (triglavian::DREKAVAC, 8),     // Rare battlecruiser
-        (triglavian::LESHAK, 2),       // Very rare battleship
+        (triglavian::DAMAVIK, 50),  // Common frigate
+        (triglavian::KIKIMORA, 25), // Uncommon destroyer
+        (triglavian::VEDMAK, 15),   // Rare cruiser
+        (triglavian::DREKAVAC, 8),  // Rare battlecruiser
+        (triglavian::LESHAK, 2),    // Very rare battleship
     ]
 }
 
@@ -227,11 +227,11 @@ pub fn edencom_spawn_weights() -> Vec<(u32, u32)> {
         (edencom::MERLIN, 15),
         (edencom::PUNISHER, 10),
         (edencom::INCURSUS, 10),
-        (edencom::SKYBREAKER, 20),     // Common EDENCOM frigate
+        (edencom::SKYBREAKER, 20), // Common EDENCOM frigate
         (edencom::STABBER, 8),
         (edencom::CARACAL, 8),
-        (edencom::THUNDERCHILD, 10),   // EDENCOM cruiser
-        (edencom::STORMBRINGER, 4),    // Rare EDENCOM battleship
+        (edencom::THUNDERCHILD, 10), // EDENCOM cruiser
+        (edencom::STORMBRINGER, 4),  // Rare EDENCOM battleship
     ]
 }
 

@@ -612,6 +612,10 @@ fn get_faction_weapon(type_id: u32) -> WeaponType {
         593 | 594 | 608 | 16242 | 24700 => WeaponType::Drone,
         // Minmatar - Autocannons
         585 | 587 | 598 => WeaponType::Autocannon,
+        // Triglavian - Disintegrators (ramping damage)
+        47269 | 49710 | 47271 | 49711 | 47273 | 47466 | 56756 => WeaponType::Disintegrator,
+        // EDENCOM - Vorton projectors (chain lightning)
+        56757 | 56759 | 56760 => WeaponType::Vorton,
         _ => WeaponType::Laser,
     }
 }
@@ -716,6 +720,20 @@ pub fn spawn_enemy(
         585 => ("Slasher", 25.0, 130.0, 75, ShipClass::Frigate),
         598 => ("Breacher", 40.0, 90.0, 100, ShipClass::Frigate),
 
+        // === TRIGLAVIAN ===
+        47269 => ("Damavik", 80.0, 100.0, 150, ShipClass::Frigate), // Disintegrator frigate
+        49710 => ("Kikimora", 100.0, 90.0, 200, ShipClass::Destroyer), // Disintegrator destroyer
+        47271 => ("Vedmak", 200.0, 70.0, 350, ShipClass::Cruiser),  // Disintegrator cruiser
+        49711 => ("Ikitursa", 280.0, 60.0, 450, ShipClass::Cruiser), // HAC
+        47273 => ("Drekavac", 350.0, 50.0, 600, ShipClass::Battlecruiser), // BC
+        47466 => ("Leshak", 600.0, 40.0, 1000, ShipClass::Battleship), // BS
+        56756 => ("Xordazh", 2000.0, 20.0, 5000, ShipClass::Battleship), // World Ark (capital)
+
+        // === EDENCOM ===
+        56757 => ("Skybreaker", 90.0, 95.0, 180, ShipClass::Frigate), // Vorton frigate
+        56759 => ("Thunderchild", 220.0, 65.0, 400, ShipClass::Cruiser), // Vorton cruiser
+        56760 => ("Stormbringer", 550.0, 45.0, 900, ShipClass::Battleship), // Vorton BS
+
         // Unknown - default to frigate size
         _ => ("Unknown", 30.0, 100.0, 50, ShipClass::Frigate),
     };
@@ -735,6 +753,8 @@ pub fn spawn_enemy(
             WeaponType::MissileLauncher => 0.5, // Caldari missiles: Slowest
             WeaponType::Drone => 1.2,           // Gallente: Fast drones
             WeaponType::Autocannon => 1.5,      // Minmatar: Fastest
+            WeaponType::Disintegrator => 0.0, // Triglavian: Continuous beam (uses DisintegratorRamp)
+            WeaponType::Vorton => 0.7,        // EDENCOM: Chain lightning
             _ => 1.0,
         },
         damage: match weapon_type {
@@ -743,6 +763,8 @@ pub fn spawn_enemy(
             WeaponType::MissileLauncher => 20.0,
             WeaponType::Drone => 8.0,
             WeaponType::Autocannon => 10.0,
+            WeaponType::Disintegrator => 0.0, // Handled by DisintegratorRamp component
+            WeaponType::Vorton => 15.0,       // Chain bounces deal less per hit
             _ => 10.0,
         },
         bullet_speed: match weapon_type {
@@ -751,6 +773,8 @@ pub fn spawn_enemy(
             WeaponType::MissileLauncher => 180.0, // Slow missiles
             WeaponType::Drone => 200.0,           // Medium
             WeaponType::Autocannon => 250.0,      // Fast bullets
+            WeaponType::Disintegrator => 0.0,     // Instant (beam)
+            WeaponType::Vorton => 400.0,          // Fast lightning
             _ => 200.0,
         },
         cooldown: 0.5 + fastrand::f32() * 1.0, // Random initial delay
@@ -1086,9 +1110,9 @@ pub fn spawn_damavik(
         liberation_value: 2,
     });
 
-    // Disintegrator beam weapon
+    // Disintegrator beam weapon (tuned for survivability)
     commands.entity(entity).insert(DisintegratorRamp::new(
-        8.0, // Base damage per second
+        5.0, // Base damage per second (reduced from 8)
         2.0, // Max 2x multiplier
         6.0, // 6 seconds to max ramp
     ));
@@ -1129,7 +1153,7 @@ pub fn spawn_starving_damavik(
     });
 
     commands.entity(entity).insert(DisintegratorRamp::new(
-        6.0, // Lower base damage
+        4.0, // Lower base damage (reduced from 6)
         1.8, // Lower max multiplier
         4.0, // Faster ramp time
     ));
@@ -1169,9 +1193,9 @@ pub fn spawn_vedmak(
     });
 
     commands.entity(entity).insert(DisintegratorRamp::new(
-        15.0, // High base damage
-        2.5,  // High max multiplier
-        8.0,  // Longer ramp time
+        9.0, // High base damage (reduced from 15)
+        2.0, // Max multiplier (reduced from 2.5)
+        8.0, // Longer ramp time
     ));
 
     commands.entity(entity).remove::<EnemyWeapon>();
@@ -1209,8 +1233,8 @@ pub fn spawn_blinding_vedmak(
     });
 
     commands.entity(entity).insert(DisintegratorRamp::new(
-        12.0, // Moderate damage
-        2.0,  // Standard multiplier
+        7.0, // Moderate damage (reduced from 12)
+        2.0, // Standard multiplier
         6.0,
     ));
 
@@ -1249,8 +1273,8 @@ pub fn spawn_drekavac_boss(
     });
 
     commands.entity(entity).insert(DisintegratorRamp::new(
-        25.0, // Very high base damage
-        3.0,  // Extreme max multiplier
+        14.0, // High base damage (reduced from 25)
+        2.5,  // High max multiplier (reduced from 3.0)
         10.0, // Long ramp time (counterplay: stay mobile)
     ));
 

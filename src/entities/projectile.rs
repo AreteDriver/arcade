@@ -165,6 +165,8 @@ fn spawn_player_projectiles(
             WeaponType::Railgun => DamageType::Kinetic,
             WeaponType::MissileLauncher => DamageType::Explosive,
             WeaponType::Drone => DamageType::Thermal,
+            WeaponType::Disintegrator => DamageType::Thermal, // Triglavian entropic damage
+            WeaponType::Vorton => DamageType::EM,             // EDENCOM chain lightning
         };
 
         // Use event's bullet color, or purple if berserk

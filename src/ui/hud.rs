@@ -714,7 +714,9 @@ fn spawn_screen_edge_warnings(commands: &mut Commands) {
 
     // Top edge
     commands.spawn((
-        BuffExpirationWarning { edge: ScreenEdge::Top },
+        BuffExpirationWarning {
+            edge: ScreenEdge::Top,
+        },
         Node {
             position_type: PositionType::Absolute,
             top: Val::Px(0.0),
@@ -728,7 +730,9 @@ fn spawn_screen_edge_warnings(commands: &mut Commands) {
 
     // Bottom edge
     commands.spawn((
-        BuffExpirationWarning { edge: ScreenEdge::Bottom },
+        BuffExpirationWarning {
+            edge: ScreenEdge::Bottom,
+        },
         Node {
             position_type: PositionType::Absolute,
             bottom: Val::Px(0.0),
@@ -742,7 +746,9 @@ fn spawn_screen_edge_warnings(commands: &mut Commands) {
 
     // Left edge
     commands.spawn((
-        BuffExpirationWarning { edge: ScreenEdge::Left },
+        BuffExpirationWarning {
+            edge: ScreenEdge::Left,
+        },
         Node {
             position_type: PositionType::Absolute,
             top: Val::Px(0.0),
@@ -756,7 +762,9 @@ fn spawn_screen_edge_warnings(commands: &mut Commands) {
 
     // Right edge
     commands.spawn((
-        BuffExpirationWarning { edge: ScreenEdge::Right },
+        BuffExpirationWarning {
+            edge: ScreenEdge::Right,
+        },
         Node {
             position_type: PositionType::Absolute,
             top: Val::Px(0.0),
@@ -1273,9 +1281,9 @@ fn update_buff_expiration_warnings(
 
     // Check each buff timer
     let buffs = [
-        (effects.overdrive_timer, Color::srgb(0.3, 0.9, 1.0)),      // Cyan
-        (effects.damage_boost_timer, Color::srgb(1.0, 0.4, 0.2)),   // Orange/red
-        (effects.invuln_timer, Color::srgb(1.0, 0.9, 0.4)),         // Gold
+        (effects.overdrive_timer, Color::srgb(0.3, 0.9, 1.0)), // Cyan
+        (effects.damage_boost_timer, Color::srgb(1.0, 0.4, 0.2)), // Orange/red
+        (effects.invuln_timer, Color::srgb(1.0, 0.9, 0.4)),    // Gold
     ];
 
     for (timer, color) in buffs {

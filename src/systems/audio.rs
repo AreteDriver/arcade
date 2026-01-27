@@ -504,7 +504,9 @@ fn play_weapon_sounds(
                 AudioPlayer(source),
                 PlaybackSettings {
                     mode: PlaybackMode::Despawn,
-                    volume: Volume::new(settings.sfx_volume * settings.master_volume * 0.5 * volume_var),
+                    volume: Volume::new(
+                        settings.sfx_volume * settings.master_volume * 0.5 * volume_var,
+                    ),
                     speed: speed_var,
                     ..default()
                 },
@@ -533,10 +535,10 @@ fn play_explosion_sounds(
         } else {
             // Use score_value as proxy for ship size
             match event.score_value {
-                0..=50 => (sounds.explosion_small.clone(), 0.5, 1.1),    // Frigates
+                0..=50 => (sounds.explosion_small.clone(), 0.5, 1.1), // Frigates
                 51..=150 => (sounds.explosion_small.clone(), 0.6, 1.0), // Destroyers
                 151..=300 => (sounds.explosion_medium.clone(), 0.65, 0.95), // Cruisers
-                _ => (sounds.explosion_medium.clone(), 0.7, 0.9),       // Battlecruisers+
+                _ => (sounds.explosion_medium.clone(), 0.7, 0.9),     // Battlecruisers+
             }
         };
 
@@ -549,7 +551,9 @@ fn play_explosion_sounds(
                 AudioPlayer(source),
                 PlaybackSettings {
                     mode: PlaybackMode::Despawn,
-                    volume: Volume::new(settings.sfx_volume * settings.master_volume * base_volume * volume_var),
+                    volume: Volume::new(
+                        settings.sfx_volume * settings.master_volume * base_volume * volume_var,
+                    ),
                     speed: base_pitch * pitch_var,
                     ..default()
                 },
@@ -628,7 +632,9 @@ fn play_damage_sounds(
                 AudioPlayer(source),
                 PlaybackSettings {
                     mode: PlaybackMode::Despawn,
-                    volume: Volume::new(settings.sfx_volume * settings.master_volume * volume * volume_var),
+                    volume: Volume::new(
+                        settings.sfx_volume * settings.master_volume * volume * volume_var,
+                    ),
                     speed: pitch * pitch_var,
                     ..default()
                 },

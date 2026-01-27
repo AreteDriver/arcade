@@ -135,7 +135,7 @@ fn draw_capacitor_wheel(
             );
 
             // === HEALTH ARCS (top semicircle, EVE style) ===
-            let arc_width = 5.0;  // Scaled down for smaller wheel
+            let arc_width = 5.0; // Scaled down for smaller wheel
             let arc_gap = 1.5;
             let arc_start = -PI; // Left
             let arc_end = 0.0; // Right (top semicircle)
@@ -377,7 +377,7 @@ fn draw_capacitor_rings(
         let filled_color = {
             let pulse_mod = 0.92 + 0.08 * pulse;
             egui::Color32::from_rgb(
-                (255.0 * pulse_mod) as u8,  // Bright yellow
+                (255.0 * pulse_mod) as u8, // Bright yellow
                 (220.0 * pulse_mod) as u8,
                 (50.0 * pulse_mod) as u8,
             )
@@ -401,11 +401,7 @@ fn draw_capacitor_rings(
     }
 
     // Inner dark circle
-    painter.circle_filled(
-        center,
-        inner_radius,
-        egui::Color32::from_rgb(12, 14, 20),
-    );
+    painter.circle_filled(center, inner_radius, egui::Color32::from_rgb(12, 14, 20));
 
     // Subtle yellow glow in center when cap is high
     if cap_pct > 0.5 {
@@ -494,5 +490,3 @@ fn draw_cap_cell(
         ));
     }
 }
-
-
