@@ -1,0 +1,130 @@
+{
+  "expansion_stages": {
+    "stage_6": {
+      "name": "Capital Ship Assault",
+      "description": "Assault an Amarr supercarrier and destroy its fighter wings",
+      "act": 3,
+      "difficulty": "hard",
+      "waves": [
+        {
+          "description": "Fighter screen",
+          "enemies": [
+            {"type": "executioner", "count": 12},
+            {"type": "punisher", "count": 6}
+          ],
+          "formation": "screen"
+        },
+        {
+          "description": "Cruiser escorts",
+          "enemies": [
+            {"type": "omen", "count": 4},
+            {"type": "dragoon", "count": 2}
+          ],
+          "formation": "pincer"
+        },
+        {
+          "description": "Battlecruiser guard",
+          "enemies": [
+            {"type": "harbinger", "count": 2}
+          ],
+          "formation": "line"
+        },
+        {
+          "description": "Supercarrier",
+          "boss": "amarr_supercarrier"
+        }
+      ],
+      "liberation_bonus": 100,
+      "background": "capital_assault"
+    },
+
+    "stage_7": {
+      "name": "Sisters Rescue",
+      "description": "Assist Sisters of EVE in rescuing refugees from pirate attacks",
+      "act": 3,
+      "difficulty": "medium",
+      "waves": [
+        {
+          "description": "Pirate raiders",
+          "enemies": [
+            {"type": "punisher", "count": 8},
+            {"type": "dragoon", "count": 3}
+          ],
+          "formation": "swarm"
+        },
+        {
+          "description": "Heavy pursuit",
+          "enemies": [
+            {"type": "coercer", "count": 3},
+            {"type": "omen", "count": 2}
+          ],
+          "formation": "spread"
+        },
+        {
+          "description": "SoE Stratios",
+          "boss": "stratios",
+          "narrative": "The Stratios captain mistakes you for pirates - prove your intentions"
+        }
+      ],
+      "liberation_bonus": 50,
+      "background": "soe_station"
+    },
+
+    "stage_8": {
+      "name": "Pirate Invasion",
+      "description": "Repel an Angel Cartel invasion fleet led by the Machariel",
+      "act": 3,
+      "difficulty": "hard",
+      "waves": [
+        {
+          "description": "Raider vanguard",
+          "enemies": [
+            {"type": "pirate_frigate", "count": 8},
+            {"type": "executioner", "count": 4}
+          ],
+          "formation": "rush"
+        },
+        {
+          "description": "Cartel cruisers",
+          "enemies": [
+            {"type": "omen", "count": 3},
+            {"type": "maller_cruiser", "count": 2}
+          ],
+          "formation": "line"
+        },
+        {
+          "description": "Elite guard",
+          "enemies": [
+            {"type": "harbinger", "count": 2},
+            {"type": "oracle_gunship", "count": 2}
+          ],
+          "formation": "spread"
+        },
+        {
+          "description": "Machariel flagship",
+          "boss": "machariel"
+        }
+      ],
+      "liberation_bonus": 75,
+      "background": "pirate_invasion"
+    }
+  },
+
+  "narrative_context": {
+    "stage_6": {
+      "briefing": "The Amarr have deployed a supercarrier to crush the liberation. This capital ship carries hundreds of enslaved souls. Destroy it, free them all.",
+      "elder_quote": "The chains that bind a thousand cannot hold against one who fights for freedom.",
+      "victory": "The supercarrier falls. A hundred souls return to their people."
+    },
+    "stage_7": {
+      "briefing": "Sisters of EVE ships carry refugees to safety, but pirates prey on the convoy. The Stratios captain is wary of all armed vessels.",
+      "elder_quote": "Not all who fight the Empire are friends. Prove your worth through action.",
+      "victory": "The Sisters recognize a fellow liberator. The refugees are safe."
+    },
+    "stage_8": {
+      "briefing": "The Angel Cartel sees opportunity in chaos. Their Machariel leads an invasion fleet. The liberation cannot afford another enemy.",
+      "elder_quote": "Vultures circle the dying. Show them the Minmatar are not prey.",
+      "victory": "The Cartel retreats. The liberation continues."
+    }
+  }
+}
