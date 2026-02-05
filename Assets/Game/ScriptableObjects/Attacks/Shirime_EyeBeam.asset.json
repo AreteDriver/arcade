@@ -1,0 +1,14 @@
+{
+    "AttackId": "Shirime_EyeBeam",
+    "DisplayName": "Eye Beam",
+    "StartupFrames": 30,
+    "ActiveFrames": 10,
+    "RecoveryFrames": 40,
+    "Telegraph": 1,
+    "TelegraphLeadFrames": 10,
+    "Damage": 1,
+    "Unblockable": false,
+    "CorrectResponse": 1,
+    "HitboxOffset": { "x": 0, "y": 1, "z": 2 },
+    "HitboxSize": { "x": 1, "y": 1, "z": 3 }
+}

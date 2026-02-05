@@ -1,0 +1,14 @@
+{
+    "AttackId": "Oni_Counter",
+    "DisplayName": "Demon's Rebuke",
+    "StartupFrames": 8,
+    "ActiveFrames": 6,
+    "RecoveryFrames": 25,
+    "Telegraph": 1,
+    "TelegraphLeadFrames": 3,
+    "Damage": 1,
+    "Unblockable": false,
+    "CorrectResponse": 1,
+    "HitboxOffset": { "x": 0, "y": 1.5, "z": 1.5 },
+    "HitboxSize": { "x": 3, "y": 2, "z": 3 }
+}

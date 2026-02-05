@@ -1,0 +1,14 @@
+{
+    "AttackId": "Oni_Combo1",
+    "DisplayName": "First Fist",
+    "StartupFrames": 12,
+    "ActiveFrames": 4,
+    "RecoveryFrames": 8,
+    "Telegraph": 1,
+    "TelegraphLeadFrames": 4,
+    "Damage": 1,
+    "Unblockable": false,
+    "CorrectResponse": 1,
+    "HitboxOffset": { "x": 0, "y": 1.2, "z": 1 },
+    "HitboxSize": { "x": 1.5, "y": 1.5, "z": 2 }
+}
