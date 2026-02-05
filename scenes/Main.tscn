@@ -1,0 +1,39 @@
+[gd_scene load_steps=7 format=3 uid="uid://main_scene"]
+
+[ext_resource type="PackedScene" uid="uid://battle_map" path="res://scenes/map/BattleMap.tscn" id="1_map"]
+[ext_resource type="Script" path="res://scripts/presentation/RTSCamera.gd" id="2_camera"]
+[ext_resource type="Script" path="res://scripts/presentation/SelectionManager.gd" id="3_selection"]
+[ext_resource type="Script" path="res://scripts/presentation/HUD.gd" id="4_hud"]
+[ext_resource type="Script" path="res://scripts/ai/AICommander.gd" id="5_ai"]
+[ext_resource type="Script" path="res://scripts/MatchController.gd" id="6_match"]
+
+[node name="Main" type="Node3D"]
+
+[node name="BattleMap" parent="." instance=ExtResource("1_map")]
+
+[node name="RTSCamera" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.5, 0.866, 0, -0.866, 0.5, 0, 35, 35)
+current = true
+fov = 50.0
+script = ExtResource("2_camera")
+pan_speed = 30.0
+zoom_speed = 5.0
+rotate_speed = 2.0
+min_zoom = 15.0
+max_zoom = 60.0
+initial_zoom = 35.0
+
+[node name="SelectionManager" type="Node" parent="."]
+script = ExtResource("3_selection")
+
+[node name="AICommander" type="Node" parent="."]
+script = ExtResource("5_ai")
+team = 1
+decision_interval = 2.0
+aggression = 0.5
+
+[node name="HUD" type="CanvasLayer" parent="."]
+script = ExtResource("4_hud")
+
+[node name="MatchController" type="Node" parent="."]
+script = ExtResource("6_match")

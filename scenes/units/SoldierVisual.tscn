@@ -1,0 +1,27 @@
+[gd_scene load_steps=5 format=3 uid="uid://soldier_visual"]
+
+[ext_resource type="Script" path="res://scripts/presentation/SoldierVisual.gd" id="1_soldier"]
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_body"]
+radius = 0.3
+height = 1.6
+
+[sub_resource type="SphereMesh" id="SphereMesh_head"]
+radius = 0.2
+height = 0.4
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_default"]
+albedo_color = Color(0.3, 0.5, 0.8, 1)
+
+[node name="SoldierVisual" type="Node3D"]
+script = ExtResource("1_soldier")
+
+[node name="Body" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
+mesh = SubResource("CapsuleMesh_body")
+surface_material_override/0 = SubResource("StandardMaterial3D_default")
+
+[node name="Head" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0)
+mesh = SubResource("SphereMesh_head")
+surface_material_override/0 = SubResource("StandardMaterial3D_default")
