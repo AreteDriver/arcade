@@ -1,0 +1,63 @@
+[gd_resource type="Resource" script_class="MachineDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/systems/machine_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+machine_name = "Infinity Machine"
+machine_description = "A self-sustaining loop — the machine powers itself forever!"
+world = 4
+level = 3
+challenge_type = "incomplete"
+machine_data = {
+"components": [
+	{
+		"id": "fusion_001",
+		"type": "fusion_core",
+		"position": [300, 200],
+		"parameters": {"output_level": 50.0, "stability": 60.0},
+		"connections": [
+			{"from_port": "energy_out", "to": "gear_001", "to_port": "energy_in"}
+		]
+	},
+	{
+		"id": "gear_001",
+		"type": "gear",
+		"position": [500, 200],
+		"parameters": {"size": 1.5, "teeth_count": 10.0},
+		"connections": [
+			{"from_port": "energy_out", "to": "loop_001", "to_port": "energy_in"}
+		]
+	},
+	{
+		"id": "loop_001",
+		"type": "time_loop_relay",
+		"position": [700, 300],
+		"parameters": {"loop_delay": 0.5, "decay": 10.0},
+		"connections": []
+	}
+]
+}
+challenge_data = {
+"missing_slots": [
+	{
+		"position": [500, 400],
+		"type": "quantum_coupler",
+		"connections": []
+	},
+	{
+		"position": [300, 400],
+		"type": "chrono_spring",
+		"connections": []
+	}
+]
+}
+objectives = ["Complete the loop! Add a Quantum Coupler and Chrono Spring to feed energy back.", "The machine should sustain itself — energy loops from output back to input."]
+hints = ["Place the Quantum Coupler below the Time Loop Relay to beam energy back.", "The Chrono Spring should buffer energy before it feeds back to the Fusion Core.", "Wire: Loop Relay → Quantum Coupler → Chrono Spring → back into the system.", "Low decay on the Time Loop Relay keeps the loop going longer!"]
+par_time_3_star = 60.0
+par_time_2_star = 110.0
+unlock_rewards = []
+intro_dialog = ["The Infinity Machine is the ultimate engineering challenge!", "It needs to power ITSELF — energy flows in a loop forever.", "The core loop exists but it needs two more components to close the circuit.", "Can you create perpetual motion?"]
+success_dialog = ["The Infinity Machine runs forever! Energy flows in a perfect loop!", "You've achieved the impossible — a self-sustaining system!", "One final challenge remains — the Everything Engine!"]
+available_components = ["fusion_core", "gear", "time_loop_relay", "quantum_coupler", "chrono_spring", "spring", "valve"]
+locked_component_ids = ["fusion_001", "gear_001", "loop_001"]

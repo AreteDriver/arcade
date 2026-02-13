@@ -1,0 +1,70 @@
+[gd_resource type="Resource" script_class="MachineDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/systems/machine_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+machine_name = "Time Stretcher"
+machine_description = "Chain Chrono Springs together to slow down time itself!"
+world = 4
+level = 2
+challenge_type = "broken"
+machine_data = {
+"components": [
+	{
+		"id": "fusion_001",
+		"type": "fusion_core",
+		"position": [200, 300],
+		"parameters": {"output_level": 60.0, "stability": 75.0},
+		"connections": [
+			{"from_port": "energy_out", "to": "chrono_001", "to_port": "energy_in"}
+		]
+	},
+	{
+		"id": "chrono_001",
+		"type": "chrono_spring",
+		"position": [380, 300],
+		"parameters": {"delay": 1.0, "charge_rate": 60.0},
+		"connections": [
+			{"from_port": "energy_out", "to": "chrono_002", "to_port": "energy_in"}
+		]
+	},
+	{
+		"id": "chrono_002",
+		"type": "chrono_spring",
+		"position": [560, 300],
+		"parameters": {"delay": 2.0, "charge_rate": 50.0},
+		"connections": [
+			{"from_port": "energy_out", "to": "chrono_003", "to_port": "energy_in"}
+		]
+	},
+	{
+		"id": "chrono_003",
+		"type": "chrono_spring",
+		"position": [740, 300],
+		"parameters": {"delay": 3.0, "charge_rate": 40.0},
+		"connections": [
+			{"from_port": "energy_out", "to": "loop_001", "to_port": "energy_in"}
+		]
+	},
+	{
+		"id": "loop_001",
+		"type": "time_loop_relay",
+		"position": [900, 300],
+		"parameters": {"loop_delay": 1.5, "decay": 20.0},
+		"connections": []
+	}
+]
+}
+challenge_data = {
+"broken_ids": ["chrono_002"]
+}
+objectives = ["The middle Chrono Spring is broken! Replace it to restore the time chain.", "Each spring should have increasing delay for the time-stretch effect."]
+hints = ["The sparking component in the middle is the broken one.", "Drag a new Chrono Spring from the tray to replace it.", "Set the delay to 2.0 and charge rate to 50 on the new one.", "Don't forget to reconnect the wires!"]
+par_time_3_star = 35.0
+par_time_2_star = 70.0
+unlock_rewards = []
+intro_dialog = ["The Time Stretcher chains Chrono Springs together to slow time!", "Each spring adds more delay, stretching moments into minutes.", "But the middle spring is busted — time is skipping instead of stretching!", "Replace the broken spring and restore the time flow!"]
+success_dialog = ["Time is stretching beautifully — moments last forever!", "The chain of Chrono Springs creates a perfect time gradient!", "Two more challenges to go in the Impossible Lab!"]
+available_components = ["chrono_spring", "time_loop_relay", "gear", "pipe"]
+locked_component_ids = ["fusion_001", "chrono_001", "chrono_003", "loop_001"]

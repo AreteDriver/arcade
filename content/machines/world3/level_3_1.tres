@@ -1,0 +1,54 @@
+[gd_resource type="Resource" script_class="MachineDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/systems/machine_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+machine_name = "Dream Recorder"
+machine_description = "Captures thoughts as flowing particles and records them!"
+world = 3
+level = 1
+challenge_type = "incomplete"
+machine_data = {
+"components": [
+	{
+		"id": "emotion_001",
+		"type": "emotion_sensor",
+		"position": [250, 300],
+		"parameters": {"sensitivity": 60.0, "response_time": 50.0},
+		"connections": [
+			{"from_port": "signal_out", "to": "plasma_001", "to_port": "flow_in"}
+		]
+	},
+	{
+		"id": "plasma_001",
+		"type": "plasma_conduit",
+		"position": [500, 300],
+		"parameters": {"temperature": 40.0, "viscosity": 60.0},
+		"connections": []
+	}
+]
+}
+challenge_data = {
+"missing_slots": [
+	{
+		"position": [750, 300],
+		"type": "holo_projector",
+		"connections": []
+	},
+	{
+		"position": [350, 180],
+		"type": "chrono_spring",
+		"connections": []
+	}
+]
+}
+objectives = ["Add the Holo Projector to display the dream and a Chrono Spring to store it!", "The dream flows from the Emotion Sensor through the conduit to the display."]
+hints = ["Place the Holo Projector at the end of the chain to display the dream.", "The Chrono Spring stores energy for timed release — it buffers the dream.", "Wire the Plasma Conduit's output to the Holo Projector's input."]
+par_time_3_star = 50.0
+par_time_2_star = 90.0
+unlock_rewards = ["emotion_sensor", "dimensional_splitter"]
+intro_dialog = ["Welcome to the Dream Workshop!", "The Dream Recorder captures your thoughts as flowing particles of light.", "But it can't display or store dreams yet — some parts are missing!"]
+success_dialog = ["Your dreams are being recorded! Look at those beautiful patterns!", "You've unlocked the Emotion Sensor and Dimensional Splitter!", "Dreams are powerful things — let's see what else we can build!"]
+available_components = ["emotion_sensor", "plasma_conduit", "holo_projector", "chrono_spring", "pipe"]
+locked_component_ids = ["emotion_001", "plasma_001"]

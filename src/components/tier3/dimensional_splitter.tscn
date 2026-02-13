@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/components/tier3/dimensional_splitter.gd" id="1"]
+
+[node name="DimensionalSplitter" type="Node2D"]
+script = ExtResource("1")
+component_name = "Dimensional Splitter"
+component_description = "Duplicates flow into parallel output paths."

@@ -1,0 +1,65 @@
+[gd_resource type="Resource" script_class="MachineDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/systems/machine_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+machine_name = "Rainbow Engine"
+machine_description = "Splits light through prismatic conduits to paint the sky!"
+world = 2
+level = 2
+challenge_type = "miscalibrated"
+machine_data = {
+"components": [
+	{
+		"id": "fusion_001",
+		"type": "fusion_core",
+		"position": [250, 300],
+		"parameters": {"output_level": 70.0, "stability": 80.0},
+		"connections": [
+			{"from_port": "energy_out", "to": "plasma_001", "to_port": "flow_in"}
+		]
+	},
+	{
+		"id": "plasma_001",
+		"type": "plasma_conduit",
+		"position": [450, 300],
+		"parameters": {"temperature": 30.0, "viscosity": 80.0},
+		"connections": [
+			{"from_port": "flow_out", "to": "phase_001", "to_port": "flow_in"}
+		]
+	},
+	{
+		"id": "phase_001",
+		"type": "phase_gate",
+		"position": [650, 300],
+		"parameters": {"filter_type": 2.0, "selectivity": 20.0},
+		"connections": [
+			{"from_port": "flow_out", "to": "holo_001", "to_port": "energy_in"}
+		]
+	},
+	{
+		"id": "holo_001",
+		"type": "holo_projector",
+		"position": [850, 300],
+		"parameters": {"pattern": 2.0, "brightness": 40.0},
+		"connections": []
+	}
+]
+}
+challenge_data = {
+"target_params": {
+	"plasma_001": {"temperature": 75.0, "viscosity": 30.0},
+	"phase_001": {"filter_type": 0.0, "selectivity": 70.0},
+	"holo_001": {"brightness": 90.0}
+}
+}
+objectives = ["Adjust the Plasma Conduit, Phase Gate, and Holo Projector to create a proper rainbow!", "The light needs to be hot, fast, and filtered correctly."]
+hints = ["The Plasma Conduit temperature should be much higher — light needs heat!", "Lower the viscosity so the plasma flows faster through the conduit.", "The Phase Gate filter type should be set to Red (0) for the first color.", "Crank up the Holo Projector brightness to see the full rainbow!"]
+par_time_3_star = 40.0
+par_time_2_star = 75.0
+unlock_rewards = ["phase_gate", "holo_projector"]
+intro_dialog = ["The Rainbow Engine should paint colors across the sky!", "But someone mixed up all the settings — the colors are muddy and dim.", "Tweak the parameters to get the light flowing properly!"]
+success_dialog = ["Beautiful! A perfect rainbow stretches across the sky!", "You've unlocked the Phase Gate and Holo Projector!", "You're becoming quite the light engineer!"]
+available_components = ["fusion_core", "plasma_conduit", "phase_gate", "holo_projector"]
+locked_component_ids = ["fusion_001", "plasma_001", "phase_001", "holo_001"]

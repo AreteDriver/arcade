@@ -10,6 +10,7 @@ var _registry: Dictionary = {}
 func _ready() -> void:
 	_register_tier1_components()
 	_register_tier2_components()
+	_register_tier3_components()
 
 
 func _register_tier1_components() -> void:
@@ -33,6 +34,20 @@ func _register_tier1_components() -> void:
 		"description": "Blows objects with wind force. Adjust speed and direction.",
 		"tier": 1,
 		"category": "force",
+	})
+	register_component("gear", {
+		"scene_path": "res://src/components/tier1/gear.tscn",
+		"display_name": "Gear",
+		"description": "Transfers and scales energy. Size affects torque/speed ratio.",
+		"tier": 1,
+		"category": "mechanical",
+	})
+	register_component("spring", {
+		"scene_path": "res://src/components/tier1/spring.tscn",
+		"display_name": "Spring",
+		"description": "Bouncy energy storage. Launches objects upward.",
+		"tier": 1,
+		"category": "mechanical",
 	})
 	register_component("switch", {
 		"scene_path": "res://src/components/tier1/switch.tscn",
@@ -71,6 +86,86 @@ func _register_tier2_components() -> void:
 		"description": "Radial force field. Attracts or repels nearby objects.",
 		"tier": 2,
 		"category": "force",
+	})
+	register_component("plasma_conduit", {
+		"scene_path": "res://src/components/tier2/plasma_conduit.tscn",
+		"display_name": "Plasma Conduit",
+		"description": "Glowing flow tube. Temperature and viscosity control flow speed.",
+		"tier": 2,
+		"category": "flow",
+	})
+	register_component("quantum_coupler", {
+		"scene_path": "res://src/components/tier2/quantum_coupler.tscn",
+		"display_name": "Quantum Coupler",
+		"description": "Wireless energy transfer through quantum entanglement.",
+		"tier": 2,
+		"category": "energy",
+	})
+	register_component("chrono_spring", {
+		"scene_path": "res://src/components/tier2/chrono_spring.tscn",
+		"display_name": "Chrono Spring",
+		"description": "Stores energy over time, then releases in a burst.",
+		"tier": 2,
+		"category": "energy",
+	})
+	register_component("phase_gate", {
+		"scene_path": "res://src/components/tier2/phase_gate.tscn",
+		"display_name": "Phase Gate",
+		"description": "Filters flow by type. Signal input toggles gate.",
+		"tier": 2,
+		"category": "flow",
+	})
+	register_component("warp_belt", {
+		"scene_path": "res://src/components/tier2/warp_belt.tscn",
+		"display_name": "Warp Belt",
+		"description": "Teleports objects along a path between endpoints.",
+		"tier": 2,
+		"category": "mechanical",
+	})
+	register_component("holo_projector", {
+		"scene_path": "res://src/components/tier2/holo_projector.tscn",
+		"display_name": "Holo Projector",
+		"description": "Visual output indicator. Displays holographic patterns.",
+		"tier": 2,
+		"category": "signal",
+	})
+
+
+func _register_tier3_components() -> void:
+	register_component("dimensional_splitter", {
+		"scene_path": "res://src/components/tier3/dimensional_splitter.tscn",
+		"display_name": "Dim. Splitter",
+		"description": "Duplicates flow into parallel output paths.",
+		"tier": 3,
+		"category": "flow",
+	})
+	register_component("time_loop_relay", {
+		"scene_path": "res://src/components/tier3/time_loop_relay.tscn",
+		"display_name": "Time Loop Relay",
+		"description": "Cycles output back to input with configurable delay.",
+		"tier": 3,
+		"category": "energy",
+	})
+	register_component("emotion_sensor", {
+		"scene_path": "res://src/components/tier3/emotion_sensor.tscn",
+		"display_name": "Emotion Sensor",
+		"description": "Reacts to signal patterns with emotional responses.",
+		"tier": 3,
+		"category": "signal",
+	})
+	register_component("sound_forge", {
+		"scene_path": "res://src/components/tier3/sound_forge.tscn",
+		"display_name": "Sound Forge",
+		"description": "Converts energy into musical tones with visual notes.",
+		"tier": 3,
+		"category": "energy",
+	})
+	register_component("cloud_weaver", {
+		"scene_path": "res://src/components/tier3/cloud_weaver.tscn",
+		"display_name": "Cloud Weaver",
+		"description": "Particle system sculptor. Shapes flow into clouds.",
+		"tier": 3,
+		"category": "flow",
 	})
 
 

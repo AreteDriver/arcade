@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/components/tier1/spring.gd" id="1_spring"]
+
+[node name="Spring" type="Node2D"]
+script = ExtResource("1_spring")
+component_name = "Spring"
+component_description = "Stores energy and bounces objects. Stiffer = stronger bounce."

@@ -1,0 +1,75 @@
+[gd_resource type="Resource" script_class="MachineDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/systems/machine_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+machine_name = "Imagination Amplifier"
+machine_description = "Small ideas become BIG via energy chains!"
+world = 3
+level = 2
+challenge_type = "miscalibrated"
+machine_data = {
+"components": [
+	{
+		"id": "switch_001",
+		"type": "switch",
+		"position": [200, 300],
+		"parameters": {"mode": 0.0},
+		"connections": [
+			{"from_port": "signal_out", "to": "gear_001", "to_port": "energy_in"}
+		]
+	},
+	{
+		"id": "gear_001",
+		"type": "gear",
+		"position": [380, 300],
+		"parameters": {"size": 0.5, "teeth_count": 6.0},
+		"connections": [
+			{"from_port": "energy_out", "to": "gear_002", "to_port": "energy_in"}
+		]
+	},
+	{
+		"id": "gear_002",
+		"type": "gear",
+		"position": [560, 300],
+		"parameters": {"size": 0.8, "teeth_count": 8.0},
+		"connections": [
+			{"from_port": "energy_out", "to": "spring_001", "to_port": "energy_in"}
+		]
+	},
+	{
+		"id": "spring_001",
+		"type": "spring",
+		"position": [740, 300],
+		"parameters": {"stiffness": 30.0, "compression": 20.0},
+		"connections": [
+			{"from_port": "energy_out", "to": "sound_001", "to_port": "energy_in"}
+		]
+	},
+	{
+		"id": "sound_001",
+		"type": "sound_forge",
+		"position": [900, 300],
+		"parameters": {"pitch": 20.0, "volume": 30.0},
+		"connections": []
+	}
+]
+}
+challenge_data = {
+"target_params": {
+	"gear_001": {"size": 1.0, "teeth_count": 8.0},
+	"gear_002": {"size": 1.8, "teeth_count": 14.0},
+	"spring_001": {"stiffness": 80.0, "compression": 70.0},
+	"sound_001": {"pitch": 70.0, "volume": 85.0}
+}
+}
+objectives = ["Amplify the tiny idea into a BIG sound! Increase gear sizes and spring power.", "Each component should be bigger than the last — that's how amplification works!"]
+hints = ["Make the first Gear size 1.0 — it's the initial boost.", "The second Gear should be even bigger (1.8) with more teeth (14).", "Crank up the Spring stiffness and compression for maximum bounce!", "Turn up the Sound Forge volume and pitch so we can hear the big idea!"]
+par_time_3_star = 45.0
+par_time_2_star = 80.0
+unlock_rewards = ["sound_forge", "time_loop_relay"]
+intro_dialog = ["The Imagination Amplifier takes a tiny idea and makes it ENORMOUS!", "Right now it's barely a whisper. The gears are too small and the spring is too weak.", "Crank everything up! Make that idea ROAR!"]
+success_dialog = ["BOOM! That's one powerful idea! The whole workshop is vibrating!", "You've unlocked the Sound Forge and Time Loop Relay!", "With great amplification comes great responsibility!"]
+available_components = ["switch", "gear", "spring", "sound_forge"]
+locked_component_ids = ["switch_001", "gear_001", "gear_002", "spring_001", "sound_001"]

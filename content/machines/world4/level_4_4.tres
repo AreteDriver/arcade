@@ -1,0 +1,111 @@
+[gd_resource type="Resource" script_class="MachineDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/systems/machine_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+machine_name = "The Everything Engine"
+machine_description = "The ultimate machine — uses EVERY component type together!"
+world = 4
+level = 4
+challenge_type = "overloaded"
+machine_data = {
+"components": [
+	{
+		"id": "fusion_001",
+		"type": "fusion_core",
+		"position": [150, 300],
+		"parameters": {"output_level": 85.0, "stability": 40.0},
+		"connections": [
+			{"from_port": "energy_out", "to": "gear_001", "to_port": "energy_in"}
+		]
+	},
+	{
+		"id": "gear_001",
+		"type": "gear",
+		"position": [300, 250],
+		"parameters": {"size": 1.8, "teeth_count": 14.0},
+		"connections": [
+			{"from_port": "energy_out", "to": "spring_001", "to_port": "energy_in"}
+		]
+	},
+	{
+		"id": "spring_001",
+		"type": "spring",
+		"position": [450, 200],
+		"parameters": {"stiffness": 90.0, "compression": 80.0},
+		"connections": [
+			{"from_port": "energy_out", "to": "quantum_001", "to_port": "energy_in"}
+		]
+	},
+	{
+		"id": "quantum_001",
+		"type": "quantum_coupler",
+		"position": [600, 200],
+		"parameters": {"sync_range": 350.0, "sync_rate": 90.0},
+		"connections": [
+			{"from_port": "energy_out", "to": "chrono_001", "to_port": "energy_in"}
+		]
+	},
+	{
+		"id": "chrono_001",
+		"type": "chrono_spring",
+		"position": [750, 250],
+		"parameters": {"delay": 1.0, "charge_rate": 90.0},
+		"connections": [
+			{"from_port": "energy_out", "to": "grav_001", "to_port": "energy_in"}
+		]
+	},
+	{
+		"id": "grav_001",
+		"type": "gravity_node",
+		"position": [750, 400],
+		"parameters": {"field_strength": 85.0, "polarity": 0.0, "radius": 250.0},
+		"connections": []
+	},
+	{
+		"id": "plasma_001",
+		"type": "plasma_conduit",
+		"position": [450, 400],
+		"parameters": {"temperature": 90.0, "viscosity": 10.0},
+		"connections": [
+			{"from_port": "flow_out", "to": "splitter_001", "to_port": "flow_in"}
+		]
+	},
+	{
+		"id": "splitter_001",
+		"type": "dimensional_splitter",
+		"position": [600, 400],
+		"parameters": {"split_ratio": 50.0, "stability": 30.0},
+		"connections": []
+	},
+	{
+		"id": "emotion_001",
+		"type": "emotion_sensor",
+		"position": [150, 450],
+		"parameters": {"sensitivity": 90.0, "response_time": 80.0},
+		"connections": [
+			{"from_port": "signal_out", "to": "sound_001", "to_port": "energy_in"}
+		]
+	},
+	{
+		"id": "sound_001",
+		"type": "sound_forge",
+		"position": [300, 450],
+		"parameters": {"pitch": 80.0, "volume": 90.0},
+		"connections": []
+	}
+]
+}
+challenge_data = {
+"overload_threshold": 0
+}
+objectives = ["The Everything Engine uses every component type — but it's overloading!", "Stabilize ALL components. Reduce power, add buffers, rewire as needed.", "No component should be in the red when you're done."]
+hints = ["Start with the Fusion Core — lower its output below its stability.", "The Dimensional Splitter stability is very low — increase it.", "You can add Valves and extra Gears to regulate energy flow.", "The Gravity Node field strength is too high for the energy it receives.", "Work through the chain from left to right — fix each overload in order."]
+par_time_3_star = 75.0
+par_time_2_star = 120.0
+unlock_rewards = []
+intro_dialog = ["This is it — The Everything Engine!", "Every component type working together in one massive machine.", "But it's a total mess — overloads everywhere, energy flying out of control!", "This is the ultimate test. Can you tame the chaos and make it all work together?", "Good luck, engineer. You're going to need it!"]
+success_dialog = ["YOU DID IT! The Everything Engine purrs like a kitten!", "Every component type working in perfect harmony!", "You are now a MASTER ENGINEER of the Machine Shop of Tomorrow!", "Thank you for playing! Try Inventor Mode to build your own machines!"]
+available_components = ["fusion_core", "gear", "spring", "pipe", "fan", "valve", "conveyor", "switch", "plasma_conduit", "quantum_coupler", "chrono_spring", "phase_gate", "warp_belt", "holo_projector", "gravity_node", "dimensional_splitter", "time_loop_relay", "emotion_sensor", "sound_forge", "cloud_weaver"]
+locked_component_ids = []

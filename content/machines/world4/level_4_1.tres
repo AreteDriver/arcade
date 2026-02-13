@@ -1,0 +1,71 @@
+[gd_resource type="Resource" script_class="MachineDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/systems/machine_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+machine_name = "Gravity Reverser"
+machine_description = "Flip gravity upside down! A full system inversion puzzle."
+world = 4
+level = 1
+challenge_type = "miscalibrated"
+machine_data = {
+"components": [
+	{
+		"id": "fusion_001",
+		"type": "fusion_core",
+		"position": [200, 300],
+		"parameters": {"output_level": 50.0, "stability": 70.0},
+		"connections": [
+			{"from_port": "energy_out", "to": "grav_001", "to_port": "energy_in"}
+		]
+	},
+	{
+		"id": "grav_001",
+		"type": "gravity_node",
+		"position": [400, 200],
+		"parameters": {"field_strength": 30.0, "polarity": 0.0, "radius": 100.0},
+		"connections": []
+	},
+	{
+		"id": "grav_002",
+		"type": "gravity_node",
+		"position": [400, 400],
+		"parameters": {"field_strength": 30.0, "polarity": 0.0, "radius": 100.0},
+		"connections": []
+	},
+	{
+		"id": "quantum_001",
+		"type": "quantum_coupler",
+		"position": [600, 300],
+		"parameters": {"sync_range": 150.0, "sync_rate": 40.0},
+		"connections": [
+			{"from_port": "energy_out", "to": "grav_002", "to_port": "energy_in"}
+		]
+	},
+	{
+		"id": "warp_001",
+		"type": "warp_belt",
+		"position": [700, 200],
+		"parameters": {"belt_length": 120.0, "speed": 50.0},
+		"connections": []
+	}
+]
+}
+challenge_data = {
+"target_params": {
+	"grav_001": {"field_strength": 80.0, "polarity": 1.0, "radius": 200.0},
+	"grav_002": {"field_strength": 80.0, "polarity": 0.0, "radius": 200.0},
+	"quantum_001": {"sync_range": 300.0, "sync_rate": 75.0},
+	"warp_001": {"speed": 80.0}
+}
+}
+objectives = ["Reverse gravity! The top node should repel, the bottom should attract.", "Increase field strength, range, and sync rate for full inversion."]
+hints = ["Set the top Gravity Node polarity to 1 (repel) to push things up.", "The bottom Gravity Node should stay at 0 (attract) to pull things down.", "Increase both field strengths to 80 for strong gravity fields.", "The Quantum Coupler needs higher sync range and rate to power the bottom node."]
+par_time_3_star = 50.0
+par_time_2_star = 90.0
+unlock_rewards = []
+intro_dialog = ["Welcome to the Impossible Lab — where physics gets weird!", "The Gravity Reverser should flip everything upside down.", "But the gravity fields are too weak and pointed the wrong way!", "Set the polarities and strengths to create a proper gravity flip!"]
+success_dialog = ["Gravity reversed! Everything is floating upward!", "You're bending the laws of physics — impressive!", "The Impossible Lab has more challenges ahead..."]
+available_components = ["fusion_core", "gravity_node", "quantum_coupler", "warp_belt"]
+locked_component_ids = ["fusion_001", "grav_001", "grav_002", "quantum_001", "warp_001"]

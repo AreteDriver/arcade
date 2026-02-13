@@ -100,6 +100,14 @@ func get_total_stars() -> int:
 	return total
 
 
+## Reset all progress (used from settings)
+func reset_progress() -> void:
+	_level_progress.clear()
+	_unlocked_components = STARTING_COMPONENTS.duplicate()
+	save_progress()
+	progress_updated.emit()
+
+
 ## Save progress to disk
 func save_progress() -> void:
 	var data: Dictionary = {

@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/components/tier3/sound_forge.gd" id="1"]
+
+[node name="SoundForge" type="Node2D"]
+script = ExtResource("1")
+component_name = "Sound Forge"
+component_description = "Converts energy into musical tones with visual notes."

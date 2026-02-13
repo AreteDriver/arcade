@@ -1,0 +1,60 @@
+[gd_resource type="Resource" script_class="MachineDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/systems/machine_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+machine_name = "Nightmare Filter"
+machine_description = "Phase gates sort good dreams from bad ones!"
+world = 3
+level = 3
+challenge_type = "broken"
+machine_data = {
+"components": [
+	{
+		"id": "fusion_001",
+		"type": "fusion_core",
+		"position": [200, 300],
+		"parameters": {"output_level": 60.0, "stability": 70.0},
+		"connections": [
+			{"from_port": "energy_out", "to": "splitter_001", "to_port": "flow_in"}
+		]
+	},
+	{
+		"id": "splitter_001",
+		"type": "dimensional_splitter",
+		"position": [400, 300],
+		"parameters": {"split_ratio": 50.0, "stability": 70.0},
+		"connections": [
+			{"from_port": "flow_out_a", "to": "phase_001", "to_port": "flow_in"},
+			{"from_port": "flow_out_b", "to": "phase_002", "to_port": "flow_in"}
+		]
+	},
+	{
+		"id": "phase_001",
+		"type": "phase_gate",
+		"position": [600, 220],
+		"parameters": {"filter_type": 1.0, "selectivity": 70.0},
+		"connections": []
+	},
+	{
+		"id": "phase_002",
+		"type": "phase_gate",
+		"position": [600, 380],
+		"parameters": {"filter_type": 0.0, "selectivity": 70.0},
+		"connections": []
+	}
+]
+}
+challenge_data = {
+"broken_ids": ["splitter_001"]
+}
+objectives = ["The Dimensional Splitter is broken! Replace it to sort dreams properly.", "Good dreams go through the top gate, nightmares through the bottom."]
+hints = ["The broken component is sparking — look for the one with red warning signs.", "Drag a new Dimensional Splitter from the tray to replace the broken one.", "Make sure to reconnect the wires after replacing it!"]
+par_time_3_star = 40.0
+par_time_2_star = 75.0
+unlock_rewards = ["gear", "spring"]
+intro_dialog = ["The Nightmare Filter sorts dreams — good ones go up, bad ones go down.", "But the Dimensional Splitter is cracked! Nightmares are leaking everywhere!", "Quick — replace the broken part before the bad dreams escape!"]
+success_dialog = ["The filter is working! Good dreams flow freely, nightmares are contained!", "You've unlocked the Gear and Spring components!", "Sweet dreams are made of these... machine parts!"]
+available_components = ["dimensional_splitter", "phase_gate", "pipe", "fan"]
+locked_component_ids = ["fusion_001", "phase_001", "phase_002"]

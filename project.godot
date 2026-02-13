@@ -27,6 +27,8 @@ VFX="*res://src/systems/visual_feedback_manager.gd"
 Audio="*res://src/systems/audio_manager.gd"
 ProgressManager="*res://src/systems/progress_manager.gd"
 LevelSelectData="*res://src/systems/level_select_data.gd"
+InventionManager="*res://src/systems/invention_manager.gd"
+SceneTransition="*res://src/systems/scene_transition.gd"
 
 [display]
 
@@ -39,6 +41,11 @@ window/handheld/orientation=1
 [input_devices]
 
 pointing/emulate_touch_from_mouse=true
+
+[export]
+
+android/min_sdk=24
+android/target_sdk=34
 
 [rendering]
 
