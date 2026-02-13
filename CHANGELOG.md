@@ -34,7 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Audio polish: dynamic pitch/volume variation for weapons, explosions, damage sounds
 - Gameplay polish: extended chain timeout (2.0s → 2.5s)
 - Gameplay polish: faster shield recharge (5 → 8/sec)
-- Gameplay polish: berserk meter decay grace period (1.5s)
+- Gameplay polish: salt miner meter decay grace period (1.5s)
 - The Last Stand mode (fixed-platform titan defense)
 - Ship ability system with cooldowns
 - Drone entities and heat display
@@ -111,7 +111,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Visual powerup status bar with timer bars
 - Redesigned ship selection UI with stat bars
 - More sound effects (missiles, waves, powerups)
-- Berserk system redesign with meter
+- Salt Miner system redesign with meter
 
 ## [1.2.1] - 2024-12-31
 

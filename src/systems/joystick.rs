@@ -410,9 +410,9 @@ impl JoystickState {
         self.just_pressed(5)
     }
 
-    /// Check if Y button just pressed (berserk activation) - edge triggered
+    /// Check if Y button just pressed (salt miner activation) - edge triggered
     /// Xbox: Y (button 3), PlayStation: Triangle
-    pub fn berserk(&self) -> bool {
+    pub fn salt_miner(&self) -> bool {
         self.just_pressed(3)
     }
 
@@ -449,8 +449,8 @@ pub enum RumbleType {
     Explosion,
     /// Heavy rumble for big explosions/boss kills (strong motor, long)
     BigExplosion,
-    /// Powerful surge for berserk activation (escalating pattern)
-    BerserkActivate,
+    /// Powerful surge for salt miner activation (escalating pattern)
+    SaltMinerActivate,
     /// Light pulse for powerup collection
     PowerupCollect,
     /// Custom rumble with specified intensities
@@ -468,7 +468,7 @@ impl RumbleType {
             RumbleType::PlayerHit => (0.0, 0.4, 80),
             RumbleType::Explosion => (0.5, 0.3, 120),
             RumbleType::BigExplosion => (1.0, 0.5, 250),
-            RumbleType::BerserkActivate => (0.8, 0.6, 300),
+            RumbleType::SaltMinerActivate => (0.8, 0.6, 300),
             RumbleType::PowerupCollect => (0.0, 0.25, 60),
             RumbleType::Custom {
                 strong,
@@ -502,8 +502,8 @@ impl RumbleRequest {
         Self::new(RumbleType::BigExplosion)
     }
 
-    pub fn berserk() -> Self {
-        Self::new(RumbleType::BerserkActivate)
+    pub fn salt_miner() -> Self {
+        Self::new(RumbleType::SaltMinerActivate)
     }
 
     pub fn powerup() -> Self {

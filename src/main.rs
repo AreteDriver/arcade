@@ -23,10 +23,10 @@ mod ui;
 
 use assets::AssetsPlugin;
 use core::{
-    AchievementPlugin, ActCompleteEvent, AudioSettings, BerserkSystem, BossSpawnEvent,
-    CampaignState, CurrentStage, Difficulty, EndlessMode, GameEventsPlugin, GameProgress,
-    GameSession, GameState, InputConfig, MissionCompleteEvent, MissionStartEvent, SavePlugin,
-    ScoreSystem, SelectedShip, ShipUnlocks, WaveCompleteEvent,
+    AchievementPlugin, ActCompleteEvent, AudioSettings, BossSpawnEvent, CampaignState,
+    CurrentStage, Difficulty, EndlessMode, GameEventsPlugin, GameProgress, GameSession, GameState,
+    InputConfig, MissionCompleteEvent, MissionStartEvent, SaltMinerSystem, SavePlugin, ScoreSystem,
+    SelectedShip, ShipUnlocks, WaveCompleteEvent,
 };
 use entities::EntitiesPlugin;
 use games::GameModulesPlugin;
@@ -54,7 +54,7 @@ fn main() {
         .init_state::<GameState>()
         // Resources
         .init_resource::<ScoreSystem>()
-        .init_resource::<BerserkSystem>()
+        .init_resource::<SaltMinerSystem>()
         .init_resource::<GameProgress>()
         .init_resource::<InputConfig>()
         .init_resource::<AudioSettings>()

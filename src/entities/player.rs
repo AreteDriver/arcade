@@ -490,7 +490,7 @@ fn player_movement(
     keyboard: Res<ButtonInput<KeyCode>>,
     joystick: Res<crate::systems::JoystickState>,
     mut query: Query<(&mut Transform, &mut Movement), With<Player>>,
-    berserk: Res<BerserkSystem>,
+    salt_miner: Res<SaltMinerSystem>,
 ) {
     let Ok((mut transform, mut movement)) = query.get_single_mut() else {
         return;
@@ -518,7 +518,7 @@ fn player_movement(
     }
 
     let dt = time.delta_secs();
-    let speed_mult = berserk.speed_mult();
+    let speed_mult = salt_miner.speed_mult();
 
     // Apply acceleration
     if input != Vec2::ZERO {
@@ -556,7 +556,7 @@ fn player_shooting(
     joystick: Res<crate::systems::JoystickState>,
     mut query: Query<(&Transform, &mut Weapon, &AbilityEffects), With<Player>>,
     mut fire_events: EventWriter<PlayerFireEvent>,
-    berserk: Res<BerserkSystem>,
+    salt_miner: Res<SaltMinerSystem>,
     mut heat_system: ResMut<crate::systems::ComboHeatSystem>,
 ) {
     let Ok((transform, mut weapon, ability_effects)) = query.get_single_mut() else {
@@ -630,12 +630,12 @@ fn player_shooting(
         // Calculate fire rate with modifiers:
         // - Base fire rate
         // - Ammo type modifier (Fusion slower, Barrage faster)
-        // - Berserk bonus (1.5x when active)
+        // - Salt Miner bonus (1.5x when active)
         // - Heat penalty (0.7x when overheated)
         let ammo_mult = weapon.ammo_type.fire_rate_mult();
-        let berserk_mult = if berserk.is_active { 1.5 } else { 1.0 };
+        let salt_miner_mult = if salt_miner.is_active { 1.5 } else { 1.0 };
         let heat_mult = heat_system.fire_rate_mult();
-        let fire_rate = weapon.fire_rate * ammo_mult * berserk_mult * heat_mult;
+        let fire_rate = weapon.fire_rate * ammo_mult * salt_miner_mult * heat_mult;
         weapon.cooldown = 1.0 / fire_rate;
 
         // Calculate burst parameters from ability effects

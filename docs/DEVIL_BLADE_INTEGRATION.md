@@ -1,13 +1,13 @@
 # Devil Blade Reboot Integration Guide
-## Minmatar Rebellion - Berserk System Implementation
+## Minmatar Rebellion - Salt Miner System Implementation
 
-This guide shows how to integrate Devil Blade Reboot's signature **Berserk System** into your EVE-themed space shooter while maintaining the existing refugee rescue currency and progression systems.
+This guide shows how to integrate Devil Blade Reboot's signature **Salt Miner System** into your EVE-themed space shooter while maintaining the existing refugee rescue currency and progression systems.
 
 ---
 
 ## Overview
 
-**What is the Berserk System?**
+**What is the Salt Miner System?**
 Devil Blade Reboot's core mechanic rewards **dangerous play** - the closer enemies are when destroyed, the higher the score multiplier:
 
 - **EXTREME CLOSE** (0-80px): **5.0x** multiplier - INSANE!
@@ -25,12 +25,12 @@ This creates the classic risk/reward dynamic: play safe for survival, or push cl
 ### 1. Add the Modules
 
 Copy these files into your game directory:
-- `berserk_system.py` - Core Berserk System and danger tracking
+- `salt_miner_system.py` - Core Salt Miner System and danger tracking
 - `devil_blade_effects.py` - Visual effects (explosions, screen shake, flashes)
 
 ```bash
 # Place in your game root alongside game.py
-cp berserk_system.py /path/to/minmatar-rebellion/
+cp salt_miner_system.py /path/to/minmatar-rebellion/
 cp devil_blade_effects.py /path/to/minmatar-rebellion/
 ```
 
@@ -39,7 +39,7 @@ cp devil_blade_effects.py /path/to/minmatar-rebellion/
 Add to the top of `game.py`:
 
 ```python
-from berserk_system import BerserkSystem, DangerIndicator, create_berserk_game_systems
+from salt_miner_system import SaltMinerSystem, DangerIndicator, create_salt_miner_game_systems
 from devil_blade_effects import EffectManager
 ```
 
@@ -51,7 +51,7 @@ class Game:
         # ... existing initialization ...
         
         # Devil Blade Reboot systems
-        self.berserk_system, self.danger_indicator = create_berserk_game_systems()
+        self.salt_miner_system, self.danger_indicator = create_salt_miner_game_systems()
         self.effect_manager = EffectManager()
         
         # Optional: Enable retro CRT scanlines
@@ -73,12 +73,12 @@ def handle_enemy_death(enemy):
 **AFTER:**
 ```python
 def handle_enemy_death(enemy):
-    # Calculate berserked score based on distance
+    # Calculate salt miner score based on distance
     player_pos = (self.player.rect.centerx, self.player.rect.centery)
     enemy_pos = (enemy.rect.centerx, enemy.rect.centery)
     
     base_score = enemy.score_value
-    final_score = self.berserk_system.register_kill(
+    final_score = self.salt_miner_system.register_kill(
         base_score, 
         player_pos, 
         enemy_pos,
@@ -96,7 +96,7 @@ def handle_enemy_death(enemy):
     )
     
     # Screen shake for close kills
-    multiplier, range_name = self.berserk_system.calculate_multiplier(player_pos, enemy_pos)
+    multiplier, range_name = self.salt_miner_system.calculate_multiplier(player_pos, enemy_pos)
     if range_name == 'EXTREME':
         self.effect_manager.add_shake(intensity=8, duration=12)
         self.effect_manager.add_flash((255, 100, 100), duration=8, alpha=120)
@@ -114,12 +114,12 @@ Add to your main `update()` method:
 def update(self):
     # ... existing update logic ...
     
-    # Update Berserk system
-    self.berserk_system.update()
+    # Update Salt Miner system
+    self.salt_miner_system.update()
     self.danger_indicator.update_danger(
         (self.player.rect.centerx, self.player.rect.centery),
         self.enemies,  # Your enemy sprite group
-        self.berserk_system
+        self.salt_miner_system
     )
     
     # Update visual effects
@@ -152,7 +152,7 @@ def draw(self):
     self.draw_hud()
 ```
 
-### 7. Add Berserk HUD Elements
+### 7. Add Salt Miner HUD Elements
 
 In your HUD drawing code:
 
@@ -160,8 +160,8 @@ In your HUD drawing code:
 def draw_hud(self):
     # ... existing HUD elements (score, health, ammo, etc.) ...
     
-    # Berserk multiplier indicator (top-right)
-    self.berserk_system.draw_hud(
+    # Salt Miner multiplier indicator (top-right)
+    self.salt_miner_system.draw_hud(
         self.screen, 
         SCREEN_WIDTH - 20,  # Right side
         20,                  # Top
@@ -170,7 +170,7 @@ def draw_hud(self):
     )
     
     # Optional: Score popups (floating damage numbers)
-    self.berserk_system.draw_popups(
+    self.salt_miner_system.draw_popups(
         self.screen,
         self.font_small,
         self.font_large
@@ -180,7 +180,7 @@ def draw_hud(self):
     # self.danger_indicator.draw(self.screen, SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT - 30)
     
     # Optional: Visual danger zones around player (for learning/practice mode)
-    # self.berserk_system.draw_danger_zones(
+    # self.salt_miner_system.draw_danger_zones(
     #     self.screen,
     #     (self.player.rect.centerx, self.player.rect.centery),
     #     alpha=40  # Subtle
@@ -191,7 +191,7 @@ def draw_hud(self):
 
 ```python
 def show_stage_results(self):
-    stats = self.berserk_system.get_stats()
+    stats = self.salt_miner_system.get_stats()
     
     # Display stats
     print(f"Total Score: {stats['total_score']}")
@@ -202,7 +202,7 @@ def show_stage_results(self):
         print(f"  {range_name}: {count}")
     
     # Reset for next stage
-    self.berserk_system.reset_session()
+    self.salt_miner_system.reset_session()
 ```
 
 ---
@@ -286,10 +286,10 @@ def on_boss_defeated(boss):
 
 ### Score Values
 
-The Berserk System multiplies your **base score values**. For good balance:
+The Salt Miner System multiplies your **base score values**. For good balance:
 
 ```python
-# Enemy base scores (before Berserk multiplier)
+# Enemy base scores (before Salt Miner multiplier)
 ENEMY_SCORES = {
     'frigate': 100,      # x5.0 extreme = 500
     'destroyer': 250,    # x5.0 extreme = 1250
@@ -300,10 +300,10 @@ ENEMY_SCORES = {
 
 ### Distance Tuning
 
-You can adjust the distance thresholds in `berserk_system.py`:
+You can adjust the distance thresholds in `salt_miner_system.py`:
 
 ```python
-class BerserkSystem:
+class SaltMinerSystem:
     # Make it harder (smaller danger zones)
     EXTREME_CLOSE = 60   # Was 80
     CLOSE = 120          # Was 150
@@ -348,28 +348,28 @@ self.effect_manager.add_flash(color, duration=6, alpha=80)  # Was 10, 180
 ## Compatibility Notes
 
 ### Refugee Rescue System
-The Berserk System is **fully compatible** with your refugee currency:
-- Berserk affects **score** (for leaderboards, bragging rights)
+The Salt Miner System is **fully compatible** with your refugee currency:
+- Salt Miner affects **score** (for leaderboards, bragging rights)
 - Refugees are still collected normally
 - Use refugees for ship upgrades (existing system)
 - Use score for ranking/achievements
 
 ### Skill Points System
-The Berserk System can integrate with skill unlocks:
+The Salt Miner System can integrate with skill unlocks:
 - Award skill points based on **average multiplier** per stage
-- Unlock skills that increase Berserk multipliers
+- Unlock skills that increase Salt Miner multipliers
 - Add skills that extend danger zones for easier extreme kills
 
 ### Multiple Ships
-Each ship can have different Berserk characteristics:
+Each ship can have different Salt Miner characteristics:
 ```python
 # In ship stats
 'rifter': {
-    'berserk_bonus': 1.0,      # Standard
+    'salt_miner_bonus': 1.0,      # Standard
     'danger_threshold_mod': 1.0
 },
 'jaguar': {
-    'berserk_bonus': 1.2,      # +20% all multipliers
+    'salt_miner_bonus': 1.2,      # +20% all multipliers
     'danger_threshold_mod': 1.1  # Slightly larger danger zones
 }
 ```
@@ -409,7 +409,7 @@ class EffectManager:
 ## Troubleshooting
 
 ### Multipliers not showing
-- Check that `berserk_system.draw_hud()` is called in your HUD render
+- Check that `salt_miner_system.draw_hud()` is called in your HUD render
 - Verify fonts are loaded: `self.font_small`, `self.font_large`
 
 ### Screen shake too intense
@@ -430,13 +430,13 @@ class EffectManager:
 
 ## Future Enhancements
 
-Ideas for extending the Berserk System:
+Ideas for extending the Salt Miner System:
 
 1. **Combo System**: Chain kills quickly for multiplier stacking
 2. **Risk Levels**: Dynamic difficulty that increases with high multipliers
-3. **Berserk Gauge**: Fill a meter to trigger temporary 10x multiplier mode
-4. **Achievements**: "100 Extreme Kills", "Perfect Berserk Stage" (all kills at 3x+)
-5. **Leaderboards**: Separate scores for Safe vs Berserk playstyles
+3. **Salt Miner Gauge**: Fill a meter to trigger temporary 10x multiplier mode
+4. **Achievements**: "100 Extreme Kills", "Perfect Salt Miner Stage" (all kills at 3x+)
+5. **Leaderboards**: Separate scores for Safe vs Salt Miner playstyles
 6. **Visual Themes**: Unlock different particle effects/screen shakes
 7. **Sound Integration**: Procedural audio intensity based on danger level
 
@@ -452,4 +452,4 @@ Based on EVE Online by **CCP Games**
 
 ## License Note
 
-This integration is for your personal project pitch to CCP Games. The Berserk System mechanic is inspired by but legally distinct from Devil Blade Reboot. You're implementing similar risk/reward mechanics in your own codebase, which is standard game design practice. Ensure your final pitch clearly distinguishes your implementation as "Devil Blade-inspired" rather than a direct copy.
+This integration is for your personal project pitch to CCP Games. The Salt Miner System mechanic is inspired by but legally distinct from Devil Blade Reboot. You're implementing similar risk/reward mechanics in your own codebase, which is standard game design practice. Ensure your final pitch clearly distinguishes your implementation as "Devil Blade-inspired" rather than a direct copy.

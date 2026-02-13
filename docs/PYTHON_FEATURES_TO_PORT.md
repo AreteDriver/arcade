@@ -15,7 +15,7 @@ The following materials were preserved in `docs/` and `config/`:
 - `CONTROLLER_DESIGN.md` - Analog control philosophy and mappings
 - `CINEMATIC_DESIGN.md` - Narrative pacing and scene composition
 - `ACE_CHARACTER_MOMENTS.md` - Character writing guidelines
-- `DEVIL_BLADE_INTEGRATION.md` - Berserk system integration guide
+- `DEVIL_BLADE_INTEGRATION.md` - Salt Miner system integration guide
 
 ### Reference Materials (docs/harvested_from_python/)
 - `procedural_audio_reference.py` - Sound synthesis algorithms (numpy/scipy)
@@ -31,7 +31,7 @@ The following materials were preserved in `docs/` and `config/`:
 
 | Feature | Status | Rust Location |
 |---------|--------|---------------|
-| Berserk scoring | ✅ | `systems/scoring.rs` |
+| Salt Miner scoring | ✅ | `systems/scoring.rs` |
 | Rarity system | ✅ | `entities/collectible.rs` |
 | Damage visuals | ✅ | `systems/effects.rs` |
 | Pickup effects | ✅ | `systems/effects.rs` |

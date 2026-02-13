@@ -1,6 +1,6 @@
 //! Scoring System
 //!
-//! Handles score, multipliers, chain combos, and berserk meter.
+//! Handles score, multipliers, chain combos, and salt miner meter.
 
 use crate::core::*;
 use bevy::prelude::*;
@@ -12,7 +12,7 @@ impl Plugin for ScoringPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (update_score_system, update_berserk_system).run_if(in_state(GameState::Playing)),
+            (update_score_system, update_salt_miner_system).run_if(in_state(GameState::Playing)),
         );
     }
 }
@@ -22,38 +22,38 @@ fn update_score_system(time: Res<Time>, mut score: ResMut<ScoreSystem>) {
     score.update(time.delta_secs());
 }
 
-/// Update berserk meter and handle activation input
-fn update_berserk_system(
+/// Update salt miner meter and handle activation input
+fn update_salt_miner_system(
     time: Res<Time>,
     keyboard: Res<ButtonInput<KeyCode>>,
     joystick: Res<crate::systems::JoystickState>,
-    mut berserk: ResMut<BerserkSystem>,
-    mut end_events: EventWriter<BerserkEndedEvent>,
+    mut salt_miner: ResMut<SaltMinerSystem>,
+    mut end_events: EventWriter<SaltMinerEndedEvent>,
     mut screen_flash: ResMut<crate::systems::ScreenFlash>,
     mut dialogue_events: EventWriter<super::DialogueEvent>,
     mut rumble_events: EventWriter<super::RumbleRequest>,
 ) {
-    let was_active = berserk.is_active;
-    berserk.update(time.delta_secs());
+    let was_active = salt_miner.is_active;
+    salt_miner.update(time.delta_secs());
 
-    // Check if berserk just ended
-    if was_active && !berserk.is_active {
-        end_events.send(BerserkEndedEvent);
-        info!("Berserk mode ended!");
+    // Check if salt miner just ended
+    if was_active && !salt_miner.is_active {
+        end_events.send(SaltMinerEndedEvent);
+        info!("Salt Miner mode ended!");
     }
 
-    // B key or gamepad Y button to activate berserk when meter is full
-    let activate_pressed = keyboard.just_pressed(KeyCode::KeyB) || joystick.berserk();
+    // B key or gamepad Y button to activate salt miner when meter is full
+    let activate_pressed = keyboard.just_pressed(KeyCode::KeyB) || joystick.salt_miner();
 
-    if activate_pressed && berserk.can_activate() && berserk.try_activate() {
-        info!("BERSERK MODE ACTIVATED! 5x score for 8 seconds!");
-        screen_flash.berserk(); // Red flash on activation
-        rumble_events.send(super::RumbleRequest::berserk()); // Controller rumble
+    if activate_pressed && salt_miner.can_activate() && salt_miner.try_activate() {
+        info!("SALT MINER MODE ACTIVATED! 5x score for 8 seconds!");
+        screen_flash.salt_miner(); // Red flash on activation
+        rumble_events.send(super::RumbleRequest::salt_miner()); // Controller rumble
         dialogue_events.send(super::DialogueEvent::combat_callout(
-            super::CombatCalloutType::BerserkActive,
+            super::CombatCalloutType::SaltMinerActive,
         ));
     }
 }
 
-// Berserk meter fills from proximity kills
+// Salt miner meter fills from proximity kills
 // See collision.rs: player_projectile_enemy_collision

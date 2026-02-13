@@ -1,6 +1,6 @@
 //! Heads-Up Display
 //!
-//! In-game UI: health bars, score, combo, heat, berserk meter, powerup indicators.
+//! In-game UI: health bars, score, combo, heat, salt miner meter, powerup indicators.
 //! EVE-style status panel with capacitor and health rings.
 
 #![allow(dead_code)]
@@ -25,7 +25,7 @@ impl Plugin for HudPlugin {
             Update,
             (
                 update_score_display,
-                update_berserk_meter,
+                update_salt_miner_meter,
                 update_combo_display,
                 update_heat_display,
                 update_combo_kills,
@@ -73,9 +73,9 @@ pub struct ComboText;
 #[derive(Component)]
 pub struct GradeText;
 
-/// Berserk meter bar
+/// Salt Miner meter bar
 #[derive(Component)]
-pub struct BerserkBar;
+pub struct SaltMinerBar;
 
 /// Heat bar
 #[derive(Component)]
@@ -498,7 +498,7 @@ fn spawn_hud(mut commands: Commands) {
                     ..default()
                 })
                 .with_children(|bottom| {
-                    // Left side: Status meters (Heat, Berserk)
+                    // Left side: Status meters (Heat, Salt Miner)
                     bottom
                         .spawn(Node {
                             flex_direction: FlexDirection::Column,
@@ -509,12 +509,12 @@ fn spawn_hud(mut commands: Commands) {
                         .with_children(|left| {
                             // Heat meter (orange/red)
                             spawn_health_bar(left, HeatBar, Color::srgb(1.0, 0.5, 0.0), "HEAT");
-                            // Berserk meter (purple)
+                            // Salt Miner meter (purple)
                             spawn_health_bar(
                                 left,
-                                BerserkBar,
+                                SaltMinerBar,
                                 Color::srgb(0.8, 0.2, 0.8),
-                                "BERSERK",
+                                "SALT MINER",
                             );
                             // Ship ability indicator (blue/cyan)
                             spawn_ability_indicator(left);
@@ -1018,19 +1018,19 @@ fn update_combo_display(
     }
 }
 
-fn update_berserk_meter(
-    berserk: Res<BerserkSystem>,
-    mut query: Query<(&mut Node, &mut BackgroundColor), With<BerserkBar>>,
+fn update_salt_miner_meter(
+    salt_miner: Res<SaltMinerSystem>,
+    mut query: Query<(&mut Node, &mut BackgroundColor), With<SaltMinerBar>>,
 ) {
     for (mut node, mut bg) in query.iter_mut() {
-        if berserk.is_active {
+        if salt_miner.is_active {
             // Pulsing effect when active - show remaining time
-            let pulse = (berserk.timer * 10.0).sin().abs();
-            node.width = Val::Percent(berserk.progress() * 100.0);
+            let pulse = (salt_miner.timer * 10.0).sin().abs();
+            node.width = Val::Percent(salt_miner.progress() * 100.0);
             bg.0 = Color::srgb(0.8 + pulse * 0.2, 0.2, 0.8 + pulse * 0.2);
         } else {
-            // Show proximity kills progress toward berserk
-            node.width = Val::Percent(berserk.progress() * 100.0);
+            // Show proximity kills progress toward salt miner
+            node.width = Val::Percent(salt_miner.progress() * 100.0);
             bg.0 = Color::srgb(0.8, 0.2, 0.8);
         }
     }

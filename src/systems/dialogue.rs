@@ -55,7 +55,7 @@ pub enum DialogueTrigger {
 pub enum CombatCalloutType {
     LowHealth,
     NearDeath,
-    BerserkActive,
+    SaltMinerActive,
     Overheated,
     BossLowHealth,
     WaveIncoming,
@@ -313,7 +313,7 @@ fn get_combat_callout(callout: &CombatCalloutType) -> String {
     match callout {
         CombatCalloutType::LowHealth => "Your ship struggles. Fight smarter.",
         CombatCalloutType::NearDeath => "Do not fall here. Not now. Not when we are so close.",
-        CombatCalloutType::BerserkActive => "The ancestors fill you with rage. Use it!",
+        CombatCalloutType::SaltMinerActive => "The ancestors fill you with rage. Use it!",
         CombatCalloutType::Overheated => "Your weapons strain. But do not stop. Never stop.",
         CombatCalloutType::BossLowHealth => "It weakens! Strike true!",
         CombatCalloutType::WaveIncoming => "More enemies approach. Steel yourself.",
@@ -454,7 +454,7 @@ fn get_cg_combat_callout(callout: &CombatCalloutType) -> String {
     match callout {
         CombatCalloutType::LowHealth => "Hull integrity compromised. Recommend evasive action.",
         CombatCalloutType::NearDeath => "Critical damage! Get out of there, pilot!",
-        CombatCalloutType::BerserkActive => "Combat overdrive engaged. Give them hell!",
+        CombatCalloutType::SaltMinerActive => "Combat overdrive engaged. Give them hell!",
         CombatCalloutType::Overheated => "Weapon systems overheating. Manage your heat signature.",
         CombatCalloutType::BossLowHealth => "Target is critical! Finish it!",
         CombatCalloutType::WaveIncoming => "New contacts on scope. Hostiles inbound.",

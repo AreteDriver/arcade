@@ -34,7 +34,7 @@ impl Plugin for EffectsPlugin {
                     update_explosion_embers,
                     update_screen_shake,
                     update_screen_flash,
-                    update_berserk_tint,
+                    update_salt_miner_tint,
                     update_low_health_vignette,
                     update_hit_stop,
                     update_camera_zoom,
@@ -885,8 +885,8 @@ impl ScreenFlash {
         self.white(0.5);
     }
 
-    /// Trigger red flash for berserk activation
-    pub fn berserk(&mut self) {
+    /// Trigger red flash for salt miner activation
+    pub fn salt_miner(&mut self) {
         self.colored(Color::srgb(1.0, 0.2, 0.2), 0.6);
         self.fade_speed = 3.0;
     }
@@ -933,22 +933,22 @@ fn update_screen_flash(
 }
 
 // =============================================================================
-// BERSERK SCREEN TINT
+// SALT MINER SCREEN TINT
 // =============================================================================
 
-/// Marker component for berserk tint overlay
+/// Marker component for salt miner tint overlay
 #[derive(Component)]
-pub struct BerserkTintOverlay;
+pub struct SaltMinerTintOverlay;
 
-/// Berserk screen tint effect - red tint while berserk is active
-fn update_berserk_tint(
+/// Salt Miner screen tint effect - red tint while salt miner is active
+fn update_salt_miner_tint(
     mut commands: Commands,
-    berserk: Res<BerserkSystem>,
-    mut overlay_query: Query<(Entity, &mut Sprite), With<BerserkTintOverlay>>,
+    salt_miner: Res<SaltMinerSystem>,
+    mut overlay_query: Query<(Entity, &mut Sprite), With<SaltMinerTintOverlay>>,
 ) {
-    if berserk.is_active {
+    if salt_miner.is_active {
         // Pulse the tint based on remaining time
-        let pulse = (berserk.timer * 8.0).sin().abs() * 0.1;
+        let pulse = (salt_miner.timer * 8.0).sin().abs() * 0.1;
         let alpha = 0.15 + pulse;
 
         if let Ok((_, mut sprite)) = overlay_query.get_single_mut() {
@@ -956,7 +956,7 @@ fn update_berserk_tint(
         } else {
             // Spawn tint overlay
             commands.spawn((
-                BerserkTintOverlay,
+                SaltMinerTintOverlay,
                 Sprite {
                     color: Color::srgba(1.0, 0.1, 0.1, alpha),
                     custom_size: Some(Vec2::new(SCREEN_WIDTH + 100.0, SCREEN_HEIGHT + 100.0)),
@@ -966,7 +966,7 @@ fn update_berserk_tint(
             ));
         }
     } else {
-        // Remove tint when berserk ends
+        // Remove tint when salt miner ends
         for (entity, _) in overlay_query.iter() {
             commands.entity(entity).despawn();
         }
@@ -1029,7 +1029,7 @@ fn update_low_health_vignette(
                     custom_size: Some(Vec2::new(SCREEN_WIDTH + 100.0, SCREEN_HEIGHT + 100.0)),
                     ..default()
                 },
-                Transform::from_xyz(0.0, 0.0, LAYER_HUD + 4.0), // Below berserk tint
+                Transform::from_xyz(0.0, 0.0, LAYER_HUD + 4.0), // Below salt miner tint
             ));
         }
     } else {

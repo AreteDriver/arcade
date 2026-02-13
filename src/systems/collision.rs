@@ -114,7 +114,7 @@ fn player_projectile_enemy_collision(
     mut enemy_query: Query<(&mut EnemyStats, Option<&Sprite>), With<Enemy>>,
     player_query: Query<(&Transform, &ShipStats), With<Player>>,
     mut score: ResMut<ScoreSystem>,
-    mut berserk: ResMut<BerserkSystem>,
+    mut salt_miner: ResMut<SaltMinerSystem>,
     mut destroy_events: EventWriter<EnemyDestroyedEvent>,
     mut explosion_events: EventWriter<ExplosionEvent>,
     mut dialogue_events: EventWriter<super::DialogueEvent>,
@@ -198,20 +198,20 @@ fn player_projectile_enemy_collision(
 
                 // Check if enemy destroyed
                 if enemy_stats.health <= 0.0 {
-                    // Calculate distance from player to enemy for berserk
+                    // Calculate distance from player to enemy for salt miner
                     let player_distance = (player_pos - enemy_pos).length();
 
-                    // Update score (with berserk multiplier)
+                    // Update score (with salt miner multiplier)
                     let base_score = enemy_stats.score_value;
-                    let final_score = (base_score as f32 * berserk.score_mult()) as u64;
+                    let final_score = (base_score as f32 * salt_miner.score_mult()) as u64;
                     score.on_kill(final_score);
 
-                    // Fill berserk meter based on proximity (closer = more meter)
-                    let meter_gained = berserk.on_kill_at_distance(player_distance);
-                    if meter_gained > 0.0 && berserk.can_activate() {
+                    // Fill salt miner meter based on proximity (closer = more meter)
+                    let meter_gained = salt_miner.on_kill_at_distance(player_distance);
+                    if meter_gained > 0.0 && salt_miner.can_activate() {
                         info!(
-                            "BERSERK READY! Press B to activate! (meter: {:.0}%)",
-                            berserk.meter
+                            "SALT MINER READY! Press B to activate! (meter: {:.0}%)",
+                            salt_miner.meter
                         );
                     }
 

@@ -1,6 +1,6 @@
 //! EVE Rebellion Enhanced Scoring System
 //!
-//! Adds to existing BerserkSystem:
+//! Adds to existing SaltMinerSystem:
 //! - Combo: Consecutive kill chains with timer
 //! - Heat: Weapon overheating for bonus multiplier
 
@@ -73,7 +73,7 @@ impl HeatLevel {
     }
 }
 
-/// Combo and Heat tracking (works with existing BerserkSystem)
+/// Combo and Heat tracking (works with existing SaltMinerSystem)
 /// Heat values match Python EVE Rebellion
 #[derive(Resource, Debug)]
 pub struct ComboHeatSystem {

@@ -4,7 +4,7 @@
 EVE Online arcade shooter suite built with Rust and Bevy. Features multiple campaigns, faction selection, procedural audio, and WASM support.
 
 **Stack**: Rust, Bevy 0.15, bevy_egui
-**Version**: 1.5.x
+**Version**: 1.9.0
 **Platforms**: Linux, Windows, macOS, Web (WASM)
 
 ---
@@ -18,17 +18,16 @@ src/
 ├── entities/         # ECS components (Player, Enemy, Projectile)
 ├── systems/          # Game logic (collision, spawning, scoring)
 ├── ui/               # Menus, HUD, overlays
-├── campaigns/        # Campaign-specific logic
-│   ├── elder_fleet/  # Minmatar/Amarr campaign
+├── games/            # Campaign-specific logic
+│   ├── elder_fleet/  # Minmatar/Amarr campaign (13 stages)
 │   └── caldari_gallente/ # CG campaign + Nightmare mode
-├── audio/            # Procedural sound generation
 ├── assets/           # Asset loading, ship sprites
-└── esi/              # EVE API integration
+└── config/           # JSON enemy/boss/dialogue definitions
 ```
 
 ### Key Systems
 - **GameState**: MainMenu → FactionSelect → Playing → Victory/Death
-- **Scoring**: Chain combos, style grades, berserk mode
+- **Scoring**: Chain combos, style grades, Salt Miner mode
 - **Combat**: Shield → Armor → Hull damage model
 - **Campaigns**: Elder Fleet (13 stages), CG (5 missions + Nightmare)
 

@@ -96,23 +96,23 @@ pub const MULTIPLIER_PER_KILL: f32 = 0.1;
 pub const MAX_MULTIPLIER: f32 = 99.9;
 
 // =============================================================================
-// BERSERK
+// SALT_MINER
 // =============================================================================
 
-/// Berserk meter fill per kill
-pub const BERSERK_GAIN_PER_KILL: f32 = 5.0;
+/// Salt Miner meter fill per kill
+pub const SALT_MINER_GAIN_PER_KILL: f32 = 5.0;
 
-/// Berserk meter fill per graze
-pub const BERSERK_GAIN_PER_GRAZE: f32 = 1.0;
+/// Salt Miner meter fill per graze
+pub const SALT_MINER_GAIN_PER_GRAZE: f32 = 1.0;
 
-/// Berserk duration (seconds)
-pub const BERSERK_DURATION: f32 = 10.0;
+/// Salt Miner duration (seconds)
+pub const SALT_MINER_DURATION: f32 = 10.0;
 
-/// Berserk damage multiplier
-pub const BERSERK_DAMAGE_MULT: f32 = 2.0;
+/// Salt Miner damage multiplier
+pub const SALT_MINER_DAMAGE_MULT: f32 = 2.0;
 
-/// Berserk speed multiplier
-pub const BERSERK_SPEED_MULT: f32 = 1.5;
+/// Salt Miner speed multiplier
+pub const SALT_MINER_SPEED_MULT: f32 = 1.5;
 
 // =============================================================================
 // CAPACITOR (EVE-STYLE)

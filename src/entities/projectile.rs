@@ -153,10 +153,10 @@ impl Plugin for ProjectilePlugin {
 fn spawn_player_projectiles(
     mut commands: Commands,
     mut fire_events: EventReader<PlayerFireEvent>,
-    berserk: Res<BerserkSystem>,
+    salt_miner: Res<SaltMinerSystem>,
 ) {
     for event in fire_events.read() {
-        let damage_mult = berserk.damage_mult();
+        let damage_mult = salt_miner.damage_mult();
 
         // Determine damage type from weapon
         let damage_type = match event.weapon_type {
@@ -169,8 +169,8 @@ fn spawn_player_projectiles(
             WeaponType::Vorton => DamageType::EM,             // EDENCOM chain lightning
         };
 
-        // Use event's bullet color, or purple if berserk
-        let color = if berserk.is_active {
+        // Use event's bullet color, or purple if salt miner active
+        let color = if salt_miner.is_active {
             Color::srgb(1.0, 0.2, 0.8)
         } else {
             event.bullet_color

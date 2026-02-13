@@ -29,7 +29,7 @@
 **Tagline:** "EVE's tactical depth meets arcade intensity"
 
 **How They Merge:**
-- Berserk System = EVE's **optimal range mechanics** simplified for arcade
+- Salt Miner System = EVE's **optimal range mechanics** simplified for arcade
 - Distance scoring = **Tactical positioning** rewarded
 - Risk/reward = EVE's **risk vs ISK** philosophy
 - Minimal UI = **Combat clarity** both games value
@@ -37,7 +37,7 @@
 
 ---
 
-## Berserk System = EVE Optimal Range
+## Salt Miner System = EVE Optimal Range
 
 ### The Connection
 
@@ -46,13 +46,13 @@ In EVE Online, weapons have **optimal range** and **falloff range**:
 - Too close = can't track/apply damage
 - **Optimal range** = maximum effectiveness
 
-Devil Blade's Berserk System inverts this for arcade gameplay:
+Devil Blade's Salt Miner System inverts this for arcade gameplay:
 - **Close range** = maximum reward (encourages aggressive play)
 - **Medium range** = moderate reward (tactical choice)
 - **Far range** = reduced reward (discouraged but safe)
 
 In Minmatar Rebellion, this becomes:
-- **Autocannon optimal** (close) = High berserk multipliers (authentic to Minmatar ships)
+- **Autocannon optimal** (close) = High salt miner multipliers (authentic to Minmatar ships)
 - **Artillery optimal** (medium) = Moderate multipliers
 - **Long range** = Reduced effectiveness (matches EVE falloff)
 
@@ -60,7 +60,7 @@ In Minmatar Rebellion, this becomes:
 
 1. **Thematically accurate**: Minmatar ships (Rifter, Wolf, Jaguar) use **autocannons**
    - Real EVE autocannons are **close-range, high-damage** weapons
-   - Berserk System rewards **close-range kills** with higher scores
+   - Salt Miner System rewards **close-range kills** with higher scores
    - Players must **get in close** just like real Minmatar pilots
 
 2. **Skill expression**: Just like EVE requires **manual piloting** for optimal positioning
@@ -69,7 +69,7 @@ In Minmatar Rebellion, this becomes:
 
 3. **Risk management**: EVE is about calculated risks
    - Minmatar doctrine: "Speed tank" - get close, orbit fast, disengage when needed
-   - Berserk System: Get close for points, maintain spacing, retreat when threatened
+   - Salt Miner System: Get close for points, maintain spacing, retreat when threatened
 
 ---
 
@@ -79,7 +79,7 @@ In Minmatar Rebellion, this becomes:
 
 | Devil Blade Feature | Implementation in Minmatar Rebellion |
 |---------------------|--------------------------------------|
-| Berserk multipliers (1x to 6x) | 0.5x to 5.0x based on distance |
+| Salt Miner multipliers (1x to 6x) | 0.5x to 5.0x based on distance |
 | Minimal UI, gameplay focus | Small HUD multiplier indicator only |
 | Pixel-perfect explosions | Pixel particle system for ship deaths |
 | Screen effects (shake, flash) | Subtle effects for extreme kills |
@@ -160,7 +160,7 @@ START MISSION
 Amarr enemies appear
   ↓
 Player positions for: ←──────────────┐
- • Berserk score                     │
+ • Salt Miner score                     │
  • Refugee rescue                    │
  • Boss phases                       │
   ↓                                  │
@@ -177,7 +177,7 @@ NEXT MISSION (harder, more options)
 ```
 
 **Key Difference:** You have **multiple scoring vectors**:
-1. **Berserk score** (Devil Blade style) - leaderboards, bragging rights
+1. **Salt Miner score** (Devil Blade style) - leaderboards, bragging rights
 2. **Refugees saved** - ship upgrades, progression currency
 3. **Skill points** - unlock new abilities
 4. **Survival** - reach later stages
@@ -191,13 +191,13 @@ Players choose their priority!
 ### For CCP Games Presentation
 
 **Angle 1: "EVE's Tactical Depth in Arcade Form"**
-> "Minmatar Rebellion adapts EVE's range mechanics into an arcade Berserk System. Just like optimal range determines damage in EVE, proximity determines score in our game. This teaches new players the importance of positioning while delivering instant, satisfying feedback."
+> "Minmatar Rebellion adapts EVE's range mechanics into an arcade Salt Miner System. Just like optimal range determines damage in EVE, proximity determines score in our game. This teaches new players the importance of positioning while delivering instant, satisfying feedback."
 
 **Angle 2: "Respecting the IP While Innovating"**
-> "We took inspiration from Devil Blade Reboot's risk/reward philosophy and made it authentic to Minmatar ship doctrine. Autocannons require close range - our Berserk System rewards exactly that. It's true to EVE's combat while being accessible to mobile players."
+> "We took inspiration from Devil Blade Reboot's risk/reward philosophy and made it authentic to Minmatar ship doctrine. Autocannons require close range - our Salt Miner System rewards exactly that. It's true to EVE's combat while being accessible to mobile players."
 
 **Angle 3: "Replayability Through Skill Expression"**
-> "Three play styles emerge naturally: Safe players focus on refugee rescue, aggressive players chase Berserk scores, tactical players balance both. Same game, three different experiences - all valid, all rewarding."
+> "Three play styles emerge naturally: Safe players focus on refugee rescue, aggressive players chase Salt Miner scores, tactical players balance both. Same game, three different experiences - all valid, all rewarding."
 
 ---
 
@@ -205,7 +205,7 @@ Players choose their priority!
 
 ### EVE Online Weapon Ranges (for reference)
 
-| Weapon Type | Optimal | Falloff | Berserk Equivalent |
+| Weapon Type | Optimal | Falloff | Salt Miner Equivalent |
 |-------------|---------|---------|-------------------|
 | Small Autocannon | 1-5km | 5-10km | CLOSE range (3.0x) |
 | Small Artillery | 15-40km | 10-20km | MEDIUM range (1.5x) |
@@ -239,14 +239,14 @@ The game doesn't force aggression - it **rewards** it.
 
 ### Your Implementation
 Players calibrate between:
-- **Berserk score** (aggressive, close range)
+- **Salt Miner score** (aggressive, close range)
 - **Refugee count** (tactical, medium range)
 - **Survival** (defensive, safe range)
 - **Stage progress** (balanced approach)
 
 ### Result: Emergent Playstyles
 
-1. **"Ace Pilot"** - All berserk, all the time (5.0x average)
+1. **"Ace Pilot"** - All salt miner, all the time (5.0x average)
 2. **"Humanitarian"** - Maximum refugees, moderate score
 3. **"Professional"** - Balanced score + refugees
 4. **"Survivor"** - Conservative play, reach late stages
@@ -258,7 +258,7 @@ All are valid! All supported!
 
 ## Development Priorities
 
-### Phase 1: Core Berserk (Week 1)
+### Phase 1: Core Salt Miner (Week 1)
 - [x] Distance calculation
 - [x] Multiplier system
 - [x] Score popups
@@ -295,8 +295,8 @@ All are valid! All supported!
 - Active speedrun community
 
 ### Your Success Indicators
-- ✅ Players replay stages for higher Berserk scores
-- ✅ Discussion of "best ship for Berserk runs"
+- ✅ Players replay stages for higher Salt Miner scores
+- ✅ Discussion of "best ship for Salt Miner runs"
 - ✅ Community shares extreme close kill clips
 - ✅ CCP recognizes authentic EVE positioning mechanics
 - ✅ Mobile players understand range importance
@@ -309,7 +309,7 @@ All are valid! All supported!
 **EVE Online** teaches: *Positioning wins fights*  
 **Minmatar Rebellion** combines: *Position aggressively, reap rewards, embrace Minmatar spirit*
 
-The Berserk System isn't just a scoring mechanic - it's a **philosophy bridge** between:
+The Salt Miner System isn't just a scoring mechanic - it's a **philosophy bridge** between:
 - Arcade accessibility (Devil Blade)
 - Tactical depth (EVE Online)
 - Mobile engagement (Your innovation)

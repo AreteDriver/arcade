@@ -56,17 +56,17 @@ pub enum Achievement {
     /// Destroy 1000 enemies in a single run
     Annihilator,
 
-    // === Berserk/Combo Achievements ===
+    // === Salt Miner/Combo Achievements ===
     /// Get a 10x combo
     ComboStarter,
     /// Get a 25x combo
     ComboKing,
     /// Get a 50x combo
     ComboMaster,
-    /// Activate berserk mode
-    BerserkActivated,
-    /// Get 10 kills while berserk
-    BerserkKiller,
+    /// Activate salt miner mode
+    SaltMinerActivated,
+    /// Get 10 kills while salt miner is active
+    SaltMinerKiller,
 
     // === Liberation Achievements ===
     /// Liberate 25 souls in a single run
@@ -136,12 +136,12 @@ impl Achievement {
             Achievement::Centurion => "Centurion",
             Achievement::Exterminator => "Exterminator",
             Achievement::Annihilator => "Annihilator",
-            // Berserk
+            // Salt Miner
             Achievement::ComboStarter => "Combo Starter",
             Achievement::ComboKing => "Combo King",
             Achievement::ComboMaster => "Combo Master",
-            Achievement::BerserkActivated => "Berserker",
-            Achievement::BerserkKiller => "Berserk Killer",
+            Achievement::SaltMinerActivated => "Salt Miner",
+            Achievement::SaltMinerKiller => "Salt Miner Killer",
             // Liberation
             Achievement::Liberator => "Liberator",
             Achievement::FreedomFighter => "Freedom Fighter",
@@ -182,12 +182,12 @@ impl Achievement {
             Achievement::Centurion => "Destroy 100 enemies in a single run",
             Achievement::Exterminator => "Destroy 500 enemies in a single run",
             Achievement::Annihilator => "Destroy 1000 enemies in a single run",
-            // Berserk
+            // Salt Miner
             Achievement::ComboStarter => "Get a 10x combo",
             Achievement::ComboKing => "Get a 25x combo",
             Achievement::ComboMaster => "Get a 50x combo",
-            Achievement::BerserkActivated => "Activate berserk mode",
-            Achievement::BerserkKiller => "Get 10 kills while berserk is active",
+            Achievement::SaltMinerActivated => "Activate salt miner mode",
+            Achievement::SaltMinerKiller => "Get 10 kills while salt miner is active",
             // Liberation
             Achievement::Liberator => "Liberate 25 souls in a single run",
             Achievement::FreedomFighter => "Liberate 100 souls in a single run",
@@ -265,8 +265,8 @@ impl Achievement {
             Achievement::ComboStarter,
             Achievement::ComboKing,
             Achievement::ComboMaster,
-            Achievement::BerserkActivated,
-            Achievement::BerserkKiller,
+            Achievement::SaltMinerActivated,
+            Achievement::SaltMinerKiller,
             Achievement::Liberator,
             Achievement::FreedomFighter,
             Achievement::Emancipator,
@@ -302,7 +302,7 @@ pub struct AchievementTracker {
     pub session_kills: u32,
     pub session_souls: u32,
     pub session_max_combo: u32,
-    pub session_berserk_kills: u32,
+    pub session_salt_miner_kills: u32,
     pub session_bosses_killed: u32,
     pub mission_start_time: Option<f64>,
     pub took_damage_this_mission: bool,
@@ -314,7 +314,7 @@ impl AchievementTracker {
         self.session_kills = 0;
         self.session_souls = 0;
         self.session_max_combo = 0;
-        self.session_berserk_kills = 0;
+        self.session_salt_miner_kills = 0;
         self.session_bosses_killed = 0;
         self.mission_start_time = None;
         self.took_damage_this_mission = false;
@@ -347,12 +347,12 @@ fn check_achievements(
     mut tracker: ResMut<AchievementTracker>,
     mut save: ResMut<super::SaveData>,
     score: Res<super::ScoreSystem>,
-    berserk: Res<super::BerserkSystem>,
+    salt_miner: Res<super::SaltMinerSystem>,
     heat_system: Res<crate::systems::ComboHeatSystem>,
     mut unlock_events: EventWriter<AchievementUnlockedEvent>,
     mut enemy_events: EventReader<super::EnemyDestroyedEvent>,
     mut boss_events: EventReader<super::BossDefeatedEvent>,
-    mut berserk_activated: EventReader<super::BerserkActivatedEvent>,
+    mut salt_miner_activated: EventReader<super::SaltMinerActivatedEvent>,
     mut stage_events: EventReader<super::StageCompleteEvent>,
     mut damage_events: EventReader<super::PlayerDamagedEvent>,
     time: Res<Time>,
@@ -402,12 +402,12 @@ fn check_achievements(
             );
         }
 
-        // Track berserk kills
-        if berserk.is_active {
-            tracker.session_berserk_kills += 1;
-            if tracker.session_berserk_kills >= 10 {
+        // Track salt miner kills
+        if salt_miner.is_active {
+            tracker.session_salt_miner_kills += 1;
+            if tracker.session_salt_miner_kills >= 10 {
                 try_unlock(
-                    Achievement::BerserkKiller,
+                    Achievement::SaltMinerKiller,
                     &mut save,
                     &mut tracker,
                     &mut unlock_events,
@@ -471,10 +471,10 @@ fn check_achievements(
         }
     }
 
-    // Track berserk activation
-    for _ in berserk_activated.read() {
+    // Track salt miner activation
+    for _ in salt_miner_activated.read() {
         try_unlock(
-            Achievement::BerserkActivated,
+            Achievement::SaltMinerActivated,
             &mut save,
             &mut tracker,
             &mut unlock_events,

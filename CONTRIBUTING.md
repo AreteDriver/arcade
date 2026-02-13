@@ -100,7 +100,7 @@ eve_rebellion_rust/
 │   ├── systems/             # Game logic (ECS systems)
 │   │   ├── collision.rs     # Hit detection
 │   │   ├── spawning.rs      # Wave and enemy spawning
-│   │   ├── scoring_v2.rs    # Combo chains, style grades, berserk
+│   │   ├── scoring_v2.rs    # Combo chains, style grades, salt miner
 │   │   ├── effects.rs       # Visual effects (explosions, trails, particles)
 │   │   ├── audio.rs         # Procedural sound generation
 │   │   ├── music.rs         # Dynamic music system

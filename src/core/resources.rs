@@ -134,11 +134,11 @@ impl StyleGrade {
     }
 }
 
-/// Berserk mode - meter fills from proximity kills, manual activation with B/Y
+/// Salt Miner mode - meter fills from proximity kills, manual activation with B/Y
 /// Based on finishing guide: meter 0-100, manual activation, 5x score, 8 second duration
 #[derive(Debug, Clone, Resource)]
-pub struct BerserkSystem {
-    /// Berserk meter (0.0 to 100.0)
+pub struct SaltMinerSystem {
+    /// Salt Miner meter (0.0 to 100.0)
     pub meter: f32,
     /// Meter gained per proximity kill
     pub meter_per_kill: f32,
@@ -150,11 +150,11 @@ pub struct BerserkSystem {
     pub decay_grace: f32,
     /// Time since last kill (for grace period tracking)
     pub time_since_kill: f32,
-    /// Whether berserk mode is active
+    /// Whether salt miner mode is active
     pub is_active: bool,
-    /// Remaining berserk duration
+    /// Remaining salt miner duration
     pub timer: f32,
-    /// Total berserk duration
+    /// Total salt miner duration
     pub duration: f32,
     /// Score multiplier when active
     pub score_multiplier: f32,
@@ -162,7 +162,7 @@ pub struct BerserkSystem {
     pub activation_flash: f32,
 }
 
-impl Default for BerserkSystem {
+impl Default for SaltMinerSystem {
     fn default() -> Self {
         Self {
             meter: 0.0,
@@ -180,7 +180,7 @@ impl Default for BerserkSystem {
     }
 }
 
-impl BerserkSystem {
+impl SaltMinerSystem {
     /// Register a kill at distance. Fills meter based on proximity.
     /// Closer kills fill more meter. Returns meter gained.
     pub fn on_kill_at_distance(&mut self, distance: f32) -> f32 {
@@ -211,12 +211,12 @@ impl BerserkSystem {
         self.on_kill_at_distance(0.0);
     }
 
-    /// Check if berserk can be activated (meter full)
+    /// Check if salt miner can be activated (meter full)
     pub fn can_activate(&self) -> bool {
         !self.is_active && self.meter >= 100.0
     }
 
-    /// Try to activate berserk. Returns true if activated.
+    /// Try to activate salt miner. Returns true if activated.
     pub fn try_activate(&mut self) -> bool {
         if self.can_activate() {
             self.is_active = true;
@@ -228,7 +228,7 @@ impl BerserkSystem {
         false
     }
 
-    /// Update berserk state (call each frame)
+    /// Update salt miner state (call each frame)
     pub fn update(&mut self, dt: f32) {
         // Update activation flash
         if self.activation_flash > 0.0 {
@@ -278,7 +278,7 @@ impl BerserkSystem {
         }
     }
 
-    /// Get progress toward berserk (0.0 - 1.0)
+    /// Get progress toward salt miner (0.0 - 1.0)
     /// When active, shows remaining duration. When inactive, shows meter fill.
     pub fn progress(&self) -> f32 {
         if self.is_active {
@@ -298,7 +298,7 @@ impl BerserkSystem {
         self.activation_flash > 0.0
     }
 
-    /// Reset berserk state (for new stage)
+    /// Reset salt miner state (for new stage)
     pub fn reset(&mut self) {
         self.meter = 0.0;
         self.is_active = false;
@@ -886,11 +886,11 @@ mod tests {
         assert_eq!(s.multiplier, 1.0);
     }
 
-    // ==================== BerserkSystem Tests ====================
+    // ==================== SaltMinerSystem Tests ====================
 
     #[test]
-    fn berserk_default_values() {
-        let b = BerserkSystem::default();
+    fn salt_miner_default_values() {
+        let b = SaltMinerSystem::default();
         assert_eq!(b.meter, 0.0);
         assert_eq!(b.meter_per_kill, 15.0);
         assert_eq!(b.proximity_range, 120.0);
@@ -900,17 +900,17 @@ mod tests {
     }
 
     #[test]
-    fn berserk_proximity_kill_fills_meter() {
-        let mut b = BerserkSystem::default();
+    fn salt_miner_proximity_kill_fills_meter() {
+        let mut b = SaltMinerSystem::default();
         let gain = b.on_kill_at_distance(0.0); // Point blank
         assert!(gain > 0.0);
         assert!(b.meter > 0.0);
     }
 
     #[test]
-    fn berserk_closer_kills_give_more_meter() {
-        let mut b1 = BerserkSystem::default();
-        let mut b2 = BerserkSystem::default();
+    fn salt_miner_closer_kills_give_more_meter() {
+        let mut b1 = SaltMinerSystem::default();
+        let mut b2 = SaltMinerSystem::default();
 
         let gain_close = b1.on_kill_at_distance(0.0);
         let gain_far = b2.on_kill_at_distance(100.0);
@@ -919,8 +919,8 @@ mod tests {
     }
 
     #[test]
-    fn berserk_cannot_activate_when_meter_not_full() {
-        let mut b = BerserkSystem::default();
+    fn salt_miner_cannot_activate_when_meter_not_full() {
+        let mut b = SaltMinerSystem::default();
         b.meter = 50.0;
         assert!(!b.can_activate());
         assert!(!b.try_activate());
@@ -928,8 +928,8 @@ mod tests {
     }
 
     #[test]
-    fn berserk_activates_when_meter_full_and_triggered() {
-        let mut b = BerserkSystem::default();
+    fn salt_miner_activates_when_meter_full_and_triggered() {
+        let mut b = SaltMinerSystem::default();
         b.meter = 100.0;
         assert!(b.can_activate());
         assert!(b.try_activate());
@@ -939,8 +939,8 @@ mod tests {
     }
 
     #[test]
-    fn berserk_multipliers_when_active() {
-        let mut b = BerserkSystem::default();
+    fn salt_miner_multipliers_when_active() {
+        let mut b = SaltMinerSystem::default();
         assert_eq!(b.score_mult(), 1.0);
         assert_eq!(b.damage_mult(), 1.0);
         assert_eq!(b.speed_mult(), 1.0);
@@ -955,8 +955,8 @@ mod tests {
     }
 
     #[test]
-    fn berserk_duration_decay() {
-        let mut b = BerserkSystem::default();
+    fn salt_miner_duration_decay() {
+        let mut b = SaltMinerSystem::default();
         b.meter = 100.0;
         b.try_activate();
         assert!(b.is_active);
@@ -970,8 +970,8 @@ mod tests {
     }
 
     #[test]
-    fn berserk_meter_decays_when_not_killing() {
-        let mut b = BerserkSystem::default();
+    fn salt_miner_meter_decays_when_not_killing() {
+        let mut b = SaltMinerSystem::default();
         b.meter = 50.0;
         b.time_since_kill = 2.0; // Past grace period (1.5s)
 
@@ -980,8 +980,8 @@ mod tests {
     }
 
     #[test]
-    fn berserk_progress_calculation() {
-        let mut b = BerserkSystem::default();
+    fn salt_miner_progress_calculation() {
+        let mut b = SaltMinerSystem::default();
         assert_eq!(b.progress(), 0.0);
 
         b.meter = 50.0;
@@ -997,8 +997,8 @@ mod tests {
     }
 
     #[test]
-    fn berserk_reset() {
-        let mut b = BerserkSystem::default();
+    fn salt_miner_reset() {
+        let mut b = SaltMinerSystem::default();
         b.meter = 75.0;
         b.is_active = true;
         b.timer = 3.0;
@@ -1011,8 +1011,8 @@ mod tests {
     }
 
     #[test]
-    fn berserk_activation_flash() {
-        let mut b = BerserkSystem::default();
+    fn salt_miner_activation_flash() {
+        let mut b = SaltMinerSystem::default();
         b.meter = 100.0;
         b.try_activate();
 

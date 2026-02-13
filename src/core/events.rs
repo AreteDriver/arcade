@@ -109,13 +109,13 @@ pub struct PickupEffectEvent {
     pub color: Color,
 }
 
-/// Berserk mode activated
+/// Salt Miner mode activated
 #[derive(Event)]
-pub struct BerserkActivatedEvent;
+pub struct SaltMinerActivatedEvent;
 
-/// Berserk mode ended
+/// Salt Miner mode ended
 #[derive(Event)]
-pub struct BerserkEndedEvent;
+pub struct SaltMinerEndedEvent;
 
 /// Screen shake request
 #[derive(Event)]
@@ -471,7 +471,7 @@ pub enum SoundType {
     // Gameplay
     PowerUp,
     Liberation, // Soul liberated
-    BerserkActivate,
+    SaltMinerActivate,
     Warning,
     Victory,
     GameOver,
@@ -492,8 +492,8 @@ impl Plugin for GameEventsPlugin {
             .add_event::<BossDefeatedEvent>()
             .add_event::<CollectiblePickedUpEvent>()
             .add_event::<PickupEffectEvent>()
-            .add_event::<BerserkActivatedEvent>()
-            .add_event::<BerserkEndedEvent>()
+            .add_event::<SaltMinerActivatedEvent>()
+            .add_event::<SaltMinerEndedEvent>()
             .add_event::<ScreenShakeEvent>()
             .add_event::<ExplosionEvent>()
             .add_event::<PlaySoundEvent>();

@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/AreteDriver/eve_rebellion_rust/actions/workflows/ci.yml/badge.svg)](https://github.com/AreteDriver/eve_rebellion_rust/actions)
 [![Release](https://img.shields.io/github/v/release/AreteDriver/eve_rebellion_rust)](https://github.com/AreteDriver/eve_rebellion_rust/releases)
+[![Play Now](https://img.shields.io/badge/Play%20Now-GitHub%20Pages-blue?logo=github)](https://aretedriver.github.io/eve_rebellion_rust)
 [![Play on itch.io](https://img.shields.io/badge/Play-itch.io-FA5C5C?logo=itch.io)](https://aretedriver.itch.io/eve-rebellion)
 [![Rust](https://img.shields.io/badge/Rust-1.75+-orange.svg)](https://www.rust-lang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -34,7 +35,7 @@ Defend New Eden from the Triglavian invasion, or embrace the Flow and fight for 
 - **Multiple Campaigns** — Story-driven missions across different eras of New Eden
 - **Four Factions** — Minmatar, Amarr, Caldari, Gallente (Triglavian coming soon)
 - **Heat & Combo System** — Push your weapons to the limit for score multipliers
-- **Berserk Mode** — Fill your rage meter to unleash devastating power
+- **Salt Miner Mode** — Fill your meter with proximity kills to unleash devastating power
 - **Ship Abilities** — Faction-specific active abilities with cooldowns
 - **Ship Progression** — Unlock faction ships as you advance
 - **The Last Stand** — Defend Shiigeru as a fixed-platform titan battle
@@ -52,7 +53,7 @@ Defend New Eden from the Triglavian invasion, or embrace the Flow and fight for 
 ### Keyboard
 - **WASD / Arrow Keys** - Move
 - **Space** - Fire
-- **B** - Activate Berserk Mode (when meter full)
+- **B** - Activate Salt Miner (when meter full)
 - **E** - Activate Ship Ability
 - **Shift** - Barrel Roll (i-frames)
 
@@ -60,7 +61,7 @@ Defend New Eden from the Triglavian invasion, or embrace the Flow and fight for 
 - **Left Stick** - Move
 - **Right Stick** - Aim and Fire (twin-stick mode)
 - **Right Trigger** - Activate Ship Ability
-- **Y / Triangle** - Activate Berserk Mode
+- **Y / Triangle** - Activate Salt Miner
 - **Right Bumper** - Barrel Roll
 - **A / X** - Context Action
 
