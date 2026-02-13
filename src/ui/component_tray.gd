@@ -7,6 +7,8 @@ signal component_drag_started(type_name: String)
 
 @onready var container: HBoxContainer = $MarginContainer/HBoxContainer
 
+var _tooltip: ComponentTooltip = null
+
 const TRAY_BUTTON_SIZE := Vector2(72, 72)
 const TRAY_COLORS: Dictionary = {
 	"ramp": Color(0.55, 0.35, 0.15),
@@ -60,6 +62,12 @@ var _available_types: Array[String] = []
 
 
 func _ready() -> void:
+	_tooltip = ComponentTooltip.new()
+	# Tooltip lives on a CanvasLayer so it renders above everything
+	var tooltip_layer := CanvasLayer.new()
+	tooltip_layer.layer = 15
+	add_child(tooltip_layer)
+	tooltip_layer.add_child(_tooltip)
 	_build_tray()
 
 
@@ -130,12 +138,29 @@ func _add_tray_button(type_name: String, info: Dictionary) -> void:
 
 	button.add_child(vbox)
 	button.pressed.connect(_on_button_pressed.bind(type_name))
+	button.mouse_entered.connect(_on_button_hover.bind(type_name, button))
+	button.mouse_exited.connect(_on_button_unhover)
 
 	container.add_child(button)
 
 
 func _on_button_pressed(type_name: String) -> void:
+	if _tooltip:
+		_tooltip.visible = false
 	component_drag_started.emit(type_name)
+
+
+func _on_button_hover(type_name: String, button: Button) -> void:
+	if _tooltip:
+		_tooltip.cancel_hide()
+		var btn_rect: Rect2 = button.get_global_rect()
+		var anchor: Vector2 = Vector2(btn_rect.get_center().x, btn_rect.position.y)
+		_tooltip.show_for_type(type_name, anchor)
+
+
+func _on_button_unhover() -> void:
+	if _tooltip:
+		_tooltip.start_hide(0.2)
 
 
 ## Refresh the tray (e.g., after unlocking new components)

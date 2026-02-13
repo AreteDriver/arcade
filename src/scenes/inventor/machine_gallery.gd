@@ -95,7 +95,7 @@ func _add_card(invention: Dictionary) -> void:
 
 func _on_load(filename: String) -> void:
 	InventionManager.set_meta("pending_load", filename)
-	get_tree().change_scene_to_file("res://src/scenes/inventor/inventor_mode.tscn")
+	SceneTransition.change_scene("res://src/scenes/inventor/inventor_mode.tscn")
 
 
 func _on_delete(filename: String) -> void:
@@ -104,4 +104,4 @@ func _on_delete(filename: String) -> void:
 
 
 func _on_back() -> void:
-	get_tree().change_scene_to_file("res://src/scenes/menus/main_menu.tscn")
+	SceneTransition.change_scene("res://src/scenes/menus/main_menu.tscn")

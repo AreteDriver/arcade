@@ -54,8 +54,8 @@ func _build_choices() -> void:
 
 func _on_purpose_chosen(purpose: String) -> void:
 	InventionManager.set_meta("selected_purpose", purpose)
-	get_tree().change_scene_to_file("res://src/scenes/inventor/inventor_mode.tscn")
+	SceneTransition.change_scene("res://src/scenes/inventor/inventor_mode.tscn")
 
 
 func _on_skip() -> void:
-	get_tree().change_scene_to_file("res://src/scenes/inventor/inventor_mode.tscn")
+	SceneTransition.change_scene("res://src/scenes/inventor/inventor_mode.tscn")

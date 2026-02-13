@@ -173,6 +173,22 @@ func register_parameter(p_name: String, label: String, default_val: float,
 	}
 
 
+## Get parameter definitions for tooltip display
+func get_parameter_definitions() -> Array[Dictionary]:
+	var defs: Array[Dictionary] = []
+	for key in parameters:
+		var p: Dictionary = parameters[key]
+		defs.append({
+			"name": key,
+			"display_name": p.get("label", key),
+			"default": p.get("value", 0.0),
+			"min": p.get("min", 0.0),
+			"max": p.get("max", 100.0),
+			"step": p.get("step", 0.1),
+		})
+	return defs
+
+
 ## Send data from a named output port to connected inputs
 func send_output(port_name: String, data: Variant) -> void:
 	for port in output_ports:

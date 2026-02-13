@@ -129,4 +129,4 @@ func _on_reset_confirmed() -> void:
 
 
 func _on_back() -> void:
-	get_tree().change_scene_to_file("res://src/scenes/menus/main_menu.tscn")
+	SceneTransition.change_scene("res://src/scenes/menus/main_menu.tscn")

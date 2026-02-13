@@ -30,20 +30,20 @@ func _update_stars() -> void:
 
 
 func _on_discovery_pressed() -> void:
-	get_tree().change_scene_to_file("res://src/scenes/menus/world_select.tscn")
+	SceneTransition.change_scene("res://src/scenes/menus/world_select.tscn")
 
 
 func _on_inventor_pressed() -> void:
-	get_tree().change_scene_to_file("res://src/scenes/inventor/purpose_selector.tscn")
+	SceneTransition.change_scene("res://src/scenes/inventor/purpose_selector.tscn")
 
 
 func _on_machines_pressed() -> void:
-	get_tree().change_scene_to_file("res://src/scenes/inventor/machine_gallery.tscn")
+	SceneTransition.change_scene("res://src/scenes/inventor/machine_gallery.tscn")
 
 
 func _on_sandbox_pressed() -> void:
-	get_tree().change_scene_to_file("res://src/scenes/main.tscn")
+	SceneTransition.change_scene("res://src/scenes/main.tscn")
 
 
 func _on_settings_pressed() -> void:
-	get_tree().change_scene_to_file("res://src/scenes/menus/settings.tscn")
+	SceneTransition.change_scene("res://src/scenes/menus/settings.tscn")

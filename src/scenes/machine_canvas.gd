@@ -549,6 +549,25 @@ func _is_component_locked(component: MachineComponent) -> bool:
 	return component.name in locked_component_ids
 
 
+## Spawn a test object (ball or block) at a world position
+func spawn_test_object(object_type: String, world_pos: Vector2) -> void:
+	var body: RigidBody2D
+	match object_type:
+		"ball":
+			body = TestBall.new()
+		"block":
+			body = TestBlock.new()
+		_:
+			return
+
+	body.position = world_pos
+	component_layer.add_child(body)
+
+	# Juice: pop + sound
+	VFX.pop_scale(body)
+	Audio.play_place()
+
+
 func _on_simulation_stopped() -> void:
 	# Clean up any spawned physics objects
 	for child in component_layer.get_children():

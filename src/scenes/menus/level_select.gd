@@ -145,8 +145,8 @@ func _build_level_cards() -> void:
 
 func _on_level_pressed(definition: MachineDefinition) -> void:
 	LevelSelectData.selected_definition = definition
-	get_tree().change_scene_to_file("res://src/scenes/discovery/discovery_level.tscn")
+	SceneTransition.change_scene("res://src/scenes/discovery/discovery_level.tscn")
 
 
 func _on_back_pressed() -> void:
-	get_tree().change_scene_to_file("res://src/scenes/menus/world_select.tscn")
+	SceneTransition.change_scene("res://src/scenes/menus/world_select.tscn")

@@ -9,6 +9,8 @@ extends Node2D
 @onready var toolbar: HBoxContainer = $UILayer/Toolbar
 @onready var purpose_label: Label = $UILayer/PurposeLabel
 
+var _test_tray: TestObjectTray
+
 var _history: ActionHistory = ActionHistory.new()
 var _machine_name: String = "My Machine"
 var _machine_purpose: String = ""
@@ -40,6 +42,21 @@ func _ready() -> void:
 	var unlocked: Array[String] = ProgressManager.get_unlocked_components()
 	if unlocked.size() > 0:
 		tray.set_available_types(unlocked)
+
+	# Build the test object tray (shown during simulation)
+	_test_tray = TestObjectTray.new()
+	_test_tray.spawn_requested.connect(_on_test_object_spawn)
+	$UILayer.add_child(_test_tray)
+	# Position next to simulation controls (bottom-left, above sim controls)
+	_test_tray.anchors_preset = Control.PRESET_BOTTOM_LEFT
+	_test_tray.offset_left = 8.0
+	_test_tray.offset_top = -88.0
+	_test_tray.offset_right = 200.0
+	_test_tray.offset_bottom = -48.0
+
+	# Show/hide test tray with simulation state
+	SimulationManager.simulation_started.connect(_on_sim_started)
+	SimulationManager.simulation_stopped.connect(_on_sim_stopped)
 
 	# Check if loading a saved invention
 	if InventionManager.has_meta("pending_load"):
@@ -194,7 +211,7 @@ func _on_save() -> void:
 
 
 func _on_back_pressed() -> void:
-	get_tree().change_scene_to_file("res://src/scenes/menus/main_menu.tscn")
+	SceneTransition.change_scene("res://src/scenes/menus/main_menu.tscn")
 
 
 ## Serialize the current machine for saving
@@ -244,3 +261,19 @@ func _load_invention(filename: String) -> void:
 	canvas.load_machine(definition)
 	canvas.reset_restrictions()
 	_history.clear()
+
+
+func _on_test_object_spawn(object_type: String) -> void:
+	if not SimulationManager.is_playing():
+		return
+	# Spawn at the center of the visible canvas
+	var spawn_pos: Vector2 = canvas.camera.get_screen_center_position()
+	canvas.spawn_test_object(object_type, spawn_pos)
+
+
+func _on_sim_started() -> void:
+	_test_tray.visible = true
+
+
+func _on_sim_stopped() -> void:
+	_test_tray.visible = false

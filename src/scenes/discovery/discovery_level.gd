@@ -193,7 +193,7 @@ func _on_back_pressed() -> void:
 	canvas.clear_machine()
 	canvas.reset_restrictions()
 	_cleanup_ghost_slots()
-	get_tree().change_scene_to_file("res://src/scenes/menus/level_select.tscn")
+	SceneTransition.change_scene("res://src/scenes/menus/level_select.tscn")
 
 
 func _cleanup_ghost_slots() -> void:

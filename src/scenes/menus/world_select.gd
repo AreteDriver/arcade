@@ -108,8 +108,8 @@ func _build_world_buttons() -> void:
 func _on_world_pressed(world_num: int) -> void:
 	# Store selected world for level select to pick up
 	LevelSelectData.selected_world = world_num
-	get_tree().change_scene_to_file("res://src/scenes/menus/level_select.tscn")
+	SceneTransition.change_scene("res://src/scenes/menus/level_select.tscn")
 
 
 func _on_back_pressed() -> void:
-	get_tree().change_scene_to_file("res://src/scenes/menus/main_menu.tscn")
+	SceneTransition.change_scene("res://src/scenes/menus/main_menu.tscn")
