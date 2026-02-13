@@ -331,6 +331,10 @@ const EDGE_AVOIDANCE_MARGIN: f32 = 40.0;
 const EDGE_PUSH_STRENGTH: f32 = 120.0;
 /// Maximum total dodge impulse magnitude (prevents runaway forces)
 const MAX_DODGE_IMPULSE: f32 = 300.0;
+/// Radius within which enemies rally around leader units (Spawner/Tank)
+const LEADER_RALLY_RADIUS: f32 = 150.0;
+/// Cohesion force pulling escort enemies toward their leader
+const LEADER_COHESION_STRENGTH: f32 = 40.0;
 
 /// Tracks player position and velocity so enemies can predict movement
 #[derive(Resource, Default)]
@@ -363,16 +367,24 @@ fn update_player_tracker(
     }
 }
 
-/// Computes spatial awareness for each enemy: projectile dodge, enemy separation, edge avoidance.
+/// Computes spatial awareness for each enemy: projectile dodge, enemy separation,
+/// edge avoidance, and coordinated leader-escort tactics.
 /// Stores result in `EnemyAI.dodge_impulse` for the movement system to apply.
 fn enemy_spatial_awareness(
     projectile_query: Query<(&Transform, &ProjectilePhysics), With<PlayerProjectile>>,
     mut enemy_query: Query<(Entity, &Transform, &mut EnemyAI), With<Enemy>>,
 ) {
-    // Collect enemy positions first (immutable pass)
-    let enemy_positions: Vec<(Entity, Vec2)> = enemy_query
+    // Collect enemy positions and behaviors first (immutable pass)
+    let enemy_data: Vec<(Entity, Vec2, EnemyBehavior)> = enemy_query
         .iter()
-        .map(|(e, t, _)| (e, t.translation.truncate()))
+        .map(|(e, t, ai)| (e, t.translation.truncate(), ai.behavior))
+        .collect();
+
+    // Identify leader positions (Spawner and Tank enemies act as squad leaders)
+    let leaders: Vec<Vec2> = enemy_data
+        .iter()
+        .filter(|(_, _, b)| matches!(b, EnemyBehavior::Spawner | EnemyBehavior::Tank))
+        .map(|(_, pos, _)| *pos)
         .collect();
 
     // Collect projectile data
@@ -409,7 +421,7 @@ fn enemy_spatial_awareness(
             }
 
             // 2. Separation — avoid stacking on top of other enemies
-            for &(other_entity, other_pos) in &enemy_positions {
+            for &(other_entity, other_pos, _) in &enemy_data {
                 if other_entity == entity {
                     continue;
                 }
@@ -432,6 +444,32 @@ fn enemy_spatial_awareness(
             }
             if pos.y > half_h - EDGE_AVOIDANCE_MARGIN {
                 impulse.y -= (1.0 - (half_h - pos.y) / EDGE_AVOIDANCE_MARGIN) * EDGE_PUSH_STRENGTH;
+            }
+        }
+
+        // 4. Coordinated tactics — escort enemies rally near leaders
+        // Non-leader enemies are gently pulled toward the nearest Spawner or Tank
+        let is_leader = matches!(ai.behavior, EnemyBehavior::Spawner | EnemyBehavior::Tank);
+        if !is_leader && !leaders.is_empty() {
+            let mut nearest_leader: Option<Vec2> = None;
+            let mut nearest_dist = LEADER_RALLY_RADIUS;
+            for &leader_pos in &leaders {
+                let dist = (leader_pos - pos).length();
+                if dist < nearest_dist {
+                    nearest_dist = dist;
+                    nearest_leader = Some(leader_pos);
+                }
+            }
+            if let Some(leader_pos) = nearest_leader {
+                let to_leader = leader_pos - pos;
+                let dist = to_leader.length();
+                // Only pull if beyond comfortable escort distance (40 units)
+                if dist > 40.0 {
+                    let cohesion = to_leader.normalize_or_zero()
+                        * (dist / LEADER_RALLY_RADIUS)
+                        * LEADER_COHESION_STRENGTH;
+                    impulse += cohesion;
+                }
             }
         }
 

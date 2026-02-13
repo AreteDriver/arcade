@@ -236,10 +236,14 @@ pub fn spawn_wingman(
         .id()
 }
 
-/// Wingmen follow the player
+/// Wingmen follow the player and dodge incoming enemy fire
 fn wingman_follow_player(
     time: Res<Time>,
     player_query: Query<&Transform, With<Player>>,
+    projectile_query: Query<
+        (&Transform, &ProjectilePhysics),
+        (With<super::EnemyProjectile>, Without<Wingman>),
+    >,
     mut wingmen_query: Query<(&mut Transform, &WingmanStats), (With<Wingman>, Without<Player>)>,
 ) {
     let Ok(player_transform) = player_query.get_single() else {
@@ -249,12 +253,36 @@ fn wingman_follow_player(
     let player_pos = player_transform.translation.truncate();
     let dt = time.delta_secs();
 
+    // Collect projectiles once for all wingmen
+    let projectiles: Vec<(Vec2, Vec2)> = projectile_query
+        .iter()
+        .map(|(t, p)| (t.translation.truncate(), p.velocity))
+        .collect();
+
     for (mut transform, stats) in wingmen_query.iter_mut() {
         let target_x = player_pos.x + stats.offset_x;
         let target_y = player_pos.y + 40.0; // Slightly behind
-
         let current_pos = transform.translation.truncate();
-        let delta = Vec2::new(target_x, target_y) - current_pos;
+
+        // Dodge incoming enemy projectiles
+        let mut dodge = Vec2::ZERO;
+        for &(proj_pos, proj_vel) in &projectiles {
+            let to_wingman = current_pos - proj_pos;
+            let dist = to_wingman.length();
+            if dist < 80.0 && dist > 1.0 {
+                let proj_dir = proj_vel.normalize_or_zero();
+                let approach = proj_dir.dot(to_wingman.normalize_or_zero());
+                if approach > 0.2 {
+                    let perpendicular = Vec2::new(-proj_dir.y, proj_dir.x);
+                    let side = perpendicular.dot(to_wingman).signum();
+                    let urgency = 1.0 - (dist / 80.0);
+                    dodge += perpendicular * side * urgency * 120.0;
+                }
+            }
+        }
+
+        let target = Vec2::new(target_x, target_y) + dodge * dt;
+        let delta = target - current_pos;
 
         // Smooth movement toward target
         if delta.length() > 2.0 {

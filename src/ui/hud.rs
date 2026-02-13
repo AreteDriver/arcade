@@ -6,7 +6,9 @@
 #![allow(dead_code)]
 
 use crate::core::*;
-use crate::entities::{Boss, BossData, BossState, Player, PowerupEffects, Wingman, WingmanTracker};
+use crate::entities::{
+    Boss, BossData, BossState, Drone, DroneStats, Player, PowerupEffects, Wingman, WingmanTracker,
+};
 use crate::systems::{Ability, AbilityType, ComboHeatSystem, DialogueSystem};
 use bevy::prelude::*;
 
@@ -35,6 +37,7 @@ impl Plugin for HudPlugin {
                 update_boss_health_bar,
                 update_dialogue_display,
                 update_wingman_gauge,
+                update_drone_status,
                 update_ability_indicator,
                 update_ammo_display,
                 update_achievement_popup,
@@ -203,6 +206,14 @@ pub struct WingmanGaugeFill;
 /// Wingman count text
 #[derive(Component)]
 pub struct WingmanCountText;
+
+/// Drone status container
+#[derive(Component)]
+pub struct DroneStatusContainer;
+
+/// Drone status text (count + lifetime)
+#[derive(Component)]
+pub struct DroneStatusText;
 
 /// Ability indicator container
 #[derive(Component)]
@@ -578,6 +589,39 @@ fn spawn_hud(mut commands: Commands) {
                                     ..default()
                                 },
                                 TextColor(Color::srgb(0.9, 0.7, 0.4)),
+                            ));
+                        });
+
+                    // Drone status indicator (between wingman gauge and right edge)
+                    bottom
+                        .spawn((
+                            DroneStatusContainer,
+                            Node {
+                                flex_direction: FlexDirection::Column,
+                                row_gap: Val::Px(4.0),
+                                align_items: AlignItems::FlexEnd,
+                                margin: UiRect::left(Val::Px(12.0)),
+                                display: Display::None,
+                                ..default()
+                            },
+                        ))
+                        .with_children(|drone_panel| {
+                            drone_panel.spawn((
+                                Text::new("DRONES"),
+                                TextFont {
+                                    font_size: 12.0,
+                                    ..default()
+                                },
+                                TextColor(Color::srgb(0.3, 0.7, 0.9)),
+                            ));
+                            drone_panel.spawn((
+                                DroneStatusText,
+                                Text::new("0 active"),
+                                TextFont {
+                                    font_size: 11.0,
+                                    ..default()
+                                },
+                                TextColor(Color::srgb(0.4, 0.6, 0.8)),
                             ));
                         });
                 });
@@ -1442,6 +1486,39 @@ fn update_wingman_gauge(
             "{}/{} | Active: {}",
             tracker.kill_count, tracker.kills_per_wingman, wingman_count
         );
+    }
+}
+
+/// Update drone status indicator
+fn update_drone_status(
+    drone_query: Query<&DroneStats, With<Drone>>,
+    mut container_query: Query<&mut Node, With<DroneStatusContainer>>,
+    mut text_query: Query<&mut Text, With<DroneStatusText>>,
+) {
+    let drone_count = drone_query.iter().count();
+    let has_drones = drone_count > 0;
+
+    // Show/hide container
+    for mut node in container_query.iter_mut() {
+        node.display = if has_drones {
+            Display::Flex
+        } else {
+            Display::None
+        };
+    }
+
+    if !has_drones {
+        return;
+    }
+
+    // Find shortest remaining lifetime
+    let min_lifetime = drone_query
+        .iter()
+        .map(|s| s.lifetime)
+        .fold(f32::MAX, f32::min);
+
+    for mut text in text_query.iter_mut() {
+        **text = format!("{} active | {:.1}s", drone_count, min_lifetime);
     }
 }
 

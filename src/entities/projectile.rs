@@ -443,6 +443,7 @@ pub fn spawn_enemy_projectile_typed(
             crit_multiplier: 1.25,
             ammo_type: AmmoType::default(),
         },
+        BulletTrail::new(color.with_alpha(0.4)),
         Sprite {
             color,
             custom_size: Some(size),
