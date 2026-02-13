@@ -9,6 +9,7 @@ var _registry: Dictionary = {}
 
 func _ready() -> void:
 	_register_tier1_components()
+	_register_tier2_components()
 
 
 func _register_tier1_components() -> void:
@@ -31,6 +32,44 @@ func _register_tier1_components() -> void:
 		"display_name": "Fan",
 		"description": "Blows objects with wind force. Adjust speed and direction.",
 		"tier": 1,
+		"category": "force",
+	})
+	register_component("switch", {
+		"scene_path": "res://src/components/tier1/switch.tscn",
+		"display_name": "Switch",
+		"description": "Trigger that activates when objects enter its area.",
+		"tier": 1,
+		"category": "signal",
+	})
+	register_component("conveyor", {
+		"scene_path": "res://src/components/tier1/conveyor.tscn",
+		"display_name": "Conveyor",
+		"description": "Moving belt that pushes objects along its surface.",
+		"tier": 1,
+		"category": "mechanical",
+	})
+	register_component("valve", {
+		"scene_path": "res://src/components/tier1/valve.tscn",
+		"display_name": "Valve",
+		"description": "Regulates flow. Signal input overrides threshold.",
+		"tier": 1,
+		"category": "flow",
+	})
+
+
+func _register_tier2_components() -> void:
+	register_component("fusion_core", {
+		"scene_path": "res://src/components/tier2/fusion_core.tscn",
+		"display_name": "Fusion Core",
+		"description": "Power source. Overloads when output exceeds stability.",
+		"tier": 2,
+		"category": "energy",
+	})
+	register_component("gravity_node", {
+		"scene_path": "res://src/components/tier2/gravity_node.tscn",
+		"display_name": "Gravity Node",
+		"description": "Radial force field. Attracts or repels nearby objects.",
+		"tier": 2,
 		"category": "force",
 	})
 

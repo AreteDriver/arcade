@@ -1,0 +1,66 @@
+[gd_resource type="Resource" script_class="MachineDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/systems/machine_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+machine_name = "Room Tidier"
+machine_description = "The Room Tidier is overloading! Rebalance it to keep everything stable."
+world = 1
+level = 4
+challenge_type = "overloaded"
+machine_data = {
+"components": [
+	{
+		"id": "fusion_001",
+		"type": "fusion_core",
+		"position": [300, 250],
+		"parameters": {"output_level": 90.0, "stability": 50.0},
+		"connections": [
+			{"from_port": "energy_out", "to": "gravity_001", "to_port": "energy_in"}
+		]
+	},
+	{
+		"id": "gravity_001",
+		"type": "gravity_node",
+		"position": [550, 250],
+		"parameters": {"field_strength": 80.0, "polarity": 0.0, "radius": 150.0},
+		"connections": []
+	},
+	{
+		"id": "pipe_001",
+		"type": "pipe",
+		"position": [400, 420],
+		"parameters": {"angle": 0.0, "diameter": 32.0},
+		"connections": [
+			{"from_port": "flow_out", "to": "valve_001", "to_port": "flow_in"}
+		]
+	},
+	{
+		"id": "fan_001",
+		"type": "fan",
+		"position": [700, 350],
+		"parameters": {"angle": 180.0, "speed": 75.0},
+		"connections": []
+	},
+	{
+		"id": "valve_001",
+		"type": "valve",
+		"position": [650, 420],
+		"parameters": {"threshold": 0.9},
+		"connections": []
+	}
+]
+}
+challenge_data = {
+"overload_threshold": 0
+}
+objectives = ["The Fusion Core is overloading! Lower its output or raise its stability.", "Make sure no components show the red overload warning!"]
+hints = ["The Fusion Core output (90) is way higher than its stability (50).", "Try lowering the output_level below the stability value.", "You can also add components or rewire to distribute the energy better."]
+par_time_3_star = 30.0
+par_time_2_star = 60.0
+unlock_rewards = ["gravity_node"]
+intro_dialog = ["The Room Tidier is going haywire!", "The Fusion Core is pumping out too much energy and it's about to blow!", "Quick! Rebalance the machine before everything overloads!"]
+success_dialog = ["The Room Tidier is stable and tidying away!", "You've unlocked the Gravity Node component!", "World 1 complete — you're a real Machine Engineer now!"]
+available_components = ["ramp", "pipe", "fan", "switch", "conveyor", "valve", "fusion_core", "gravity_node"]
+locked_component_ids = []

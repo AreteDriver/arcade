@@ -1,0 +1,57 @@
+[gd_resource type="Resource" script_class="MachineDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/systems/machine_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+machine_name = "Pet Translator"
+machine_description = "The Pet Translator broke! Find and replace the broken component."
+world = 1
+level = 3
+challenge_type = "broken"
+machine_data = {
+"components": [
+	{
+		"id": "fusion_001",
+		"type": "fusion_core",
+		"position": [300, 300],
+		"parameters": {"output_level": 50.0, "stability": 70.0},
+		"connections": [
+			{"from_port": "energy_out", "to": "fan_001", "to_port": "energy_in"}
+		]
+	},
+	{
+		"id": "pipe_001",
+		"type": "pipe",
+		"position": [550, 300],
+		"parameters": {"angle": 0.0, "diameter": 28.0},
+		"connections": []
+	},
+	{
+		"id": "fan_001",
+		"type": "fan",
+		"position": [700, 200],
+		"parameters": {"angle": 270.0, "speed": 60.0},
+		"connections": []
+	},
+	{
+		"id": "switch_001",
+		"type": "switch",
+		"position": [700, 400],
+		"parameters": {"mode": 0.0},
+		"connections": []
+	}
+]
+}
+challenge_data = {
+"broken_ids": ["pipe_001"]
+}
+objectives = ["Find the broken component and replace it!", "Look for the component with cracks — remove it and place a new one."]
+hints = ["The Pipe in the middle looks cracked...", "Remove the broken Pipe and place a fresh one from the tray.", "Make sure to reconnect the wires after replacing it!"]
+par_time_3_star = 40.0
+par_time_2_star = 80.0
+unlock_rewards = ["fusion_core"]
+intro_dialog = ["Oh no! The Pet Translator stopped working!", "Dr. Sprocket says one of the components is broken.", "Can you find the broken part and replace it with a new one?"]
+success_dialog = ["The Pet Translator lives again! Woof means 'I love you'!", "You've unlocked the Fusion Core component!", "Nice repair work, engineer!"]
+available_components = ["pipe", "fan", "switch", "ramp"]
+locked_component_ids = ["fusion_001", "fan_001", "switch_001"]

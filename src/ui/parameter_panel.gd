@@ -11,6 +11,7 @@ signal delete_requested(component: MachineComponent)
 
 var _current_component: MachineComponent = null
 var _sliders: Dictionary = {}  # {param_name: HSlider}
+var _read_only: bool = false
 
 
 func _ready() -> void:
@@ -101,7 +102,15 @@ func _format_value(value: float, step: float) -> String:
 		return "%.2f" % value
 
 
+## Set read-only mode (disables sliders and delete button)
+func set_read_only(value: bool) -> void:
+	_read_only = value
+	for slider: HSlider in _sliders.values():
+		slider.editable = not value
+	delete_button.disabled = value
+
+
 func _on_delete_pressed() -> void:
-	if _current_component:
+	if _current_component and not _read_only:
 		delete_requested.emit(_current_component)
 		hide_panel()

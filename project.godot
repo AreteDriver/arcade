@@ -16,7 +16,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 config/name="Machine Shop of Tomorrow"
 config/description="Physics sandbox game where kids discover, fix, and invent fantastical machines."
-run/main_scene="res://src/scenes/main.tscn"
+run/main_scene="res://src/scenes/menus/main_menu.tscn"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 
 [autoload]
@@ -25,6 +25,8 @@ ComponentRegistry="*res://src/systems/component_registry.gd"
 SimulationManager="*res://src/systems/simulation_manager.gd"
 VFX="*res://src/systems/visual_feedback_manager.gd"
 Audio="*res://src/systems/audio_manager.gd"
+ProgressManager="*res://src/systems/progress_manager.gd"
+LevelSelectData="*res://src/systems/level_select_data.gd"
 
 [display]
 

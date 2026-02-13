@@ -12,12 +12,25 @@ const TRAY_COLORS: Dictionary = {
 	"ramp": Color(0.55, 0.35, 0.15),
 	"pipe": Color(0.2, 0.5, 0.7),
 	"fan": Color(0.5, 0.5, 0.6),
+	"switch": Color(0.15, 0.6, 0.3),
+	"conveyor": Color(0.35, 0.35, 0.4),
+	"valve": Color(0.5, 0.3, 0.5),
+	"fusion_core": Color(0.7, 0.4, 0.1),
+	"gravity_node": Color(0.3, 0.2, 0.6),
 }
 const TRAY_ICONS: Dictionary = {
 	"ramp": "/",
 	"pipe": "=",
 	"fan": "*",
+	"switch": "!",
+	"conveyor": ">",
+	"valve": "V",
+	"fusion_core": "@",
+	"gravity_node": "G",
 }
+
+## Optional filter: when set, only these types are shown
+var _available_types: Array[String] = []
 
 
 func _ready() -> void:
@@ -31,6 +44,8 @@ func _build_tray() -> void:
 
 	var types: Array[String] = ComponentRegistry.get_all_types()
 	for type_name in types:
+		if _available_types.size() > 0 and type_name not in _available_types:
+			continue
 		var info: Dictionary = ComponentRegistry.get_component_info(type_name)
 		_add_tray_button(type_name, info)
 
@@ -99,4 +114,11 @@ func _on_button_pressed(type_name: String) -> void:
 
 ## Refresh the tray (e.g., after unlocking new components)
 func refresh() -> void:
+	_build_tray()
+
+
+## Filter the tray to only show specific component types.
+## Pass an empty array to show all types (default).
+func set_available_types(types: Array[String]) -> void:
+	_available_types = types
 	_build_tray()

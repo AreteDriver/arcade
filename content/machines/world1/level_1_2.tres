@@ -1,0 +1,64 @@
+[gd_resource type="Resource" script_class="MachineDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/systems/machine_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+machine_name = "Sock Sorter 3000"
+machine_description = "The Sock Sorter's settings are all wrong! Adjust the parameters to fix it."
+world = 1
+level = 2
+challenge_type = "miscalibrated"
+machine_data = {
+"components": [
+	{
+		"id": "pipe_001",
+		"type": "pipe",
+		"position": [300, 300],
+		"parameters": {"angle": 350.0, "diameter": 18.0},
+		"connections": [
+			{"from_port": "flow_out", "to": "valve_001", "to_port": "flow_in"}
+		]
+	},
+	{
+		"id": "fan_001",
+		"type": "fan",
+		"position": [500, 200],
+		"parameters": {"angle": 45.0, "speed": 20.0},
+		"connections": []
+	},
+	{
+		"id": "conveyor_001",
+		"type": "conveyor",
+		"position": [500, 400],
+		"parameters": {"angle": 0.0, "speed": 30.0},
+		"connections": [
+			{"from_port": "flow_out", "to": "pipe_001", "to_port": "flow_in"}
+		]
+	},
+	{
+		"id": "valve_001",
+		"type": "valve",
+		"position": [700, 300],
+		"parameters": {"threshold": 0.2},
+		"connections": []
+	}
+]
+}
+challenge_data = {
+"target_params": {
+	"pipe_001": {"angle": 0.0, "diameter": 30.0},
+	"fan_001": {"angle": 90.0, "speed": 70.0},
+	"conveyor_001": {"speed": 60.0},
+	"valve_001": {"threshold": 0.8}
+}
+}
+objectives = ["Adjust the parameters so socks flow properly!", "Pipe: straighten it and widen the diameter.", "Fan: point it down and increase speed.", "Valve: open it wider!"]
+hints = ["The Pipe angle should be 0 degrees — socks need a straight path.", "The Fan needs to blow downward (90 degrees) with more power (around 70).", "The Valve threshold controls how much flow passes through — try 0.8."]
+par_time_3_star = 45.0
+par_time_2_star = 90.0
+unlock_rewards = ["valve"]
+intro_dialog = ["The Sock Sorter 3000 was working perfectly until little Timmy messed with all the dials!", "The settings are all wrong now. Can you recalibrate the machine?", "Adjust the sliders on each component to match the correct settings."]
+success_dialog = ["The Sock Sorter is sorting again! No more mismatched socks!", "You've unlocked the Valve component!", "Great calibration skills!"]
+available_components = []
+locked_component_ids = ["pipe_001", "fan_001", "conveyor_001", "valve_001"]

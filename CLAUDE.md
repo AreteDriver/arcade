@@ -33,7 +33,11 @@ Physics sandbox game for kids (6-12). Build, fix, and invent fantastical machine
 - Object pool particles and flow objects
 
 ## Current Phase
-Phase 1 — Core Engine. See `prompts/01_core_engine.md` for detailed task.
+Phase 3 — Discovery Mode. See `prompts/03_discovery_mode.md` for detailed task.
+- Phase 1 (Core Engine) — Complete
+- Phase 2 (Juice & Feedback) — Complete
+- Phase 3 (Discovery Mode) — Complete (5 new components, 4 challenge types, menus, World 1)
+- Phase 4 (Content & Polish) — Next
 
 ## How to Work
 1. Read the relevant prompt file for the current phase

@@ -1,0 +1,49 @@
+[gd_resource type="Resource" script_class="MachineDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/systems/machine_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+machine_name = "Breakfast Bot"
+machine_description = "This machine was supposed to make breakfast, but it's missing some parts!"
+world = 1
+level = 1
+challenge_type = "incomplete"
+machine_data = {
+"components": [
+	{
+		"id": "ramp_001",
+		"type": "ramp",
+		"position": [400, 280],
+		"parameters": {"angle": 25.0, "friction": 0.3},
+		"connections": []
+	},
+	{
+		"id": "pipe_001",
+		"type": "pipe",
+		"position": [700, 380],
+		"parameters": {"angle": 0.0, "diameter": 24.0},
+		"connections": [
+			{"from_port": "flow_out", "to": "switch_001", "to_port": "signal_out"}
+		]
+	}
+]
+}
+challenge_data = {
+"missing_slots": [
+	{
+		"position": [550, 340],
+		"type": "conveyor",
+		"connections": []
+	}
+]
+}
+objectives = ["Place the missing Conveyor to connect the Ramp to the Pipe!", "Press Play to test the machine!"]
+hints = ["Look for the gap between the Ramp and the Pipe.", "The Conveyor moves objects sideways — place it in the middle!", "Try adjusting the Conveyor speed after placing it."]
+par_time_3_star = 30.0
+par_time_2_star = 60.0
+unlock_rewards = ["switch", "conveyor"]
+intro_dialog = ["Welcome to the Machine Shop of Tomorrow!", "This is the Breakfast Bot — it's supposed to slide eggs down a ramp and carry them to the toaster.", "But someone forgot to install a part! Can you figure out what's missing?", "Pick a component from the tray and place it where it belongs!"]
+success_dialog = ["Amazing work! The Breakfast Bot is running!", "You've unlocked the Switch and Conveyor components!", "On to the next challenge!"]
+available_components = ["ramp", "pipe", "conveyor", "fan"]
+locked_component_ids = ["ramp_001", "pipe_001"]

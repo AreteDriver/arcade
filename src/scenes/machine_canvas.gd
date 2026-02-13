@@ -42,9 +42,16 @@ var grid_size: int = 32
 ## Component naming counter
 var _component_counter: int = 0
 
-
 ## Whether we're in click-to-place mode (component follows cursor, click to drop)
 var _placing_from_tray: bool = false
+
+## Restriction flags for Discovery Mode (default permissive = sandbox)
+var allow_placement: bool = true
+var allow_wiring: bool = true
+var allow_parameter_edit: bool = true
+var allow_removal: bool = true
+var allowed_component_types: Array[String] = []
+var locked_component_ids: Array[String] = []
 
 
 func _ready() -> void:
@@ -82,6 +89,8 @@ func place_component(type_name: String, world_pos: Vector2) -> MachineComponent:
 ## Places at canvas center, enters click-to-place mode (follows cursor until clicked).
 func start_placing(type_name: String) -> void:
 	if SimulationManager.is_playing():
+		return
+	if not allow_placement:
 		return
 
 	# Place at the center of the visible canvas area (camera position)
@@ -188,12 +197,12 @@ func _on_left_press(world_pos: Vector2) -> void:
 
 	# Check if clicking on a port first
 	var port := _find_port_at(world_pos)
-	if port and port.direction == Port.Direction.OUTPUT:
+	if port and port.direction == Port.Direction.OUTPUT and allow_wiring:
 		_start_wire(port, world_pos)
 		return
 
 	# Check if clicking on a port to disconnect
-	if port and port.direction == Port.Direction.INPUT and port.connected_to != null:
+	if port and port.direction == Port.Direction.INPUT and port.connected_to != null and allow_wiring:
 		_disconnect_wire_at(port)
 		return
 
@@ -201,9 +210,10 @@ func _on_left_press(world_pos: Vector2) -> void:
 	var component := _find_component_at(world_pos)
 	if component:
 		select_component(component)
-		_mode = InteractionMode.DRAGGING_COMPONENT
-		_dragging_component = component
-		_drag_offset = component.position - world_pos
+		if not _is_component_locked(component):
+			_mode = InteractionMode.DRAGGING_COMPONENT
+			_dragging_component = component
+			_drag_offset = component.position - world_pos
 		return
 
 	# Clicked empty space — deselect and start panning
@@ -234,9 +244,11 @@ func _on_left_release(world_pos: Vector2) -> void:
 func _on_right_press(world_pos: Vector2) -> void:
 	if SimulationManager.is_playing():
 		return
+	if not allow_removal:
+		return
 
 	var component := _find_component_at(world_pos)
-	if component:
+	if component and not _is_component_locked(component):
 		remove_component(component)
 
 
@@ -437,6 +449,104 @@ func zoom_to_fit() -> void:
 ## Trigger screen shake (called by VFX or game events)
 func do_screen_shake(intensity: float = 5.0, duration: float = 0.3) -> void:
 	VFX.screen_shake(camera, intensity, duration)
+
+
+## Load a machine from a MachineDefinition resource.
+## Creates components, sets positions/params, creates wires.
+func load_machine(definition: MachineDefinition) -> void:
+	clear_machine()
+
+	var data: Dictionary = definition.machine_data
+	if not data.has("components"):
+		return
+
+	# Phase 1: Create all components
+	var comp_map: Dictionary = {}  # {id: MachineComponent}
+	for comp_data: Dictionary in data["components"]:
+		var type_name: String = comp_data.get("type", "")
+		var comp_id: String = comp_data.get("id", "")
+		if type_name.is_empty() or comp_id.is_empty():
+			continue
+
+		var component: MachineComponent = ComponentRegistry.create_component(type_name)
+		if component == null:
+			continue
+
+		_component_counter += 1
+		component.name = comp_id
+
+		var pos_arr: Array = comp_data.get("position", [0, 0])
+		component.position = Vector2(pos_arr[0], pos_arr[1])
+
+		component_layer.add_child(component)
+		graph.add_component(component)
+		component.component_selected.connect(_on_component_clicked)
+
+		# Set parameters
+		var params: Dictionary = comp_data.get("parameters", {})
+		for param_name in params:
+			component.set_parameter(param_name, params[param_name])
+
+		comp_map[comp_id] = component
+
+	# Phase 2: Create wires from connection data
+	for comp_data: Dictionary in data["components"]:
+		var comp_id: String = comp_data.get("id", "")
+		var source_comp: MachineComponent = comp_map.get(comp_id)
+		if source_comp == null:
+			continue
+
+		for conn: Dictionary in comp_data.get("connections", []):
+			var from_port_name: String = conn.get("from_port", "")
+			var target_id: String = conn.get("to", "")
+			var to_port_name: String = conn.get("to_port", "")
+
+			var target_comp: MachineComponent = comp_map.get(target_id)
+			if target_comp == null:
+				continue
+
+			var source_port: Port = source_comp.get_port(from_port_name)
+			var target_port: Port = target_comp.get_port(to_port_name)
+			if source_port and target_port and source_port.can_connect_to(target_port):
+				_create_wire(source_port, target_port)
+
+	# Apply restriction flags from definition
+	locked_component_ids = definition.locked_component_ids.duplicate()
+
+
+## Remove all components and wires from the canvas
+func clear_machine() -> void:
+	deselect()
+
+	# Remove all wires
+	for child in wire_layer.get_children():
+		child.queue_free()
+
+	# Remove all components
+	for child in component_layer.get_children():
+		if child is MachineComponent:
+			graph.remove_component(child)
+			child.queue_free()
+		elif child is RigidBody2D:
+			child.queue_free()
+
+	graph.clear()
+	_component_counter = 0
+
+
+## Reset all restriction flags to permissive (sandbox mode)
+func reset_restrictions() -> void:
+	allow_placement = true
+	allow_wiring = true
+	allow_parameter_edit = true
+	allow_removal = true
+	allowed_component_types.clear()
+	locked_component_ids.clear()
+
+
+## Check if a component is locked (cannot be moved/deleted)
+func _is_component_locked(component: MachineComponent) -> bool:
+	return component.name in locked_component_ids
 
 
 func _on_simulation_stopped() -> void:
