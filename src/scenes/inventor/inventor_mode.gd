@@ -38,10 +38,18 @@ func _ready() -> void:
 	param_panel.delete_requested.connect(_on_delete_requested)
 	sim_controls.zoom_to_fit_pressed.connect(canvas.zoom_to_fit)
 
-	# Filter tray to only show unlocked components
-	var unlocked: Array[String] = ProgressManager.get_unlocked_components()
-	if unlocked.size() > 0:
-		tray.set_available_types(unlocked)
+	# Free Build mode: show all components. Inventor Mode: show only unlocked.
+	var is_free_build: bool = false
+	if InventionManager.has_meta("free_build"):
+		is_free_build = true
+		InventionManager.remove_meta("free_build")
+
+	if not is_free_build:
+		var unlocked: Array[String] = ProgressManager.get_unlocked_components()
+		if unlocked.size() > 0:
+			tray.set_available_types(unlocked)
+	else:
+		tray.set_available_types([])  # Empty = show all
 
 	# Build the test object tray (shown during simulation)
 	_test_tray = TestObjectTray.new()

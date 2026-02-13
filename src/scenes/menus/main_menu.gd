@@ -42,7 +42,9 @@ func _on_machines_pressed() -> void:
 
 
 func _on_sandbox_pressed() -> void:
-	SceneTransition.change_scene("res://src/scenes/main.tscn")
+	# Free Build = Inventor Mode with all components, no purpose selector
+	InventionManager.set_meta("free_build", true)
+	SceneTransition.change_scene("res://src/scenes/inventor/inventor_mode.tscn")
 
 
 func _on_settings_pressed() -> void:
