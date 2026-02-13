@@ -561,6 +561,8 @@ fn get_wave_definition(stage: u32, wave: u32) -> WaveDefinition {
     const COERCER: u32 = 16236;
     const MALLER: u32 = 624;
     const OMEN: u32 = 625;
+    // Amarr heavy
+    const HARBINGER: u32 = 24690;
 
     // Base enemy count scales with stage and wave
     let base_count = 3 + wave + (stage / 2);
@@ -578,13 +580,16 @@ fn get_wave_definition(stage: u32, wave: u32) -> WaveDefinition {
         7..=8 => vec![EXECUTIONER, COERCER, MALLER],
         9 => vec![COERCER, MALLER, OMEN],
 
-        // Act 3: Stages 10-13 - Heavy enemies
-        10..=11 => vec![MALLER, OMEN, COERCER],
-        12..=13 => vec![MALLER, OMEN],
+        // Act 3: Stages 10-13 - Full fleet composition (heavy + light support)
+        10 => vec![MALLER, OMEN, COERCER, EXECUTIONER],
+        11 => vec![MALLER, OMEN, COERCER, TORMENTOR],
+        12 => vec![MALLER, OMEN, HARBINGER, COERCER],
+        13 => vec![HARBINGER, OMEN, MALLER, EXECUTIONER],
         _ => vec![PUNISHER],
     };
 
-    // Behaviors get more aggressive and varied with stage
+    // Behaviors get more aggressive and varied with stage.
+    // Late stages use the full behavior roster for maximum variety.
     let behaviors = match stage {
         1..=2 => vec![EnemyBehavior::Linear],
         3..=4 => vec![
@@ -610,17 +615,28 @@ fn get_wave_definition(stage: u32, wave: u32) -> WaveDefinition {
             EnemyBehavior::Tank,
             EnemyBehavior::Spawner,
         ],
-        11..=12 => vec![
+        11 => vec![
             EnemyBehavior::Homing,
             EnemyBehavior::Kamikaze,
             EnemyBehavior::Tank,
             EnemyBehavior::Spawner,
+            EnemyBehavior::Weaver,
         ],
+        12 => vec![
+            EnemyBehavior::Homing,
+            EnemyBehavior::Kamikaze,
+            EnemyBehavior::Tank,
+            EnemyBehavior::Sniper,
+            EnemyBehavior::Orbital,
+        ],
+        // Stage 13 (final): all non-trivial behaviors for maximum challenge
         _ => vec![
             EnemyBehavior::Kamikaze,
             EnemyBehavior::Tank,
             EnemyBehavior::Spawner,
             EnemyBehavior::Sniper,
+            EnemyBehavior::Weaver,
+            EnemyBehavior::Orbital,
         ],
     };
 

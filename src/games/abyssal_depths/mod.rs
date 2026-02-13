@@ -213,40 +213,95 @@ fn setup_abyssal(
     spawn_abyssal_hud(&mut commands);
 }
 
-/// Spawn enemies for the current room
+/// Spawn enemies for the current room with escalating difficulty.
+/// Room 1: Light rogue drones (Linear/Zigzag) — teaches mechanics
+/// Room 2: Mixed fleet (Homing/Sniper + Triglavians) — pressure ramp
+/// Room 3: Full Triglavian force (Vedmak/Damavik + Drekavac boss) — survival test
 fn spawn_room_enemies(commands: &mut Commands, state: &AbyssalState, _session: &GameSession) {
+    use crate::entities::enemy::{spawn_enemy, EnemyBehavior};
+
     let count = state.room.enemy_count();
-    // Spawn within bounds (margin is 100, so stay below SCREEN_HEIGHT/2 + 100)
     let spawn_y_base = SCREEN_HEIGHT / 2.0 - 50.0;
 
-    for i in 0..count {
-        let x = -SCREEN_WIDTH / 2.0 + (i as f32 + 1.0) * (SCREEN_WIDTH / (count as f32 + 1.0));
-        let y = spawn_y_base + fastrand::f32() * 100.0; // Spread across top portion
+    match state.room {
+        AbyssalRoom::Room1 => {
+            // Light enemies with basic behaviors — learning room
+            let behaviors = [
+                EnemyBehavior::Linear,
+                EnemyBehavior::Zigzag,
+                EnemyBehavior::Weaver,
+            ];
+            let ship_types: [u32; 3] = [597, 589, 591]; // Punisher, Executioner, Tormentor
 
-        // Spawn Triglavian enemies (Damavik variants)
-        if i % 3 == 0 && state.room != AbyssalRoom::Room1 {
-            // Spawn Vedmak in later rooms
-            crate::entities::enemy::spawn_vedmak(commands, Vec2::new(x, y), None, None);
-        } else {
-            // Spawn Damavik
-            crate::entities::enemy::spawn_damavik(commands, Vec2::new(x, y), None, None);
+            for i in 0..count {
+                let x =
+                    -SCREEN_WIDTH / 2.0 + (i as f32 + 1.0) * (SCREEN_WIDTH / (count as f32 + 1.0));
+                let y = spawn_y_base + fastrand::f32() * 100.0;
+                let behavior = behaviors[i as usize % behaviors.len()];
+                let type_id = ship_types[i as usize % ship_types.len()];
+                spawn_enemy(commands, type_id, Vec2::new(x, y), behavior, None, None);
+            }
+        }
+        AbyssalRoom::Room2 => {
+            // Mixed fleet: standard ships with aggressive behaviors + some Triglavians
+            let behaviors = [
+                EnemyBehavior::Homing,
+                EnemyBehavior::Sniper,
+                EnemyBehavior::Orbital,
+                EnemyBehavior::Weaver,
+            ];
+            let ship_types: [u32; 3] = [16236, 597, 589]; // Coercer, Punisher, Executioner
+
+            for i in 0..count {
+                let x =
+                    -SCREEN_WIDTH / 2.0 + (i as f32 + 1.0) * (SCREEN_WIDTH / (count as f32 + 1.0));
+                let y = spawn_y_base + fastrand::f32() * 100.0;
+
+                if i % 4 == 0 {
+                    // Every 4th enemy is a Triglavian Damavik
+                    crate::entities::enemy::spawn_damavik(commands, Vec2::new(x, y), None, None);
+                } else {
+                    let behavior = behaviors[i as usize % behaviors.len()];
+                    let type_id = ship_types[i as usize % ship_types.len()];
+                    spawn_enemy(commands, type_id, Vec2::new(x, y), behavior, None, None);
+                }
+            }
+        }
+        AbyssalRoom::Room3 => {
+            // Full Triglavian force — heavy Vedmaks with fast Damavik escorts
+            for i in 0..count {
+                let x =
+                    -SCREEN_WIDTH / 2.0 + (i as f32 + 1.0) * (SCREEN_WIDTH / (count as f32 + 1.0));
+                let y = spawn_y_base + fastrand::f32() * 100.0;
+
+                if i % 3 == 0 {
+                    // Heavy Vedmak cruisers
+                    crate::entities::enemy::spawn_vedmak(commands, Vec2::new(x, y), None, None);
+                } else {
+                    // Fast Starving Damaviks
+                    crate::entities::enemy::spawn_starving_damavik(
+                        commands,
+                        Vec2::new(x, y),
+                        None,
+                        None,
+                    );
+                }
+            }
+
+            // Drekavac boss
+            let boss_pos = Vec2::new(0.0, spawn_y_base + 50.0);
+            crate::entities::enemy::spawn_drekavac_boss(commands, boss_pos, None, None);
         }
     }
 
-    // Spawn boss in final room
-    if state.room == AbyssalRoom::Room3 {
-        let boss_pos = Vec2::new(0.0, spawn_y_base + 50.0);
-        crate::entities::enemy::spawn_drekavac_boss(commands, boss_pos, None, None);
-    }
-
+    let extra = if state.room == AbyssalRoom::Room3 {
+        1
+    } else {
+        0
+    };
     info!(
         "Spawned {} enemies for room {:?}",
-        count
-            + if state.room == AbyssalRoom::Room3 {
-                1
-            } else {
-                0
-            },
+        count + extra,
         state.room
     );
 }

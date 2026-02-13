@@ -6,7 +6,7 @@
 
 #![allow(dead_code)]
 
-use super::{Enemy, PlayerProjectile, ProjectileDamage, ProjectilePhysics};
+use super::{Enemy, EnemyProjectile, PlayerProjectile, ProjectileDamage, ProjectilePhysics};
 use crate::core::*;
 use crate::systems::ability::{AbilityActivatedEvent, AbilityType};
 use bevy::prelude::*;
@@ -191,10 +191,14 @@ fn spawn_drone(
         .id()
 }
 
-/// Drones orbit around the player
+/// Drones orbit around the player and dodge incoming enemy fire
 fn drone_orbit_player(
     time: Res<Time>,
     player_query: Query<&Transform, With<super::Player>>,
+    projectile_query: Query<
+        (&Transform, &ProjectilePhysics),
+        (With<EnemyProjectile>, Without<Drone>),
+    >,
     mut drone_query: Query<
         (&mut Transform, &mut DroneStats),
         (With<Drone>, Without<super::Player>),
@@ -205,6 +209,12 @@ fn drone_orbit_player(
     };
     let player_pos = player_transform.translation.truncate();
     let dt = time.delta_secs();
+
+    // Collect projectiles once for all drones
+    let projectiles: Vec<(Vec2, Vec2)> = projectile_query
+        .iter()
+        .map(|(t, p)| (t.translation.truncate(), p.velocity))
+        .collect();
 
     for (mut transform, mut stats) in drone_query.iter_mut() {
         // Update orbit angle
@@ -219,9 +229,28 @@ fn drone_orbit_player(
             player_pos.y + stats.orbit_angle.sin() * stats.orbit_distance,
         );
 
-        // Smooth movement toward orbit position
         let current_pos = transform.translation.truncate();
-        let delta = target_pos - current_pos;
+
+        // Dodge incoming enemy projectiles
+        let mut dodge = Vec2::ZERO;
+        for &(proj_pos, proj_vel) in &projectiles {
+            let to_drone = current_pos - proj_pos;
+            let dist = to_drone.length();
+            if dist < 70.0 && dist > 1.0 {
+                let proj_dir = proj_vel.normalize_or_zero();
+                let approach = proj_dir.dot(to_drone.normalize_or_zero());
+                if approach > 0.2 {
+                    let perpendicular = Vec2::new(-proj_dir.y, proj_dir.x);
+                    let side = perpendicular.dot(to_drone).signum();
+                    let urgency = 1.0 - (dist / 70.0);
+                    dodge += perpendicular * side * urgency * 100.0;
+                }
+            }
+        }
+
+        // Smooth movement toward orbit position + dodge offset
+        let adjusted_target = target_pos + dodge * dt;
+        let delta = adjusted_target - current_pos;
 
         if delta.length() > 1.0 {
             let move_speed = stats.speed.min(delta.length() * 5.0);

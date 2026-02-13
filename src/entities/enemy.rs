@@ -9,6 +9,8 @@ use crate::core::*;
 use crate::systems::EngineTrail;
 use bevy::prelude::*;
 
+use super::projectile::{PlayerProjectile, ProjectilePhysics};
+
 /// Marker component for enemy entities
 #[derive(Component, Debug)]
 pub struct Enemy;
@@ -36,6 +38,40 @@ pub enum EnemyBehavior {
     Tank,
     /// Triglavian disintegrator: tracks player, fires continuous beam with ramping damage
     Disintegrator,
+}
+
+impl EnemyBehavior {
+    /// How strongly this enemy reacts to incoming projectiles (0.0 = ignores, 1.0 = maximum dodge)
+    pub fn dodge_sensitivity(&self) -> f32 {
+        match self {
+            EnemyBehavior::Linear => 0.3,
+            EnemyBehavior::Zigzag => 0.5,
+            EnemyBehavior::Homing => 0.3,
+            EnemyBehavior::Orbital => 0.5,
+            EnemyBehavior::Sniper => 0.8,        // Self-preservation
+            EnemyBehavior::Kamikaze => 0.0,      // Suicide, doesn't dodge
+            EnemyBehavior::Weaver => 0.7,        // Nimble harasser
+            EnemyBehavior::Spawner => 0.2,       // Heavy, slow to react
+            EnemyBehavior::Tank => 0.1,          // Absorbs damage
+            EnemyBehavior::Disintegrator => 0.5, // Moderate evasion
+        }
+    }
+
+    /// How accurately this enemy leads its shots (0.0 = no lead, 1.0 = perfect prediction)
+    pub fn aim_accuracy(&self) -> f32 {
+        match self {
+            EnemyBehavior::Linear => 0.2,
+            EnemyBehavior::Zigzag => 0.4,
+            EnemyBehavior::Homing => 0.5,
+            EnemyBehavior::Orbital => 0.4,
+            EnemyBehavior::Sniper => 0.9,   // Precision platform
+            EnemyBehavior::Kamikaze => 0.0, // Doesn't shoot
+            EnemyBehavior::Weaver => 0.3,
+            EnemyBehavior::Spawner => 0.2,
+            EnemyBehavior::Tank => 0.5,
+            EnemyBehavior::Disintegrator => 0.6, // Beam weapon, moderate tracking
+        }
+    }
 }
 
 /// Enemy stats
@@ -132,6 +168,8 @@ pub struct EnemyAI {
     pub target: Vec2,
     /// Whether currently active (on screen)
     pub active: bool,
+    /// Accumulated dodge/separation impulse from spatial awareness (reset each frame)
+    pub dodge_impulse: Vec2,
 }
 
 impl Default for EnemyAI {
@@ -142,6 +180,7 @@ impl Default for EnemyAI {
             phase: 0.0,
             target: Vec2::ZERO,
             active: true,
+            dodge_impulse: Vec2::ZERO,
         }
     }
 }
@@ -274,17 +313,188 @@ impl Default for EnemyBundle {
     }
 }
 
+// =============================================================================
+// SPATIAL AWARENESS & PREDICTIVE AI
+// =============================================================================
+
+/// How far enemies detect incoming player projectiles
+const DODGE_DETECTION_RADIUS: f32 = 100.0;
+/// Base dodge force applied when evading projectiles
+const DODGE_STRENGTH: f32 = 150.0;
+/// Distance at which enemies repel from each other
+const SEPARATION_RADIUS: f32 = 55.0;
+/// Force applied to keep enemies apart
+const SEPARATION_STRENGTH: f32 = 80.0;
+/// Screen edge margin for soft boundary avoidance
+const EDGE_AVOIDANCE_MARGIN: f32 = 40.0;
+/// Force pushing enemies away from screen edges
+const EDGE_PUSH_STRENGTH: f32 = 120.0;
+/// Maximum total dodge impulse magnitude (prevents runaway forces)
+const MAX_DODGE_IMPULSE: f32 = 300.0;
+/// Radius within which enemies rally around leader units (Spawner/Tank)
+const LEADER_RALLY_RADIUS: f32 = 150.0;
+/// Cohesion force pulling escort enemies toward their leader
+const LEADER_COHESION_STRENGTH: f32 = 40.0;
+
+/// Tracks player position and velocity so enemies can predict movement
+#[derive(Resource, Default)]
+pub struct PlayerTracker {
+    /// Current player position
+    pub position: Vec2,
+    /// Estimated player velocity (units/sec)
+    pub velocity: Vec2,
+    /// Previous frame position for velocity calculation
+    prev_position: Vec2,
+    /// Whether we've seen at least one frame
+    initialized: bool,
+}
+
+/// Updates the player tracker with current position and derived velocity
+fn update_player_tracker(
+    time: Res<Time>,
+    player_query: Query<&Transform, With<super::Player>>,
+    mut tracker: ResMut<PlayerTracker>,
+) {
+    let dt = time.delta_secs();
+    if let Ok(transform) = player_query.get_single() {
+        let pos = transform.translation.truncate();
+        if tracker.initialized && dt > 0.0 {
+            tracker.velocity = (pos - tracker.prev_position) / dt;
+        }
+        tracker.prev_position = pos;
+        tracker.position = pos;
+        tracker.initialized = true;
+    }
+}
+
+/// Computes spatial awareness for each enemy: projectile dodge, enemy separation,
+/// edge avoidance, and coordinated leader-escort tactics.
+/// Stores result in `EnemyAI.dodge_impulse` for the movement system to apply.
+fn enemy_spatial_awareness(
+    projectile_query: Query<(&Transform, &ProjectilePhysics), With<PlayerProjectile>>,
+    mut enemy_query: Query<(Entity, &Transform, &mut EnemyAI), With<Enemy>>,
+) {
+    // Collect enemy positions and behaviors first (immutable pass)
+    let enemy_data: Vec<(Entity, Vec2, EnemyBehavior)> = enemy_query
+        .iter()
+        .map(|(e, t, ai)| (e, t.translation.truncate(), ai.behavior))
+        .collect();
+
+    // Identify leader positions (Spawner and Tank enemies act as squad leaders)
+    let leaders: Vec<Vec2> = enemy_data
+        .iter()
+        .filter(|(_, _, b)| matches!(b, EnemyBehavior::Spawner | EnemyBehavior::Tank))
+        .map(|(_, pos, _)| *pos)
+        .collect();
+
+    // Collect projectile data
+    let projectiles: Vec<(Vec2, Vec2)> = projectile_query
+        .iter()
+        .map(|(t, p)| (t.translation.truncate(), p.velocity))
+        .collect();
+
+    let half_w = SCREEN_WIDTH / 2.0;
+    let half_h = SCREEN_HEIGHT / 2.0;
+
+    for (entity, transform, mut ai) in enemy_query.iter_mut() {
+        let pos = transform.translation.truncate();
+        let sensitivity = ai.behavior.dodge_sensitivity();
+        let mut impulse = Vec2::ZERO;
+
+        if sensitivity > 0.0 {
+            // 1. Projectile dodge — evade incoming player bullets
+            for &(proj_pos, proj_vel) in &projectiles {
+                let to_enemy = pos - proj_pos;
+                let dist = to_enemy.length();
+
+                if dist < DODGE_DETECTION_RADIUS && dist > 1.0 {
+                    let proj_dir = proj_vel.normalize_or_zero();
+                    let approach = proj_dir.dot(to_enemy.normalize_or_zero());
+
+                    if approach > 0.2 {
+                        let perpendicular = Vec2::new(-proj_dir.y, proj_dir.x);
+                        let side = perpendicular.dot(to_enemy).signum();
+                        let urgency = 1.0 - (dist / DODGE_DETECTION_RADIUS);
+                        impulse += perpendicular * side * urgency * DODGE_STRENGTH * sensitivity;
+                    }
+                }
+            }
+
+            // 2. Separation — avoid stacking on top of other enemies
+            for &(other_entity, other_pos, _) in &enemy_data {
+                if other_entity == entity {
+                    continue;
+                }
+                let diff = pos - other_pos;
+                let dist = diff.length();
+                if dist < SEPARATION_RADIUS && dist > 1.0 {
+                    let push = diff.normalize_or_zero()
+                        * (1.0 - dist / SEPARATION_RADIUS)
+                        * SEPARATION_STRENGTH;
+                    impulse += push;
+                }
+            }
+
+            // 3. Screen edge avoidance
+            if pos.x < -half_w + EDGE_AVOIDANCE_MARGIN {
+                impulse.x += (1.0 - (pos.x + half_w) / EDGE_AVOIDANCE_MARGIN) * EDGE_PUSH_STRENGTH;
+            }
+            if pos.x > half_w - EDGE_AVOIDANCE_MARGIN {
+                impulse.x -= (1.0 - (half_w - pos.x) / EDGE_AVOIDANCE_MARGIN) * EDGE_PUSH_STRENGTH;
+            }
+            if pos.y > half_h - EDGE_AVOIDANCE_MARGIN {
+                impulse.y -= (1.0 - (half_h - pos.y) / EDGE_AVOIDANCE_MARGIN) * EDGE_PUSH_STRENGTH;
+            }
+        }
+
+        // 4. Coordinated tactics — escort enemies rally near leaders
+        // Non-leader enemies are gently pulled toward the nearest Spawner or Tank
+        let is_leader = matches!(ai.behavior, EnemyBehavior::Spawner | EnemyBehavior::Tank);
+        if !is_leader && !leaders.is_empty() {
+            let mut nearest_leader: Option<Vec2> = None;
+            let mut nearest_dist = LEADER_RALLY_RADIUS;
+            for &leader_pos in &leaders {
+                let dist = (leader_pos - pos).length();
+                if dist < nearest_dist {
+                    nearest_dist = dist;
+                    nearest_leader = Some(leader_pos);
+                }
+            }
+            if let Some(leader_pos) = nearest_leader {
+                let to_leader = leader_pos - pos;
+                let dist = to_leader.length();
+                // Only pull if beyond comfortable escort distance (40 units)
+                if dist > 40.0 {
+                    let cohesion = to_leader.normalize_or_zero()
+                        * (dist / LEADER_RALLY_RADIUS)
+                        * LEADER_COHESION_STRENGTH;
+                    impulse += cohesion;
+                }
+            }
+        }
+
+        ai.dodge_impulse = impulse.clamp_length_max(MAX_DODGE_IMPULSE);
+    }
+}
+
 /// Enemy plugin
 pub struct EnemyPlugin;
 
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
+        app.init_resource::<PlayerTracker>().add_systems(
             Update,
             (
-                enemy_movement,
+                // Ordered pipeline: track player → compute awareness → move → shoot
+                (
+                    update_player_tracker,
+                    enemy_spatial_awareness,
+                    enemy_movement,
+                    enemy_shooting,
+                )
+                    .chain(),
+                // These can run in parallel
                 update_enemy_ship_rotation,
-                enemy_shooting,
                 disintegrator_update,
                 spawner_update,
                 enemy_bounds_check,
@@ -294,20 +504,17 @@ impl Plugin for EnemyPlugin {
     }
 }
 
-/// Enemy movement based on AI behavior
+/// Enemy movement based on AI behavior + spatial awareness dodge impulse
 fn enemy_movement(
     time: Res<Time>,
-    player_query: Query<&Transform, With<super::Player>>,
+    player_tracker: Res<PlayerTracker>,
     mut query: Query<
         (&mut Transform, &EnemyStats, &mut EnemyAI),
         (With<Enemy>, Without<super::Player>),
     >,
 ) {
     let dt = time.delta_secs();
-    let player_pos = player_query
-        .get_single()
-        .map(|t| t.translation.truncate())
-        .unwrap_or(Vec2::ZERO);
+    let player_pos = player_tracker.position;
 
     for (mut transform, stats, mut ai) in query.iter_mut() {
         ai.timer += dt;
@@ -388,27 +595,29 @@ fn enemy_movement(
             }
         };
 
-        transform.translation.x += velocity.x * dt;
-        transform.translation.y += velocity.y * dt;
+        // Combine behavior velocity with spatial awareness (dodge + separation + edge avoidance)
+        let total_velocity = velocity + ai.dodge_impulse;
+
+        transform.translation.x += total_velocity.x * dt;
+        transform.translation.y += total_velocity.y * dt;
 
         // Slight tilt based on horizontal movement (visual effect only)
-        let tilt = (velocity.x / stats.speed).clamp(-1.0, 1.0) * 0.2;
+        let tilt = (total_velocity.x / stats.speed.max(1.0)).clamp(-1.0, 1.0) * 0.2;
         transform.rotation = Quat::from_rotation_z(tilt);
     }
 }
 
-/// Enemy shooting system
+/// Enemy shooting system with predictive aiming
+/// Enemies lead their shots based on player velocity — accuracy depends on behavior type
 fn enemy_shooting(
     mut commands: Commands,
     time: Res<Time>,
-    player_query: Query<&Transform, With<super::Player>>,
+    player_tracker: Res<PlayerTracker>,
     mut query: Query<(&Transform, &mut EnemyWeapon, &EnemyAI), With<Enemy>>,
 ) {
     let dt = time.delta_secs();
-    let player_pos = player_query
-        .get_single()
-        .map(|t| t.translation.truncate())
-        .unwrap_or(Vec2::ZERO);
+    let player_pos = player_tracker.position;
+    let player_vel = player_tracker.velocity;
 
     for (transform, mut weapon, ai) in query.iter_mut() {
         if !ai.active {
@@ -420,7 +629,14 @@ fn enemy_shooting(
             weapon.cooldown = 1.0 / weapon.fire_rate;
 
             let pos = transform.translation.truncate();
-            let dir = (player_pos - pos).normalize_or_zero();
+
+            // Predictive aiming: lead the shot based on player velocity
+            let accuracy = ai.behavior.aim_accuracy();
+            let distance = (player_pos - pos).length();
+            let flight_time = distance / weapon.bullet_speed.max(1.0);
+            let predicted_pos = player_pos + player_vel * flight_time * accuracy;
+
+            let dir = (predicted_pos - pos).normalize_or_zero();
 
             // Spawn enemy projectile with correct weapon type
             super::projectile::spawn_enemy_projectile_typed(
