@@ -21,7 +21,7 @@ var owner_component: Node2D = null
 
 ## Visual state
 var hover: bool = false
-var port_radius: float = 8.0
+var port_radius: float = 12.0
 
 ## Color mapping for port types
 const TYPE_COLORS: Dictionary = {

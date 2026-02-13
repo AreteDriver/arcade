@@ -43,8 +43,13 @@ var grid_size: int = 32
 var _component_counter: int = 0
 
 
+## Whether we're in click-to-place mode (component follows cursor, click to drop)
+var _placing_from_tray: bool = false
+
+
 func _ready() -> void:
 	SimulationManager.set_graph(graph)
+	SimulationManager.simulation_started.connect(_on_simulation_started)
 	SimulationManager.simulation_stopped.connect(_on_simulation_stopped)
 
 
@@ -69,17 +74,20 @@ func place_component(type_name: String, world_pos: Vector2) -> MachineComponent:
 	return component
 
 
-## Start placing a component (drag from tray)
+## Start placing a component from tray click.
+## Places at canvas center, enters click-to-place mode (follows cursor until clicked).
 func start_placing(type_name: String) -> void:
 	if SimulationManager.is_playing():
 		return
 
-	var mouse_pos: Vector2 = _get_world_mouse()
-	var component := place_component(type_name, mouse_pos)
+	# Place at the center of the visible canvas area (camera position)
+	var center_pos: Vector2 = camera.get_screen_center_position()
+	var component := place_component(type_name, center_pos)
 	if component:
 		_mode = InteractionMode.DRAGGING_COMPONENT
 		_dragging_component = component
 		_drag_offset = Vector2.ZERO
+		_placing_from_tray = true
 		select_component(component)
 
 
@@ -111,6 +119,12 @@ func deselect() -> void:
 		_selected_component.set_selected(false)
 		_selected_component = null
 		component_deselected.emit()
+
+
+func _process(_delta: float) -> void:
+	# During tray placement, track mouse every frame so UI overlay doesn't block it
+	if _placing_from_tray and _dragging_component:
+		_dragging_component.position = _get_world_mouse()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -151,6 +165,17 @@ func _handle_mouse_button(event: InputEventMouseButton) -> void:
 
 func _on_left_press(world_pos: Vector2) -> void:
 	if SimulationManager.is_playing():
+		return
+
+	# If placing from tray, finalize placement on click
+	if _placing_from_tray and _dragging_component:
+		if snap_enabled:
+			_dragging_component.position = _snap_to_grid(world_pos)
+		else:
+			_dragging_component.position = world_pos
+		_dragging_component = null
+		_placing_from_tray = false
+		_mode = InteractionMode.NONE
 		return
 
 	# Check if clicking on a port first
@@ -324,7 +349,7 @@ func _find_component_at(world_pos: Vector2) -> MachineComponent:
 
 
 ## Find port at world position
-func _find_port_at(world_pos: Vector2, threshold: float = 16.0) -> Port:
+func _find_port_at(world_pos: Vector2, threshold: float = 24.0) -> Port:
 	var best_port: Port = null
 	var best_dist: float = threshold
 

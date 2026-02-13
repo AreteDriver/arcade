@@ -3,7 +3,9 @@ extends MachineComponent
 
 ## Blows objects with wind force via Area2D.
 ## Self-powered in Phase 1 (works without energy input).
-## Input: Energy. Parameters: speed (0-100), direction (0-360).
+## Input: Energy. Parameters: angle (rotates fan), speed (wind force).
+## Rotate via the "angle" parameter (handled by base class Node2D rotation).
+## Wind always blows in the fan's facing direction (local X+).
 
 const FAN_SIZE: float = 48.0
 const WIND_RANGE: float = 200.0
@@ -11,7 +13,6 @@ const WIND_WIDTH: float = 100.0
 const BASE_FORCE: float = 300.0
 const FAN_COLOR := Color(0.5, 0.5, 0.6)
 const FAN_ACCENT := Color(0.9, 0.8, 0.2)
-const WIND_COLOR := Color(0.4, 0.7, 1.0, 0.15)
 
 var _body: StaticBody2D
 var _wind_area: Area2D
@@ -25,8 +26,8 @@ func _setup_ports() -> void:
 
 
 func _setup_parameters() -> void:
+	register_parameter("angle", "Angle", 0.0, 0.0, 360.0, 5.0)
 	register_parameter("speed", "Speed", 50.0, 0.0, 100.0, 1.0)
-	register_parameter("direction", "Direction", 0.0, 0.0, 360.0, 5.0)
 
 	# Static body for the fan housing
 	_body = StaticBody2D.new()
@@ -37,18 +38,12 @@ func _setup_parameters() -> void:
 	body_col.shape = body_shape
 	_body.add_child(body_col)
 
-	# Wind area
+	# Wind area in local space — always points right (local X+)
+	# Node2D rotation handles the actual direction
 	_wind_area = Area2D.new()
 	_wind_area.collision_layer = 0
-	_wind_area.collision_mask = 1  # Detect physics objects on layer 1
+	_wind_area.collision_mask = 1
 	add_child(_wind_area)
-
-	_rebuild_wind_area()
-
-
-func _rebuild_wind_area() -> void:
-	if _wind_collision:
-		_wind_collision.queue_free()
 
 	var wind_shape := RectangleShape2D.new()
 	wind_shape.size = Vector2(WIND_RANGE, WIND_WIDTH)
@@ -56,21 +51,6 @@ func _rebuild_wind_area() -> void:
 	_wind_collision.shape = wind_shape
 	_wind_collision.position = Vector2(WIND_RANGE / 2.0 + FAN_SIZE / 2.0, 0)
 	_wind_area.add_child(_wind_collision)
-
-	_apply_direction(get_parameter("direction"))
-
-
-func _on_parameter_changed(param_name: String, value: float) -> void:
-	match param_name:
-		"direction":
-			_apply_direction(value)
-		"speed":
-			pass  # Force magnitude computed dynamically
-
-
-func _apply_direction(degrees: float) -> void:
-	var rad: float = deg_to_rad(degrees)
-	_wind_area.rotation = rad
 
 
 func _on_input_received(_port: Port, _data: Variant) -> void:
@@ -88,15 +68,13 @@ func _process_component(delta: float) -> void:
 		_blade_angle -= 360.0
 	queue_redraw()
 
-	# Apply wind force to bodies in the area
-	var dir_rad: float = deg_to_rad(get_parameter("direction"))
-	var force_dir := Vector2.RIGHT.rotated(dir_rad)
+	# Wind blows in the fan's forward direction (local X+ → global via rotation)
+	var force_dir := Vector2.RIGHT.rotated(global_rotation)
 	var force_magnitude: float = BASE_FORCE * (speed / 100.0)
 
 	var bodies: Array[Node2D] = _wind_area.get_overlapping_bodies()
 	for body in bodies:
 		if body is RigidBody2D:
-			# Force falls off with distance
 			var dist: float = body.global_position.distance_to(global_position)
 			var falloff: float = 1.0 - clampf(dist / (WIND_RANGE + FAN_SIZE), 0.0, 1.0)
 			body.apply_central_force(force_dir * force_magnitude * falloff)
@@ -112,7 +90,7 @@ func reset_component() -> void:
 func _draw_component() -> void:
 	var half := FAN_SIZE / 2.0
 
-	# Housing
+	# Housing — draw flat, Node2D rotation handles angle
 	draw_rect(Rect2(-half, -half, FAN_SIZE, FAN_SIZE), FAN_COLOR.darkened(0.3), true)
 	draw_rect(Rect2(-half, -half, FAN_SIZE, FAN_SIZE), FAN_COLOR, false, 2.0)
 
@@ -140,16 +118,15 @@ func _draw_component() -> void:
 
 	# Wind zone indicator (when active)
 	if current_state == State.ACTIVE:
-		var dir_rad: float = deg_to_rad(get_parameter("direction"))
 		var speed_norm: float = get_parameter("speed") / 100.0
 		var wind_alpha: float = 0.05 + speed_norm * 0.12
 
-		# Draw wind lines
+		# Wind lines always point right (local space), Node2D rotation handles direction
 		for i in range(5):
 			var offset_y: float = lerpf(-WIND_WIDTH / 2.0 + 10, WIND_WIDTH / 2.0 - 10, float(i) / 4.0)
-			var start := Vector2(half + 8, offset_y).rotated(dir_rad)
-			var end := Vector2(half + 8 + WIND_RANGE * speed_norm * 0.6, offset_y).rotated(dir_rad)
-			draw_line(start, end, Color(WIND_COLOR.r, WIND_COLOR.g, WIND_COLOR.b, wind_alpha), 1.5)
+			var start := Vector2(half + 8, offset_y)
+			var end := Vector2(half + 8 + WIND_RANGE * speed_norm * 0.6, offset_y)
+			draw_line(start, end, Color(0.4, 0.7, 1.0, wind_alpha), 1.5)
 
 	# Label
 	draw_string(ThemeDB.fallback_font, Vector2(-10, -half - 8),
@@ -158,7 +135,7 @@ func _draw_component() -> void:
 
 func _get_bounds() -> Rect2:
 	var half := FAN_SIZE / 2.0
-	return Rect2(-half - 16, -half - 16, FAN_SIZE + 32, FAN_SIZE + 32)
+	return Rect2(-half - 16, -half - 20, FAN_SIZE + 32, FAN_SIZE + 40)
 
 
 func _get_component_type() -> String:

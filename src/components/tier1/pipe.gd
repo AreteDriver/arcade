@@ -2,7 +2,8 @@ class_name Pipe
 extends MachineComponent
 
 ## Tube that carries flow. Spawns RigidBody2D balls during simulation.
-## Input: Flow, Output: Flow. Parameter: diameter (affects flow speed).
+## Input: Flow, Output: Flow. Parameters: angle, diameter.
+## Rotate via the "angle" parameter (handled by base class Node2D rotation).
 
 const PIPE_LENGTH: float = 120.0
 const PIPE_COLOR := Color(0.2, 0.5, 0.7)
@@ -11,7 +12,6 @@ const BALL_RADIUS: float = 6.0
 const MAX_BALLS: int = 20
 
 var _body: StaticBody2D
-var _collision: CollisionShape2D
 var _spawn_timer: float = 0.0
 var _balls: Array[RigidBody2D] = []
 var _receiving_flow: bool = false
@@ -23,12 +23,11 @@ func _setup_ports() -> void:
 
 
 func _setup_parameters() -> void:
+	register_parameter("angle", "Angle", 0.0, 0.0, 360.0, 5.0)
 	register_parameter("diameter", "Diameter", 24.0, 12.0, 48.0, 2.0)
 
-	# Create the pipe body (hollow tube represented as top/bottom walls)
 	_body = StaticBody2D.new()
 	add_child(_body)
-
 	_rebuild_collision()
 
 
@@ -68,7 +67,6 @@ func _on_input_received(_port: Port, _data: Variant) -> void:
 
 
 func _process_component(delta: float) -> void:
-	# Self-spawn for Phase 1 (even without flow input, spawn balls for testing)
 	_spawn_timer += delta
 	var spawn_interval: float = 1.5 - (get_parameter("diameter") - 12.0) / 48.0
 	spawn_interval = maxf(spawn_interval, 0.4)
@@ -77,10 +75,7 @@ func _process_component(delta: float) -> void:
 		_spawn_timer = 0.0
 		_spawn_ball()
 
-	# Forward flow to connected output
 	send_output("flow_out", {"flow_rate": get_parameter("diameter") / 24.0})
-
-	# Clean up off-screen balls
 	_cleanup_balls()
 
 
@@ -99,19 +94,17 @@ func _spawn_ball() -> void:
 	col.shape = shape
 	ball.add_child(col)
 
-	# Visual (drawn via script)
 	var visual := BallVisual.new()
 	visual.radius = BALL_RADIUS
 	ball.add_child(visual)
 
-	# Spawn at input end of pipe
-	ball.global_position = global_position + Vector2(-PIPE_LENGTH / 2.0, 0)
+	# Spawn at input end, respecting component rotation
+	ball.global_position = to_global(Vector2(-PIPE_LENGTH / 2.0, 0))
 
-	# Give initial velocity through the pipe
+	# Initial velocity through the pipe, respecting rotation
 	var speed: float = 60.0 + get_parameter("diameter") * 2.0
-	ball.linear_velocity = Vector2(speed, 0)
+	ball.linear_velocity = Vector2(speed, 0).rotated(global_rotation)
 
-	# Add to the scene tree at canvas level
 	var canvas: Node = get_parent()
 	if canvas:
 		canvas.add_child(ball)
@@ -119,13 +112,11 @@ func _spawn_ball() -> void:
 
 
 func _cleanup_balls() -> void:
-	var to_remove: Array[int] = []
 	for i in range(_balls.size() - 1, -1, -1):
 		var ball: RigidBody2D = _balls[i]
 		if not is_instance_valid(ball):
 			_balls.remove_at(i)
 			continue
-		# Remove if too far from pipe
 		if ball.global_position.distance_to(global_position) > 800.0:
 			ball.queue_free()
 			_balls.remove_at(i)
@@ -146,11 +137,11 @@ func _draw_component() -> void:
 	var half_d: float = diameter / 2.0
 	var half_l: float = PIPE_LENGTH / 2.0
 
-	# Pipe body (filled rectangle)
+	# Draw flat — Node2D rotation handles the angle
 	var pipe_rect := Rect2(-half_l, -half_d, PIPE_LENGTH, diameter)
 	draw_rect(pipe_rect, PIPE_COLOR.darkened(0.3), true)
 
-	# Pipe walls
+	# Walls
 	draw_line(Vector2(-half_l, -half_d), Vector2(half_l, -half_d), PIPE_OUTLINE, 3.0)
 	draw_line(Vector2(-half_l, half_d), Vector2(half_l, half_d), PIPE_OUTLINE, 3.0)
 
@@ -158,7 +149,7 @@ func _draw_component() -> void:
 	draw_line(Vector2(-half_l, -half_d), Vector2(-half_l, half_d), PIPE_OUTLINE, 2.0)
 	draw_line(Vector2(half_l, -half_d), Vector2(half_l, half_d), PIPE_OUTLINE, 2.0)
 
-	# Flow indicator lines inside pipe
+	# Flow indicator lines when active
 	if current_state == State.ACTIVE:
 		var flow_color := PIPE_OUTLINE.lightened(0.2)
 		flow_color.a = 0.4
@@ -174,21 +165,17 @@ func _draw_component() -> void:
 
 func _get_bounds() -> Rect2:
 	var half_d: float = get_parameter("diameter") / 2.0
-	return Rect2(-PIPE_LENGTH / 2.0 - 16, -half_d - 16, PIPE_LENGTH + 32, half_d * 2 + 32)
+	return Rect2(-PIPE_LENGTH / 2.0 - 16, -half_d - 20, PIPE_LENGTH + 32, half_d * 2 + 40)
 
 
 func _get_component_type() -> String:
 	return "pipe"
 
 
-## Inner class for ball visual
-class BallVisual:
-	extends Node2D
-
+class BallVisual extends Node2D:
 	var radius: float = 6.0
 
 	func _draw() -> void:
 		draw_circle(Vector2.ZERO, radius, Color(0.3, 0.75, 1.0, 0.9))
 		draw_arc(Vector2.ZERO, radius, 0, TAU, 16, Color(0.5, 0.85, 1.0), 1.5)
-		# Highlight
 		draw_circle(Vector2(-radius * 0.3, -radius * 0.3), radius * 0.25, Color(0.7, 0.9, 1.0, 0.6))

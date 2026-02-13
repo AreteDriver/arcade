@@ -123,6 +123,9 @@ func set_parameter(param_name: String, value: float) -> void:
 	var clamped: float = clampf(value, param["min"], param["max"])
 	if not is_equal_approx(param["value"], clamped):
 		param["value"] = clamped
+		# Auto-handle rotation for "angle" parameter
+		if param_name == "angle":
+			rotation = deg_to_rad(clamped)
 		parameter_changed.emit(param_name, clamped)
 		_on_parameter_changed(param_name, clamped)
 		queue_redraw()
@@ -221,7 +224,7 @@ func hit_test(world_pos: Vector2) -> bool:
 
 
 ## Find the nearest port to a world position within a threshold
-func get_port_at(world_pos: Vector2, threshold: float = 16.0) -> Port:
+func get_port_at(world_pos: Vector2, threshold: float = 24.0) -> Port:
 	var best_port: Port = null
 	var best_dist: float = threshold
 	for port in get_all_ports():

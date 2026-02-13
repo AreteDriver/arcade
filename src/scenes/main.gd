@@ -19,9 +19,6 @@ func _ready() -> void:
 	canvas.component_deselected.connect(_on_canvas_component_deselected)
 	param_panel.delete_requested.connect(_on_delete_requested)
 
-	# Connect simulation signals to canvas
-	SimulationManager.simulation_started.connect(canvas._on_simulation_started)
-	SimulationManager.simulation_stopped.connect(canvas._on_simulation_stopped)
 
 
 func _on_tray_component_selected(type_name: String) -> void:
