@@ -3,9 +3,12 @@ extends HBoxContainer
 
 ## Play / Pause / Reset buttons for simulation control.
 
+signal zoom_to_fit_pressed()
+
 var _play_button: Button
 var _pause_button: Button
 var _reset_button: Button
+var _fit_button: Button
 var _status_label: Label
 
 
@@ -16,6 +19,7 @@ func _ready() -> void:
 	_play_button = _create_button("Play", Color(0.2, 0.7, 0.3))
 	_pause_button = _create_button("Pause", Color(0.8, 0.7, 0.2))
 	_reset_button = _create_button("Reset", Color(0.7, 0.3, 0.2))
+	_fit_button = _create_button("Fit", Color(0.3, 0.5, 0.7))
 
 	_status_label = Label.new()
 	_status_label.text = "STOPPED"
@@ -26,6 +30,7 @@ func _ready() -> void:
 	_play_button.pressed.connect(_on_play)
 	_pause_button.pressed.connect(_on_pause)
 	_reset_button.pressed.connect(_on_reset)
+	_fit_button.pressed.connect(_on_fit)
 
 	_pause_button.disabled = true
 	_reset_button.disabled = true
@@ -81,6 +86,10 @@ func _on_pause() -> void:
 
 func _on_reset() -> void:
 	SimulationManager.stop()
+
+
+func _on_fit() -> void:
+	zoom_to_fit_pressed.emit()
 
 
 func _on_state_changed(new_state: SimulationManager.SimState) -> void:

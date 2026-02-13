@@ -23,6 +23,8 @@ config/features=PackedStringArray("4.6", "GL Compatibility")
 
 ComponentRegistry="*res://src/systems/component_registry.gd"
 SimulationManager="*res://src/systems/simulation_manager.gd"
+VFX="*res://src/systems/visual_feedback_manager.gd"
+Audio="*res://src/systems/audio_manager.gd"
 
 [display]
 

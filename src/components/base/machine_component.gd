@@ -85,9 +85,39 @@ func _get_component_type() -> String:
 
 func _draw() -> void:
 	_draw_component()
+
+	var rect := _get_bounds()
+
+	# State overlays
+	match current_state:
+		State.BROKEN:
+			_draw_broken_overlay(rect)
+		State.OVERLOADED:
+			_draw_overload_overlay(rect)
+
+	# Selection highlight
 	if is_selected:
-		var rect := _get_bounds()
 		draw_rect(rect.grow(4), Color(0.0, 0.8, 1.0, 0.6), false, 2.0)
+
+
+func _draw_broken_overlay(rect: Rect2) -> void:
+	# Crack lines
+	var cx: float = rect.get_center().x
+	var cy: float = rect.get_center().y
+	var crack_color := Color(0.8, 0.4, 0.1, 0.7)
+	draw_line(Vector2(cx - 8, cy - 12), Vector2(cx + 2, cy), crack_color, 2.0)
+	draw_line(Vector2(cx + 2, cy), Vector2(cx - 4, cy + 10), crack_color, 2.0)
+	draw_line(Vector2(cx + 2, cy), Vector2(cx + 10, cy + 6), crack_color, 1.5)
+	# Dim red tint
+	draw_rect(rect, Color(0.6, 0.2, 0.1, 0.15), true)
+
+
+func _draw_overload_overlay(rect: Rect2) -> void:
+	# Pulsing red border
+	var pulse: float = (sin(Time.get_ticks_msec() / 150.0) + 1.0) / 2.0
+	var red := Color(1.0, 0.2, 0.1, 0.2 + pulse * 0.3)
+	draw_rect(rect, red, true)
+	draw_rect(rect.grow(2), Color(1.0, 0.3, 0.1, 0.4 + pulse * 0.4), false, 2.0)
 
 
 ## Add a port to this component
@@ -155,8 +185,23 @@ func send_output(port_name: String, data: Variant) -> void:
 ## Change component state
 func set_state(new_state: State) -> void:
 	if current_state != new_state:
+		var old_state: State = current_state
 		current_state = new_state
 		state_changed.emit(new_state)
+
+		# Apply state-based modulate tint
+		match new_state:
+			State.IDLE:
+				modulate = Color(0.7, 0.7, 0.75)
+			State.ACTIVE:
+				modulate = Color.WHITE
+			State.BROKEN:
+				modulate = Color(0.65, 0.55, 0.55)
+				VFX.break_effect(self)
+			State.OVERLOADED:
+				modulate = Color(1.0, 0.85, 0.85)
+				VFX.warning(self)
+
 		queue_redraw()
 
 

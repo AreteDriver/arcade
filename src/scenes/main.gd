@@ -18,7 +18,7 @@ func _ready() -> void:
 	canvas.component_selected.connect(_on_canvas_component_selected)
 	canvas.component_deselected.connect(_on_canvas_component_deselected)
 	param_panel.delete_requested.connect(_on_delete_requested)
-
+	sim_controls.zoom_to_fit_pressed.connect(canvas.zoom_to_fit)
 
 
 func _on_tray_component_selected(type_name: String) -> void:

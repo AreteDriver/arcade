@@ -71,6 +71,10 @@ func place_component(type_name: String, world_pos: Vector2) -> MachineComponent:
 
 	component.component_selected.connect(_on_component_clicked)
 
+	# Juice: pop scale animation + placement sound
+	VFX.pop_scale(component)
+	Audio.play_place()
+
 	return component
 
 
@@ -100,7 +104,11 @@ func remove_component(component: MachineComponent) -> void:
 	_remove_wires_for(component)
 
 	graph.remove_component(component)
-	component.queue_free()
+
+	# Juice: shrink + smoke puff + delete sound instead of instant free
+	VFX.spawn_smoke(component.global_position, component_layer)
+	VFX.shrink_and_free(component)
+	Audio.play_delete()
 
 
 ## Select a component and show its parameters
@@ -294,6 +302,11 @@ func _create_wire(source: Port, target: Port) -> void:
 	wire_layer.add_child(wire)
 	wire_created.emit(wire)
 
+	# Juice: flash at both ports + connection sound
+	VFX.connection_flash(source)
+	VFX.connection_flash(target)
+	Audio.play_connect()
+
 
 func _disconnect_wire_at(port: Port) -> void:
 	# Find and remove the wire visual
@@ -386,6 +399,46 @@ func _on_component_clicked(component: MachineComponent) -> void:
 	select_component(component)
 
 
+## Zoom camera to fit all placed components
+func zoom_to_fit() -> void:
+	if graph.is_empty():
+		camera.position = Vector2(640, 360)
+		_zoom_level = 1.0
+		camera.zoom = Vector2.ONE
+		return
+
+	var components: Array[MachineComponent] = graph.get_components()
+	var min_pos := Vector2(INF, INF)
+	var max_pos := Vector2(-INF, -INF)
+
+	for comp in components:
+		var bounds: Rect2 = comp._get_bounds()
+		var world_min: Vector2 = comp.global_position + bounds.position
+		var world_max: Vector2 = comp.global_position + bounds.end
+		min_pos = Vector2(minf(min_pos.x, world_min.x), minf(min_pos.y, world_min.y))
+		max_pos = Vector2(maxf(max_pos.x, world_max.x), maxf(max_pos.y, world_max.y))
+
+	var center := (min_pos + max_pos) / 2.0
+	var extent := max_pos - min_pos + Vector2(100, 100)  # Padding
+	var viewport_size := get_viewport_rect().size
+
+	var zoom_x: float = viewport_size.x / extent.x if extent.x > 0 else 1.0
+	var zoom_y: float = viewport_size.y / extent.y if extent.y > 0 else 1.0
+	_zoom_level = clampf(minf(zoom_x, zoom_y), MIN_ZOOM, MAX_ZOOM)
+
+	var tween := create_tween()
+	tween.set_ease(Tween.EASE_IN_OUT)
+	tween.set_trans(Tween.TRANS_SINE)
+	tween.set_parallel(true)
+	tween.tween_property(camera, "position", center, 0.4)
+	tween.tween_property(camera, "zoom", Vector2(_zoom_level, _zoom_level), 0.4)
+
+
+## Trigger screen shake (called by VFX or game events)
+func do_screen_shake(intensity: float = 5.0, duration: float = 0.3) -> void:
+	VFX.screen_shake(camera, intensity, duration)
+
+
 func _on_simulation_stopped() -> void:
 	# Clean up any spawned physics objects
 	for child in component_layer.get_children():
@@ -406,3 +459,15 @@ func _on_simulation_started() -> void:
 	for child in wire_layer.get_children():
 		if child is Wire:
 			child.set_active(true)
+
+	# Juice: activation wave — flash each component in topological order
+	Audio.play_start()
+	var order: Array[MachineComponent] = graph.get_evaluation_order()
+	for i in range(order.size()):
+		var comp: MachineComponent = order[i]
+		# Staggered glow
+		get_tree().create_timer(i * 0.08).timeout.connect(
+			func() -> void:
+				if is_instance_valid(comp):
+					VFX.glow(comp, Color(1.4, 1.4, 1.6), 0.3)
+		)
