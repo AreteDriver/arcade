@@ -84,17 +84,23 @@ cargo run --release
 ```
 eve_rebellion_rust/
 ├── src/
-│   ├── main.rs           # Entry point
-│   ├── core/             # Game states, events, resources
-│   ├── entities/         # Player, enemies, projectiles, collectibles
-│   ├── systems/          # Game logic (joystick, scoring, combat)
-│   ├── ui/               # HUD and menus
-│   └── assets/           # Asset loading
-├── assets/               # Sprites, icons, audio
+│   ├── main.rs           # Entry point, plugin registration
+│   ├── core/             # Game states, events, resources, factions
+│   ├── entities/         # Player, enemies, bosses, projectiles, collectibles
+│   ├── systems/          # Game logic (collision, scoring, spawning, effects)
+│   ├── ui/               # HUD, menus, capacitor, backgrounds
+│   ├── assets/           # Asset loading
+│   └── games/            # Campaign modules (Bevy plugins)
+│       ├── elder_fleet/          # Minmatar vs Amarr (13 stages)
+│       ├── caldari_gallente/     # Caldari vs Gallente (5 missions + Nightmare)
+│       ├── abyssal_depths/       # Abyssal Deadspace expansion
+│       └── triglavian_invasion/  # Triglavian Invasion (in development)
+├── assets/               # Sprites, icons (EVE Image Server cache)
 ├── config/               # JSON configuration
 │   ├── enemies_amarr.json    # Amarr enemy definitions
 │   ├── bosses_campaign.json  # 13-boss campaign structure
 │   └── dialogue_elder.json   # Elder mentor dialogue
+├── web/                  # WASM build files
 └── docs/
     └── NARRATIVE_DESIGN.md   # Story bible and design notes
 ```
