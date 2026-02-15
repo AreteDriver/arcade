@@ -21,7 +21,7 @@ pub struct SpatialGrid {
 }
 
 impl SpatialGrid {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             enemy_cells: (0..GRID_WIDTH * GRID_HEIGHT)
                 .map(|_| Vec::with_capacity(8))
@@ -48,14 +48,14 @@ impl SpatialGrid {
         }
     }
 
-    fn insert_enemy(&mut self, entity: Entity, pos: Vec2) {
+    pub fn insert_enemy(&mut self, entity: Entity, pos: Vec2) {
         if let Some(idx) = Self::pos_to_cell(pos) {
             self.enemy_cells[idx].push((entity, pos));
         }
     }
 
     /// Get enemies in the same cell and adjacent cells (for border cases)
-    fn get_nearby_enemies(&self, pos: Vec2) -> impl Iterator<Item = &(Entity, Vec2)> {
+    pub fn get_nearby_enemies(&self, pos: Vec2) -> impl Iterator<Item = &(Entity, Vec2)> {
         let gx = ((pos.x + SCREEN_WIDTH / 2.0) / CELL_SIZE) as i32;
         let gy = ((pos.y + SCREEN_HEIGHT / 2.0) / CELL_SIZE) as i32;
 

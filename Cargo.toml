@@ -124,8 +124,16 @@ features = [
     "webgl2",
 ]
 
+[lib]
+name = "eve_rebellion"
+
 [dev-dependencies]
 bevy = { version = "0.15", default-features = false, features = ["dynamic_linking"] }
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "game_systems"
+harness = false
 
 [profile.dev]
 opt-level = 1
@@ -139,6 +147,10 @@ lto = "thin"
 codegen-units = 1
 strip = "symbols"
 panic = "abort"
+
+# Bench profile: override panic=abort from release so bevy dynamic_linking works
+[profile.bench]
+panic = "unwind"
 
 # WASM release profile - optimize for size
 [profile.wasm-release]

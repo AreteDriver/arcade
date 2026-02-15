@@ -131,6 +131,45 @@ jobs:
           name: eve_rebellion-linux
           path: target/release/eve_rebellion
 
+  benchmark:
+    name: Benchmark
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev libxkbcommon-dev libwayland-dev
+
+      - name: Run benchmarks
+        run: cargo bench --bench game_systems -- --output-format bencher | tee bench-output.txt
+
+      - name: Store benchmark results
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: Rust Benchmarks
+          tool: cargo
+          output-file-path: bench-output.txt
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          alert-threshold: "115%"
+          comment-on-alert: true
+          fail-on-alert: ${{ github.event_name == 'pull_request' }}
+          gh-pages-branch: gh-pages
+          benchmark-data-dir-path: dev/bench
+
   wasm:
     name: WASM Build
     runs-on: ubuntu-latest
@@ -158,6 +197,17 @@ jobs:
             --out-dir web \
             --target web \
             target/wasm32-unknown-unknown/release/eve_rebellion.wasm
+
+      - name: Check WASM size
+        run: |
+          WASM_SIZE=$(stat -c%s target/wasm32-unknown-unknown/release/eve_rebellion.wasm)
+          WASM_MB=$(echo "scale=2; $WASM_SIZE / 1048576" | bc)
+          echo "WASM binary size: ${WASM_MB}MB ($WASM_SIZE bytes)"
+          if [ "$WASM_SIZE" -gt 15728640 ]; then
+            echo "::error::WASM binary exceeds 15MB limit (${WASM_MB}MB)"
+            exit 1
+          fi
+          echo "WASM size OK (< 15MB)"
 
       - name: Copy assets
         run: cp -r assets web/
