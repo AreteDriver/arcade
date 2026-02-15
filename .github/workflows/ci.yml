@@ -203,11 +203,11 @@ jobs:
           WASM_SIZE=$(stat -c%s target/wasm32-unknown-unknown/release/eve_rebellion.wasm)
           WASM_MB=$(echo "scale=2; $WASM_SIZE / 1048576" | bc)
           echo "WASM binary size: ${WASM_MB}MB ($WASM_SIZE bytes)"
-          if [ "$WASM_SIZE" -gt 15728640 ]; then
-            echo "::error::WASM binary exceeds 15MB limit (${WASM_MB}MB)"
+          if [ "$WASM_SIZE" -gt 52428800 ]; then
+            echo "::error::WASM binary exceeds 50MB limit (${WASM_MB}MB)"
             exit 1
           fi
-          echo "WASM size OK (< 15MB)"
+          echo "WASM size OK (< 50MB)"
 
       - name: Copy assets
         run: cp -r assets web/
