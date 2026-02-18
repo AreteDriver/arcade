@@ -45,6 +45,9 @@ var _component_counter: int = 0
 ## Whether we're in click-to-place mode (component follows cursor, click to drop)
 var _placing_from_tray: bool = false
 
+## Trace mode — highlights flow paths from selected component
+var trace_enabled: bool = false
+
 ## Restriction flags for Discovery Mode (default permissive = sandbox)
 var allow_placement: bool = true
 var allow_wiring: bool = true
@@ -128,6 +131,8 @@ func select_component(component: MachineComponent) -> void:
 	_selected_component = component
 	component.set_selected(true)
 	component_selected.emit(component)
+	if trace_enabled:
+		_update_trace_highlight()
 
 
 ## Deselect current component
@@ -136,6 +141,7 @@ func deselect() -> void:
 		_selected_component.set_selected(false)
 		_selected_component = null
 		component_deselected.emit()
+	_clear_trace_highlight()
 
 
 func _process(_delta: float) -> void:
@@ -600,3 +606,63 @@ func _on_simulation_started() -> void:
 				if is_instance_valid(comp):
 					VFX.glow(comp, Color(1.4, 1.4, 1.6), 0.3)
 		)
+
+
+## Set trace mode on/off
+func set_trace_enabled(enabled: bool) -> void:
+	trace_enabled = enabled
+	if trace_enabled and _selected_component:
+		_update_trace_highlight()
+	else:
+		_clear_trace_highlight()
+
+
+## Highlight all wires and components downstream from the selected component
+func _update_trace_highlight() -> void:
+	_clear_trace_highlight()
+	if _selected_component == null:
+		return
+
+	# Collect all downstream component names via BFS
+	var visited: Dictionary = {}
+	var queue: Array[String] = [_selected_component.name]
+	visited[_selected_component.name] = true
+
+	while queue.size() > 0:
+		var current: String = queue.pop_front()
+		if current in graph._connections:
+			for conn: Dictionary in graph._connections[current]:
+				var target: String = conn["target_name"]
+				if target not in visited:
+					visited[target] = true
+					queue.append(target)
+
+	# Highlight downstream wires
+	for child in wire_layer.get_children():
+		if child is Wire and child.source_port:
+			var source_name: String = child.source_port.owner_component.name
+			if source_name in visited:
+				child.set_meta("trace_highlighted", true)
+				child.width = 5.0
+				child.default_color = child.source_port.get_color().lightened(0.3)
+
+	# Dim non-traced components, brighten traced ones
+	for comp: MachineComponent in graph.get_components():
+		if comp.name in visited:
+			comp.modulate = Color(1.2, 1.2, 1.3)
+		else:
+			comp.modulate = Color(0.4, 0.4, 0.45)
+
+
+## Remove all trace highlighting
+func _clear_trace_highlight() -> void:
+	for child in wire_layer.get_children():
+		if child is Wire and child.has_meta("trace_highlighted"):
+			child.remove_meta("trace_highlighted")
+			child.set_active(child._active)
+
+	for comp: MachineComponent in graph.get_components():
+		comp.modulate = Color.WHITE
+		if comp.current_state != MachineComponent.State.IDLE:
+			# Re-apply state modulation
+			comp.set_state(comp.current_state)
