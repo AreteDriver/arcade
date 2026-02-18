@@ -4,12 +4,15 @@ extends HBoxContainer
 ## Play / Pause / Reset buttons for simulation control.
 
 signal zoom_to_fit_pressed()
+signal trace_toggled(enabled: bool)
 
 var _play_button: Button
 var _pause_button: Button
 var _reset_button: Button
 var _fit_button: Button
+var _trace_button: Button
 var _status_label: Label
+var _trace_active: bool = false
 
 
 func _ready() -> void:
@@ -20,6 +23,7 @@ func _ready() -> void:
 	_pause_button = _create_button("Pause", Color(0.8, 0.7, 0.2))
 	_reset_button = _create_button("Reset", Color(0.7, 0.3, 0.2))
 	_fit_button = _create_button("Fit", Color(0.3, 0.5, 0.7))
+	_trace_button = _create_button("Trace", Color(0.6, 0.4, 0.8))
 
 	_status_label = Label.new()
 	_status_label.text = "STOPPED"
@@ -31,6 +35,7 @@ func _ready() -> void:
 	_pause_button.pressed.connect(_on_pause)
 	_reset_button.pressed.connect(_on_reset)
 	_fit_button.pressed.connect(_on_fit)
+	_trace_button.pressed.connect(_on_trace)
 
 	_pause_button.disabled = true
 	_reset_button.disabled = true
@@ -90,6 +95,32 @@ func _on_reset() -> void:
 
 func _on_fit() -> void:
 	zoom_to_fit_pressed.emit()
+
+
+func _on_trace() -> void:
+	_trace_active = not _trace_active
+	_update_trace_button()
+	trace_toggled.emit(_trace_active)
+
+
+func _update_trace_button() -> void:
+	var color := Color(0.6, 0.4, 0.8)
+	var style := StyleBoxFlat.new()
+	style.corner_radius_top_left = 6
+	style.corner_radius_top_right = 6
+	style.corner_radius_bottom_left = 6
+	style.corner_radius_bottom_right = 6
+	style.border_width_bottom = 2
+	style.border_width_top = 1
+	style.border_width_left = 1
+	style.border_width_right = 1
+	if _trace_active:
+		style.bg_color = color
+		style.border_color = color.lightened(0.3)
+	else:
+		style.bg_color = color.darkened(0.3)
+		style.border_color = color
+	_trace_button.add_theme_stylebox_override("normal", style)
 
 
 func _on_state_changed(new_state: SimulationManager.SimState) -> void:

@@ -1,15 +1,26 @@
 class_name ComponentTray
 extends PanelContainer
 
-## Bottom tray showing available components. Drag to place on canvas.
+## Bottom tray showing available components with category filter tabs.
+## Drag to place on canvas.
 
 signal component_drag_started(type_name: String)
 
 @onready var container: HBoxContainer = $MarginContainer/HBoxContainer
 
 var _tooltip: ComponentTooltip = null
+var _filter_container: HBoxContainer = null
+var _active_filter: String = "all"
 
 const TRAY_BUTTON_SIZE := Vector2(72, 72)
+const FILTER_CATEGORIES: Array[Dictionary] = [
+	{"key": "all", "label": "All", "color": Color(0.4, 0.4, 0.5)},
+	{"key": "mechanical", "label": "Mech", "color": Color(0.55, 0.45, 0.3)},
+	{"key": "flow", "label": "Flow", "color": Color(0.2, 0.5, 0.7)},
+	{"key": "energy", "label": "Energy", "color": Color(0.7, 0.5, 0.1)},
+	{"key": "force", "label": "Force", "color": Color(0.3, 0.5, 0.5)},
+	{"key": "signal", "label": "Signal", "color": Color(0.15, 0.6, 0.3)},
+]
 const TRAY_COLORS: Dictionary = {
 	"ramp": Color(0.55, 0.35, 0.15),
 	"pipe": Color(0.2, 0.5, 0.7),
@@ -68,7 +79,96 @@ func _ready() -> void:
 	tooltip_layer.layer = 15
 	add_child(tooltip_layer)
 	tooltip_layer.add_child(_tooltip)
+	_build_filter_tabs()
 	_build_tray()
+
+
+func _build_filter_tabs() -> void:
+	# Insert filter tab row above the component buttons
+	var margin: MarginContainer = $MarginContainer
+	var parent: Node = margin.get_parent()
+
+	_filter_container = HBoxContainer.new()
+	_filter_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	_filter_container.add_theme_constant_override("separation", 4)
+
+	var filter_margin := MarginContainer.new()
+	filter_margin.add_theme_constant_override("margin_left", 12)
+	filter_margin.add_theme_constant_override("margin_right", 12)
+	filter_margin.add_theme_constant_override("margin_top", 4)
+	filter_margin.add_theme_constant_override("margin_bottom", 0)
+	filter_margin.add_child(_filter_container)
+
+	# Wrap everything in a VBox so tabs sit above tray
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 0)
+	parent.remove_child(margin)
+	vbox.add_child(filter_margin)
+	vbox.add_child(margin)
+	parent.add_child(vbox)
+
+	for cat in FILTER_CATEGORIES:
+		_add_filter_button(cat["key"], cat["label"], cat["color"])
+
+
+func _add_filter_button(key: String, label: String, color: Color) -> void:
+	var button := Button.new()
+	button.text = label
+	button.custom_minimum_size = Vector2(56, 24)
+	button.add_theme_font_size_override("font_size", 11)
+
+	var is_active: bool = (key == _active_filter)
+	_apply_filter_style(button, color, is_active)
+
+	button.pressed.connect(_on_filter_pressed.bind(key))
+	button.set_meta("filter_key", key)
+	_filter_container.add_child(button)
+
+
+func _apply_filter_style(button: Button, color: Color, active: bool) -> void:
+	var style := StyleBoxFlat.new()
+	style.corner_radius_top_left = 4
+	style.corner_radius_top_right = 4
+	style.corner_radius_bottom_left = 4
+	style.corner_radius_bottom_right = 4
+	style.content_margin_left = 6
+	style.content_margin_right = 6
+	style.content_margin_top = 2
+	style.content_margin_bottom = 2
+
+	if active:
+		style.bg_color = color
+		style.border_width_bottom = 2
+		style.border_color = color.lightened(0.4)
+		button.add_theme_color_override("font_color", Color.WHITE)
+	else:
+		style.bg_color = color.darkened(0.5)
+		style.border_width_bottom = 0
+		button.add_theme_color_override("font_color", Color(0.6, 0.6, 0.7))
+
+	button.add_theme_stylebox_override("normal", style)
+
+	var hover_style := style.duplicate()
+	hover_style.bg_color = color.darkened(0.2) if not active else color.lightened(0.1)
+	button.add_theme_stylebox_override("hover", hover_style)
+
+
+func _on_filter_pressed(key: String) -> void:
+	_active_filter = key
+	_update_filter_visuals()
+	_build_tray()
+
+
+func _update_filter_visuals() -> void:
+	for child in _filter_container.get_children():
+		if child is Button:
+			var key: String = child.get_meta("filter_key", "")
+			var color := Color(0.4, 0.4, 0.5)
+			for cat in FILTER_CATEGORIES:
+				if cat["key"] == key:
+					color = cat["color"]
+					break
+			_apply_filter_style(child, color, key == _active_filter)
 
 
 func _build_tray() -> void:
@@ -81,6 +181,10 @@ func _build_tray() -> void:
 		if _available_types.size() > 0 and type_name not in _available_types:
 			continue
 		var info: Dictionary = ComponentRegistry.get_component_info(type_name)
+		# Apply category filter
+		if _active_filter != "all":
+			if info.get("category", "") != _active_filter:
+				continue
 		_add_tray_button(type_name, info)
 
 
