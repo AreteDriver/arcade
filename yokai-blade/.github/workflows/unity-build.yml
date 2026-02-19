@@ -1,0 +1,166 @@
+# YOKAI BLADE CI Pipeline
+# Uses GameCI for Unity testing and builds
+#
+# SETUP REQUIRED (Personal License):
+# 1. Open Unity Hub on your local machine
+# 2. Sign in and activate Unity (this creates a .ulf file)
+# 3. Find the license file:
+#    - Windows: C:\ProgramData\Unity\Unity_lic.ulf
+#    - macOS: /Library/Application Support/Unity/Unity_lic.ulf
+#    - Linux: ~/.local/share/unity3d/Unity/Unity_lic.ulf
+# 4. Add these GitHub repository secrets (Settings > Secrets > Actions):
+#    - UNITY_LICENSE: Contents of the .ulf file
+#    - UNITY_EMAIL: Your Unity account email
+#    - UNITY_PASSWORD: Your Unity account password
+#
+# For Pro/Plus License, use UNITY_SERIAL instead of UNITY_LICENSE
+#
+# See: https://game.ci/docs/github/activation
+
+name: Unity Build & Test
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  lint:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for TODO/FIXME in critical systems
+        run: |
+          echo "Checking for unresolved items in Core systems..."
+          ! grep -r "TODO\|FIXME\|HACK" Assets/Core/ --include="*.cs" || echo "Warning: Found TODO/FIXME items"
+
+      - name: Validate telegraph invariants documented
+        run: |
+          echo "Checking telegraph documentation exists..."
+          test -f docs/INVARIANTS.md
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Cache Unity Library
+        uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: |
+            Library-
+
+      - name: Run EditMode Tests
+        uses: game-ci/unity-test-runner@v4
+        id: editmode-tests
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: .
+          testMode: EditMode
+          artifactsPath: editmode-artifacts
+          checkName: EditMode Test Results
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          coverageOptions: 'generateAdditionalMetrics;generateHtmlReport;generateBadgeReport;assemblyFilters:+YokaiBlade.*'
+
+      - name: Upload EditMode Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: EditMode Test Results
+          path: editmode-artifacts
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Coverage Report
+          path: CodeCoverage
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          directory: CodeCoverage
+          flags: unittests
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Run PlayMode Tests
+        uses: game-ci/unity-test-runner@v4
+        id: playmode-tests
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: .
+          testMode: PlayMode
+          artifactsPath: playmode-artifacts
+          checkName: PlayMode Test Results
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload PlayMode Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: PlayMode Test Results
+          path: playmode-artifacts
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: test
+    # Only run builds on manual trigger (no scenes configured yet)
+    if: github.event_name == 'workflow_dispatch'
+    strategy:
+      matrix:
+        targetPlatform:
+          - StandaloneWindows64
+          - StandaloneLinux64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Cache Unity Library
+        uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-${{ matrix.targetPlatform }}-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: |
+            Library-${{ matrix.targetPlatform }}-
+            Library-
+
+      - name: Build ${{ matrix.targetPlatform }}
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: .
+          targetPlatform: ${{ matrix.targetPlatform }}
+          buildsPath: build
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Build-${{ matrix.targetPlatform }}
+          path: build/${{ matrix.targetPlatform }}

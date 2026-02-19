@@ -1,0 +1,14 @@
+{
+    "AttackId": "Shirime_Punish",
+    "DisplayName": "Punishing Glare",
+    "StartupFrames": 15,
+    "ActiveFrames": 5,
+    "RecoveryFrames": 30,
+    "Telegraph": 2,
+    "TelegraphLeadFrames": 5,
+    "Damage": 1,
+    "Unblockable": true,
+    "CorrectResponse": 4,
+    "HitboxOffset": { "x": 0, "y": 1, "z": 1.5 },
+    "HitboxSize": { "x": 2, "y": 2, "z": 2 }
+}

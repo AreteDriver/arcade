@@ -1,0 +1,13 @@
+issue_key,title,milestone,priority
+M1-Init,Create Unity LTS project skeleton + folder layout + Boot scene,Milestone 1,High
+M1-Telegraphs,Implement TelegraphSemantic + TelegraphCatalog + TelegraphSystem + unit tests,Milestone 1,Critical
+M1-Input,Input actions + buffering + priority + test scene,Milestone 1,High
+M2-AttackData,AttackDefinition ScriptableObject + validation + sample assets,Milestone 2,High
+M2-AttackRunner,AttackRunner timeline + telegraph emit + regression tests,Milestone 2,Critical
+M2-Deflect,DeflectSystem perfect/standard windows + reward hooks + practice dummy,Milestone 2,Critical
+M2-DeathFeedback,FreezeManager + death feedback UI + tests,Milestone 2,High
+M3-Shirime,Shirime arena + boss brain + win/loss conditions,Milestone 3,Critical
+M3-Audio,AudioRouter buses + telegraph sidechain + audibility test mode,Milestone 3,High
+M4-Tanuki,Tanuki arena + deception visuals only + counter logic,Milestone 4,High
+M4-Oni,Oni arena + 3 phases + pure duel tuning,Milestone 4,High
+M4-QA,Full QA pass: semantic + timing + audio + clarity gates; produce build,Milestone 4,Critical

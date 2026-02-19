@@ -1,0 +1,14 @@
+{
+    "AttackId": "Oni_HeavyStrike",
+    "DisplayName": "Crushing Blow",
+    "StartupFrames": 45,
+    "ActiveFrames": 12,
+    "RecoveryFrames": 50,
+    "Telegraph": 1,
+    "TelegraphLeadFrames": 15,
+    "Damage": 1,
+    "Unblockable": false,
+    "CorrectResponse": 1,
+    "HitboxOffset": { "x": 0, "y": 1, "z": 2 },
+    "HitboxSize": { "x": 2, "y": 3, "z": 3 }
+}

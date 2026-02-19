@@ -1,0 +1,14 @@
+{
+    "AttackId": "Oni_Combo2",
+    "DisplayName": "Second Strike",
+    "StartupFrames": 10,
+    "ActiveFrames": 4,
+    "RecoveryFrames": 8,
+    "Telegraph": 1,
+    "TelegraphLeadFrames": 3,
+    "Damage": 1,
+    "Unblockable": false,
+    "CorrectResponse": 1,
+    "HitboxOffset": { "x": 0.5, "y": 1.2, "z": 1.2 },
+    "HitboxSize": { "x": 1.5, "y": 1.5, "z": 2 }
+}
