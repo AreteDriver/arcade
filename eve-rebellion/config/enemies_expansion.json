@@ -1,0 +1,158 @@
+{
+  "factions": {
+    "angel_cartel": {
+      "name": "Angel Cartel",
+      "visual_theme": {
+        "primary_color": [0.8, 0.2, 0.2],
+        "secondary_color": [0.4, 0.4, 0.4],
+        "accent_color": [1.0, 0.5, 0.0],
+        "projectile_color": [1.0, 0.6, 0.2],
+        "aesthetic": "aggressive_industrial"
+      }
+    },
+    "sisters_of_eve": {
+      "name": "Sisters of EVE",
+      "visual_theme": {
+        "primary_color": [0.9, 0.9, 0.95],
+        "secondary_color": [0.2, 0.6, 0.8],
+        "accent_color": [0.1, 0.8, 0.9],
+        "projectile_color": [0.3, 0.8, 1.0],
+        "aesthetic": "clean_humanitarian"
+      }
+    }
+  },
+
+  "enemy_types": {
+    "pirate_frigate": {
+      "name": "Pirate Frigate",
+      "faction": "angel_cartel",
+      "role": "fast_attack",
+      "behavior": "zigzag",
+      "health": {
+        "shields": 30,
+        "armor": 30,
+        "hull": 20
+      },
+      "speed": 130,
+      "score": 100,
+      "fire_rate": 1.5,
+      "damage": 10,
+      "powerup_chance": 0.15,
+      "description": "Fast raider frigate with autocannons"
+    },
+
+    "asteroid": {
+      "name": "Asteroid",
+      "faction": "environmental",
+      "role": "hazard",
+      "behavior": "drift",
+      "health": {
+        "shields": 0,
+        "armor": 50,
+        "hull": 50
+      },
+      "speed": 20,
+      "score": 10,
+      "fire_rate": 0,
+      "damage": 30,
+      "collision_damage": true,
+      "description": "Drifting space debris, collision hazard"
+    }
+  },
+
+  "bosses": {
+    "machariel": {
+      "name": "Machariel",
+      "faction": "angel_cartel",
+      "type_id": 17738,
+      "tier": "battleship",
+      "description": "Angel Cartel flagship, devastating autocannon barrage",
+      "health": {
+        "shields": 200,
+        "armor": 400,
+        "hull": 300
+      },
+      "speed": 50,
+      "score": 2000,
+      "sp_value": 100,
+      "fire_rate": 0.8,
+      "damage": 20,
+      "special_ability": {
+        "name": "barrage",
+        "description": "Unleashes a devastating barrage of autocannon fire",
+        "cooldown": 8.0,
+        "projectile_count": 12,
+        "spread_angle": 60
+      },
+      "phases": [
+        {"health_threshold": 0.75, "behavior": "aggressive", "fire_rate_mult": 1.0},
+        {"health_threshold": 0.50, "behavior": "strafe", "fire_rate_mult": 1.3},
+        {"health_threshold": 0.25, "behavior": "berserk", "fire_rate_mult": 1.6}
+      ]
+    },
+
+    "stratios": {
+      "name": "Stratios",
+      "faction": "sisters_of_eve",
+      "type_id": 33470,
+      "tier": "cruiser",
+      "description": "SoE exploration cruiser with cloaking and drones",
+      "health": {
+        "shields": 150,
+        "armor": 150,
+        "hull": 100
+      },
+      "speed": 70,
+      "score": 1500,
+      "sp_value": 80,
+      "fire_rate": 1.0,
+      "damage": 12,
+      "special_ability": {
+        "name": "cloak_and_drones",
+        "description": "Deploys drones and temporarily cloaks",
+        "cooldown": 12.0,
+        "cloak_duration": 3.0,
+        "drone_count": 5
+      },
+      "phases": [
+        {"health_threshold": 0.66, "behavior": "kiting", "spawn_drones": false},
+        {"health_threshold": 0.33, "behavior": "cloak_strike", "spawn_drones": true}
+      ]
+    },
+
+    "amarr_supercarrier": {
+      "name": "Golden Supercarrier",
+      "faction": "amarr",
+      "type_id": 23913,
+      "tier": "capital",
+      "description": "Amarr capital ship with multiple turret systems and fighter wings",
+      "health": {
+        "shields": 500,
+        "armor": 800,
+        "hull": 700
+      },
+      "speed": 15,
+      "score": 5000,
+      "sp_value": 200,
+      "liberation_value": 100,
+      "fire_rate": 0.5,
+      "damage": 35,
+      "special_ability": {
+        "name": "fighter_wave",
+        "description": "Launches continuous fighter drone wings",
+        "cooldown": 6.0,
+        "fighter_count": 8
+      },
+      "turrets": [
+        {"position": [-40, 0], "arc": 180, "fire_rate": 1.0},
+        {"position": [40, 0], "arc": 180, "fire_rate": 1.0},
+        {"position": [0, -30], "arc": 120, "fire_rate": 0.8}
+      ],
+      "phases": [
+        {"health_threshold": 0.80, "behavior": "broadside", "turrets_active": 1},
+        {"health_threshold": 0.50, "behavior": "all_guns", "turrets_active": 3},
+        {"health_threshold": 0.25, "behavior": "desperate", "spawn_rate_mult": 2.0}
+      ]
+    }
+  }
+}

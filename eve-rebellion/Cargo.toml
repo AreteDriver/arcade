@@ -1,0 +1,160 @@
+[package]
+name = "eve_rebellion"
+version = "1.9.0"
+edition = "2021"
+authors = ["ARETE"]
+description = "EVE Online arcade shooter suite - Rust/Bevy rewrite"
+license = "MIT"
+repository = "https://github.com/AreteDriver/eve_rebellion_rust"
+
+[dependencies]
+# UI
+bevy_egui = "0.31"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Utils
+rand = "0.8"
+fastrand = "2"
+
+# Image loading (EVE server returns JPEG despite .png extension)
+image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
+
+# Native-only dependencies (not WASM)
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+reqwest = { version = "0.13", features = ["json", "blocking"] }
+dirs = "5"
+libc = "0.2"
+hound = "3.5"
+
+# WASM dependencies
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+console_error_panic_hook = "0.1"
+web-sys = { version = "0.3", features = ["Window", "Storage"] }
+getrandom = { version = "0.3", features = ["wasm_js"] }
+
+# Game Engine - Linux with x11/wayland
+[target.'cfg(target_os = "linux")'.dependencies]
+bevy = { version = "0.15", default-features = false, features = [
+    "bevy_asset",
+    "bevy_audio",
+    "bevy_color",
+    "bevy_core_pipeline",
+    "bevy_gltf",
+    "bevy_render",
+    "bevy_scene",
+    "bevy_sprite",
+    "bevy_state",
+    "bevy_text",
+    "bevy_ui",
+    "bevy_winit",
+    "default_font",
+    "multi_threaded",
+    "png",
+    "wav",
+    "x11",
+    "wayland",
+] }
+
+# Game Engine - Windows
+[target.'cfg(target_os = "windows")'.dependencies]
+bevy = { version = "0.15", default-features = false, features = [
+    "bevy_asset",
+    "bevy_audio",
+    "bevy_color",
+    "bevy_core_pipeline",
+    "bevy_gltf",
+    "bevy_render",
+    "bevy_scene",
+    "bevy_sprite",
+    "bevy_state",
+    "bevy_text",
+    "bevy_ui",
+    "bevy_winit",
+    "default_font",
+    "multi_threaded",
+    "png",
+    "wav",
+] }
+
+# Game Engine - macOS
+[target.'cfg(target_os = "macos")'.dependencies]
+bevy = { version = "0.15", default-features = false, features = [
+    "bevy_asset",
+    "bevy_audio",
+    "bevy_color",
+    "bevy_core_pipeline",
+    "bevy_gltf",
+    "bevy_render",
+    "bevy_scene",
+    "bevy_sprite",
+    "bevy_state",
+    "bevy_text",
+    "bevy_ui",
+    "bevy_winit",
+    "default_font",
+    "multi_threaded",
+    "png",
+    "wav",
+] }
+
+# Game Engine - WASM (no multi-threading, no audio codecs - audio is silent in WASM)
+[target.'cfg(target_arch = "wasm32")'.dependencies.bevy]
+version = "0.15"
+default-features = false
+features = [
+    "bevy_asset",
+    "bevy_audio",
+    "bevy_color",
+    "bevy_core_pipeline",
+    "bevy_gltf",
+    "bevy_render",
+    "bevy_scene",
+    "bevy_sprite",
+    "bevy_state",
+    "bevy_text",
+    "bevy_ui",
+    "bevy_winit",
+    "default_font",
+    "png",
+    "webgl2",
+]
+
+[lib]
+name = "eve_rebellion"
+
+[dev-dependencies]
+bevy = { version = "0.15", default-features = false, features = ["dynamic_linking"] }
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "game_systems"
+harness = false
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = "symbols"
+panic = "abort"
+
+# Bench profile: override panic=abort from release so bevy dynamic_linking works
+[profile.bench]
+panic = "unwind"
+
+# WASM release profile - optimize for size
+[profile.wasm-release]
+inherits = "release"
+opt-level = "s"
+lto = true
+strip = "symbols"

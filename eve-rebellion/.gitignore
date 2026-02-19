@@ -1,0 +1,50 @@
+# Rust / Cargo
+/target
+**/*.rs.bk
+Cargo.lock.bak
+
+# Build artifacts
+/dist
+
+# WASM build output
+/web/*.js
+/web/*.wasm
+/web/*.d.ts
+/web/assets
+
+# Environment files
+.env
+.env.*
+.env.local
+
+# Python (utility scripts in assets/models/, web/server.py)
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+._*
+
+# Game saves / runtime
+*.save
+highscores.json
+
+# Archives (don't commit binaries)
+*.zip
+*.tar.gz
+*.rar
+*.7z

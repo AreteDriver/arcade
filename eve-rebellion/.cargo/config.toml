@@ -1,0 +1,9 @@
+# Cargo configuration for WASM builds
+
+[target.wasm32-unknown-unknown]
+# Enable JavaScript random number generator for getrandom
+# Enable unstable web-sys APIs for clipboard support in bevy_egui
+rustflags = [
+    '--cfg', 'getrandom_backend="wasm_js"',
+    '--cfg=web_sys_unstable_apis'
+]
