@@ -1,6 +1,6 @@
 # Arcade
 
-Game development monorepo — Bevy/Rust, Unity/C#, Godot/GDScript.
+Game development monorepo — Bevy/Rust, Unity/C#, Godot/GDScript, Python.
 
 ## Games
 
@@ -8,6 +8,7 @@ Game development monorepo — Bevy/Rust, Unity/C#, Godot/GDScript.
 |------|--------|----------|--------|
 | [eve-rebellion](eve-rebellion/) | Bevy 0.15 | Rust | Active — v1.9.0, 163 tests, WASM deployed |
 | [yokai-blade](yokai-blade/) | Unity | C# | Active |
+| [chronicle-rpg](chronicle-rpg/) | Custom | Python | Active — EVE Online tabletop RPG companion |
 | [sprocket-science](sprocket-science/) | Godot | GDScript | Active |
 | [rts-prototype](rts-prototype/) | Godot | GDScript | Archived |
 | [dust-rts](dust-rts/) | Unity | C# | Archived |
@@ -20,6 +21,7 @@ Each game lives in its own top-level directory with full git history preserved v
 arcade/
 ├── eve-rebellion/       # EVE Online arcade shooters — 4 campaigns, procedural audio
 ├── yokai-blade/         # Sekiro-inspired action game with Japanese yokai
+├── chronicle-rpg/       # EVE Online tabletop RPG companion
 ├── sprocket-science/    # Godot sandbox builder
 ├── rts-prototype/       # RTS prototype (archived)
 └── dust-rts/            # RTS game (archived)
