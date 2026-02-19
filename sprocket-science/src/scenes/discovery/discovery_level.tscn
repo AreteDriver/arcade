@@ -1,0 +1,50 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://src/scenes/discovery/discovery_level.gd" id="1_level"]
+[ext_resource type="PackedScene" path="res://src/scenes/machine_canvas.tscn" id="2_canvas"]
+[ext_resource type="PackedScene" path="res://src/ui/component_tray.tscn" id="3_tray"]
+[ext_resource type="PackedScene" path="res://src/ui/parameter_panel.tscn" id="4_panel"]
+[ext_resource type="PackedScene" path="res://src/ui/simulation_controls.tscn" id="5_controls"]
+[ext_resource type="PackedScene" path="res://src/ui/discovery/objective_tracker.tscn" id="6_tracker"]
+[ext_resource type="PackedScene" path="res://src/ui/discovery/dialog_box.tscn" id="7_dialog"]
+[ext_resource type="Script" path="res://src/systems/challenge_manager.gd" id="8_challenge"]
+[ext_resource type="PackedScene" path="res://src/ui/discovery/tutorial_overlay.tscn" id="9_tutorial"]
+
+[node name="DiscoveryLevel" type="Node2D"]
+script = ExtResource("1_level")
+
+[node name="MachineCanvas" parent="." instance=ExtResource("2_canvas")]
+
+[node name="UILayer" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="SimulationControls" parent="UILayer" instance=ExtResource("5_controls")]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -150.0
+offset_top = 24.0
+offset_right = 150.0
+offset_bottom = 60.0
+grow_horizontal = 2
+
+[node name="ParameterPanel" parent="UILayer" instance=ExtResource("4_panel")]
+
+[node name="ComponentTray" parent="UILayer" instance=ExtResource("3_tray")]
+
+[node name="ObjectiveTracker" parent="UILayer" instance=ExtResource("6_tracker")]
+
+[node name="BackButton" type="Button" parent="UILayer"]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 80.0
+offset_bottom = 36.0
+text = "< Back"
+theme_override_font_sizes/font_size = 12
+
+[node name="DialogBox" parent="." instance=ExtResource("7_dialog")]
+
+[node name="ChallengeManager" type="Node" parent="."]
+script = ExtResource("8_challenge")
+
+[node name="TutorialOverlay" parent="." instance=ExtResource("9_tutorial")]

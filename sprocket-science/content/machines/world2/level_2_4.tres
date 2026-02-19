@@ -1,0 +1,59 @@
+[gd_resource type="Resource" script_class="MachineDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/systems/machine_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+machine_name = "Star Polisher"
+machine_description = "Uses orbital gravity nodes to clean and polish distant stars!"
+world = 2
+level = 4
+challenge_type = "overloaded"
+machine_data = {
+"components": [
+	{
+		"id": "fusion_001",
+		"type": "fusion_core",
+		"position": [250, 300],
+		"parameters": {"output_level": 95.0, "stability": 40.0},
+		"connections": [
+			{"from_port": "energy_out", "to": "grav_001", "to_port": "energy_in"}
+		]
+	},
+	{
+		"id": "grav_001",
+		"type": "gravity_node",
+		"position": [450, 250],
+		"parameters": {"field_strength": 90.0, "polarity": 0.0, "radius": 150.0},
+		"connections": []
+	},
+	{
+		"id": "grav_002",
+		"type": "gravity_node",
+		"position": [650, 350],
+		"parameters": {"field_strength": 85.0, "polarity": 0.0, "radius": 150.0},
+		"connections": []
+	},
+	{
+		"id": "quantum_001",
+		"type": "quantum_coupler",
+		"position": [450, 400],
+		"parameters": {"sync_range": 200.0, "sync_rate": 80.0},
+		"connections": [
+			{"from_port": "energy_out", "to": "grav_002", "to_port": "energy_in"}
+		]
+	}
+]
+}
+challenge_data = {
+"overload_threshold": 0
+}
+objectives = ["The Star Polisher is overheating! Reduce power until nothing is overloaded.", "You can adjust parameters and add components to stabilize the system."]
+hints = ["The Fusion Core's output is way higher than its stability — lower the output!", "The Gravity Nodes are pulling too hard — reduce their field strength.", "Try adding a Gear between the Fusion Core and the first Gravity Node to regulate energy.", "Balance is key — no component should be in the red!"]
+par_time_3_star = 50.0
+par_time_2_star = 90.0
+unlock_rewards = ["warp_belt", "chrono_spring"]
+intro_dialog = ["The Star Polisher should gently clean stars with orbital gravity...", "But it's running WAY too hot! Components are overloading left and right!", "Reduce the power and stabilize the system before something explodes!"]
+success_dialog = ["The stars are sparkling! No more overloads!", "You've unlocked the Warp Belt and Chrono Spring!", "World 2 complete — the Sky Factory is running perfectly!"]
+available_components = ["fusion_core", "gravity_node", "quantum_coupler", "gear", "pipe", "valve"]
+locked_component_ids = []

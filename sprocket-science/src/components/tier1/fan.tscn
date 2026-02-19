@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/components/tier1/fan.gd" id="1_fan"]
+
+[node name="Fan" type="Node2D"]
+script = ExtResource("1_fan")
+component_name = "Fan"
+component_description = "Blows objects with wind force. Adjust speed and direction."

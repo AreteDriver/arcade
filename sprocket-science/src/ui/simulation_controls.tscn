@@ -1,0 +1,14 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/ui/simulation_controls.gd" id="1_controls"]
+
+[node name="SimulationControls" type="HBoxContainer"]
+script = ExtResource("1_controls")
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -130.0
+offset_top = 8.0
+offset_right = 130.0
+offset_bottom = 48.0
+grow_horizontal = 2

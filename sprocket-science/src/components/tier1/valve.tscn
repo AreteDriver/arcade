@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/components/tier1/valve.gd" id="1_valve"]
+
+[node name="Valve" type="Node2D"]
+script = ExtResource("1_valve")
+component_name = "Valve"
+component_description = "Regulates flow. Signal input overrides threshold."

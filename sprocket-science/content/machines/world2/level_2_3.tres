@@ -1,0 +1,63 @@
+[gd_resource type="Resource" script_class="MachineDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/systems/machine_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+machine_name = "Weather Dial"
+machine_description = "Controls the weather! Turn the dial for sun, rain, or snow."
+world = 2
+level = 3
+challenge_type = "miscalibrated"
+machine_data = {
+"components": [
+	{
+		"id": "gear_001",
+		"type": "gear",
+		"position": [300, 300],
+		"parameters": {"size": 1.5, "teeth_count": 12.0},
+		"connections": [
+			{"from_port": "energy_out", "to": "valve_001", "to_port": "flow_in"}
+		]
+	},
+	{
+		"id": "valve_001",
+		"type": "valve",
+		"position": [500, 300],
+		"parameters": {"threshold": 0.8},
+		"connections": [
+			{"from_port": "flow_out", "to": "cloud_001", "to_port": "flow_in"}
+		]
+	},
+	{
+		"id": "cloud_001",
+		"type": "cloud_weaver",
+		"position": [700, 250],
+		"parameters": {"density": 20.0, "turbulence": 80.0},
+		"connections": []
+	},
+	{
+		"id": "fan_001",
+		"type": "fan",
+		"position": [500, 180],
+		"parameters": {"speed": 90.0, "direction": 45.0},
+		"connections": []
+	}
+]
+}
+challenge_data = {
+"target_params": {
+	"valve_001": {"threshold": 0.4},
+	"cloud_001": {"density": 75.0, "turbulence": 20.0},
+	"fan_001": {"speed": 40.0, "direction": 0.0}
+}
+}
+objectives = ["Set the Weather Dial to 'gentle rain' — dense clouds with low turbulence!", "The fan should blow gently and straight, the valve should let more flow through."]
+hints = ["Lower the Valve threshold so more flow gets through.", "Increase Cloud Weaver density for thicker clouds.", "Reduce turbulence — rain should fall straight down!", "The Fan speed should be gentle, and direction should be 0 (straight)."]
+par_time_3_star = 35.0
+par_time_2_star = 70.0
+unlock_rewards = ["quantum_coupler"]
+intro_dialog = ["The Weather Dial controls the sky — but right now it's making a tornado!", "We need gentle rain, not a storm. Can you calm things down?", "Adjust the settings until the weather is just right."]
+success_dialog = ["Perfect gentle rain! The flowers are happy!", "You've unlocked the Quantum Coupler!", "You can control the weather like a pro!"]
+available_components = ["gear", "valve", "cloud_weaver", "fan"]
+locked_component_ids = ["gear_001", "valve_001", "cloud_001", "fan_001"]

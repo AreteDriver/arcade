@@ -1,0 +1,70 @@
+[gd_resource type="Resource" script_class="MachineDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/systems/machine_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+machine_name = "Memory Projector"
+machine_description = "A complex multi-system machine that plays back memories as holograms."
+world = 3
+level = 4
+challenge_type = "overloaded"
+machine_data = {
+"components": [
+	{
+		"id": "fusion_001",
+		"type": "fusion_core",
+		"position": [200, 250],
+		"parameters": {"output_level": 90.0, "stability": 45.0},
+		"connections": [
+			{"from_port": "energy_out", "to": "chrono_001", "to_port": "energy_in"}
+		]
+	},
+	{
+		"id": "chrono_001",
+		"type": "chrono_spring",
+		"position": [400, 250],
+		"parameters": {"delay": 1.0, "charge_rate": 80.0},
+		"connections": [
+			{"from_port": "energy_out", "to": "quantum_001", "to_port": "energy_in"}
+		]
+	},
+	{
+		"id": "quantum_001",
+		"type": "quantum_coupler",
+		"position": [400, 400],
+		"parameters": {"sync_range": 300.0, "sync_rate": 90.0},
+		"connections": [
+			{"from_port": "energy_out", "to": "holo_001", "to_port": "energy_in"}
+		]
+	},
+	{
+		"id": "holo_001",
+		"type": "holo_projector",
+		"position": [650, 400],
+		"parameters": {"pattern": 3.0, "brightness": 90.0},
+		"connections": []
+	},
+	{
+		"id": "emotion_001",
+		"type": "emotion_sensor",
+		"position": [200, 400],
+		"parameters": {"sensitivity": 80.0, "response_time": 70.0},
+		"connections": [
+			{"from_port": "signal_out", "to": "holo_001", "to_port": "signal_in"}
+		]
+	}
+]
+}
+challenge_data = {
+"overload_threshold": 0
+}
+objectives = ["The Memory Projector is overloading! Stabilize all components.", "You can adjust parameters, add buffers, or rewire to spread the load."]
+hints = ["The Fusion Core output is much higher than its stability — lower it!", "The Quantum Coupler sync rate is too high — it's overwhelmed.", "Try adding a Gear between the Chrono Spring and Quantum Coupler to regulate flow.", "Lower the Emotion Sensor sensitivity to reduce signal spikes."]
+par_time_3_star = 55.0
+par_time_2_star = 100.0
+unlock_rewards = []
+intro_dialog = ["The Memory Projector is the most complex machine in the Dream Workshop!", "It stores, transmits, and displays memories as holograms.", "But it's running dangerously hot — multiple systems are overloading!", "You'll need all your skills to stabilize this one!"]
+success_dialog = ["Incredible! The Memory Projector shows beautiful memories without overheating!", "World 3 complete — you've mastered the Dream Workshop!", "One final challenge awaits in the Impossible Lab..."]
+available_components = ["fusion_core", "chrono_spring", "quantum_coupler", "holo_projector", "emotion_sensor", "gear", "valve", "pipe"]
+locked_component_ids = []

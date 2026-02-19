@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/components/tier2/gravity_node.gd" id="1_gravity_node"]
+
+[node name="GravityNode" type="Node2D"]
+script = ExtResource("1_gravity_node")
+component_name = "Gravity Node"
+component_description = "Radial force field. Attracts or repels nearby objects."

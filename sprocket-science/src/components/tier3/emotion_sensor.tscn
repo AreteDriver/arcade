@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/components/tier3/emotion_sensor.gd" id="1"]
+
+[node name="EmotionSensor" type="Node2D"]
+script = ExtResource("1")
+component_name = "Emotion Sensor"
+component_description = "Reacts to signal patterns. Expresses emotion based on input frequency."

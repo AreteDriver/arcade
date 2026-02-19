@@ -1,0 +1,63 @@
+[gd_resource type="Resource" script_class="MachineDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/systems/machine_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+machine_name = "Cloud Harvester"
+machine_description = "Collects clouds from the sky and compresses them into rain!"
+world = 2
+level = 1
+challenge_type = "incomplete"
+machine_data = {
+"components": [
+	{
+		"id": "fan_001",
+		"type": "fan",
+		"position": [300, 300],
+		"parameters": {"speed": 60.0, "direction": 0.0},
+		"connections": [
+			{"from_port": "flow_out", "to": "pipe_001", "to_port": "flow_in"}
+		]
+	},
+	{
+		"id": "pipe_001",
+		"type": "pipe",
+		"position": [500, 300],
+		"parameters": {"angle": 0.0, "diameter": 28.0},
+		"connections": [
+			{"from_port": "flow_out", "to": "valve_001", "to_port": "flow_in"}
+		]
+	},
+	{
+		"id": "valve_001",
+		"type": "valve",
+		"position": [700, 350],
+		"parameters": {"threshold": 0.5},
+		"connections": []
+	}
+]
+}
+challenge_data = {
+"missing_slots": [
+	{
+		"position": [500, 180],
+		"type": "cloud_weaver",
+		"connections": []
+	},
+	{
+		"position": [700, 180],
+		"type": "gravity_node",
+		"connections": []
+	}
+]
+}
+objectives = ["Add the Cloud Weaver and Gravity Node to complete the harvester!", "The cloud needs to be pulled down and compressed through the valve."]
+hints = ["The Cloud Weaver shapes flow into clouds — place it above the pipe.", "The Gravity Node pulls objects downward — it should go near the valve.", "Try setting the Gravity Node to 'attract' mode."]
+par_time_3_star = 45.0
+par_time_2_star = 90.0
+unlock_rewards = ["cloud_weaver", "plasma_conduit"]
+intro_dialog = ["Welcome to the Sky Factory!", "This Cloud Harvester scoops up clouds and squeezes them into rain.", "But it's missing some key parts — can you finish building it?"]
+success_dialog = ["Rain is falling! The Cloud Harvester works!", "You've unlocked the Cloud Weaver and Plasma Conduit!", "The sky is your workshop now!"]
+available_components = ["fan", "pipe", "valve", "cloud_weaver", "gravity_node", "gear"]
+locked_component_ids = ["fan_001", "pipe_001", "valve_001"]
