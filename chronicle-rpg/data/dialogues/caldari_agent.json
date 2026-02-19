@@ -1,0 +1,78 @@
+{
+  "start": "greeting",
+  "nodes": {
+    "greeting": {
+      "text": "Welcome to Jita, capsuleer. I represent Caldari Navy interests here.",
+      "choices": [
+        {
+          "text": "I'm looking for work.",
+          "next": "work_offer"
+        },
+        {
+          "text": "I have intel on Gallente movements.",
+          "next": "intel",
+          "condition": "has_gallente_intel"
+        },
+        {
+          "text": "Never mind.",
+          "next": null
+        }
+      ]
+    },
+    "work_offer": {
+      "text": "We need supplies delivered to our outpost in Nonni. Interested?",
+      "choices": [
+        {
+          "text": "I'll do it.",
+          "next": "accept_mission",
+          "effect": { "faction": { "Caldari Navy": 5 } }
+        },
+        {
+          "text": "What's the pay?",
+          "next": "negotiate"
+        }
+      ]
+    },
+    "accept_mission": {
+      "text": "Excellent. The coordinates have been uploaded to your neocom. Fly safe, capsuleer.",
+      "choices": [
+        {
+          "text": "On my way.",
+          "next": null,
+          "effect": {
+            "add_item": "nonni_supply_contract",
+            "set_flag": { "caldari_supply_run_accepted": true }
+          }
+        }
+      ]
+    },
+    "negotiate": {
+      "text": "Standard rate: 50,000 ISK plus faction standing. Take it or leave it.",
+      "choices": [
+        {
+          "text": "Deal.",
+          "next": "accept_mission",
+          "effect": { "faction": { "Caldari Navy": 3 } }
+        },
+        {
+          "text": "I'll pass.",
+          "next": null
+        }
+      ]
+    },
+    "intel": {
+      "text": "Excellent. This information is valuable. The State thanks you, capsuleer.",
+      "choices": [
+        {
+          "text": "Glad to help the State.",
+          "next": null,
+          "effect": {
+            "faction": { "Caldari Navy": 10, "Gallente Federation": -5 },
+            "remove_item": "gallente_intel",
+            "set_flag": { "intel_delivered": true }
+          }
+        }
+      ]
+    }
+  }
+}

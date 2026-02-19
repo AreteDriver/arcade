@@ -1,0 +1,2 @@
+# Pinned versions for reproducible builds
+pygame==2.6.1
